@@ -16,22 +16,36 @@ export default function Compras() {
   const [reload, setReload] = useState(0);
 
   function handleChange(e) {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   }
 
   async function guardar() {
     try {
+      // evitar guardar compra vacía
+      if (!form.nombre || !form.telefono || !form.numero_orden) {
+        alert("Faltan datos obligatorios");
+        return;
+      }
+
       await fetch("https://bolivia-imports-backend-pg.fly.dev/api/compras", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          numero_orden: form.numero_orden.trim(),
+          url_orden: form.url_orden.trim(),
+          descripcion_producto: form.descripcion_producto.trim(),
+        }),
       });
 
+      // limpiar formulario
       setForm({
         nombre: "",
         telefono: "",
@@ -43,9 +57,11 @@ export default function Compras() {
         descripcion_producto: "",
       });
 
+      // recargar tabla
       setReload((prev) => prev + 1);
+
     } catch (err) {
-      console.error(err);
+      console.error("Error guardando compra:", err);
     }
   }
 
@@ -53,11 +69,11 @@ export default function Compras() {
     <div className="space-y-12">
       <div>
         <p className="ui-section-title">Compras</p>
-
         <h2 className="ui-page-title">Registrar compra</h2>
       </div>
 
       <div className="ui-card flex flex-col gap-4">
+
         <input
           name="nombre"
           placeholder="Nombre cliente"
@@ -125,9 +141,11 @@ export default function Compras() {
         <button onClick={guardar} className="ui-button">
           Guardar compra
         </button>
+
       </div>
 
       <ComprasTable reload={reload} />
+
     </div>
   );
 }
