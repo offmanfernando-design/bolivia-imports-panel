@@ -1,0 +1,1 @@
+export const API_URL = "https://bolivia-imports-backend-pg.fly.dev/api"

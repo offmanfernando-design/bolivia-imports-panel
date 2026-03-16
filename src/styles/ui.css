@@ -1,0 +1,181 @@
+/* ===================================================== */
+/* DESIGN SYSTEM - BOLIVIA IMPORTS */
+/* ===================================================== */
+
+
+/* ===================================================== */
+/* CARDS */
+/* ===================================================== */
+
+.ui-card{
+  @apply bg-neutral-100 dark:bg-neutral-950
+  border border-neutral-200 dark:border-neutral-800
+  rounded-xl
+  p-6
+  shadow-sm dark:shadow-black/20
+  transition-all duration-200
+  hover:shadow-md
+  hover:-translate-y-[2px];
+}
+
+/* CARD HOVER */
+
+.ui-card-hover{
+  @apply hover:border-neutral-300 dark:hover:border-neutral-700;
+}
+
+
+/* ===================================================== */
+/* INPUTS */
+/* ===================================================== */
+
+.ui-input{
+  @apply w-full
+  px-4 py-2.5
+  rounded-lg
+  border border-neutral-200 dark:border-neutral-800
+  bg-neutral-50 dark:bg-neutral-900
+  text-neutral-900 dark:text-neutral-100
+  placeholder-neutral-400
+  text-sm
+  transition-all duration-200
+  focus:outline-none
+  focus:ring-2 focus:ring-neutral-300/40
+  focus:border-neutral-400;
+}
+
+/* SMALL INPUT */
+
+.ui-input-sm{
+  @apply px-3 py-2 text-sm;
+}
+
+
+/* ===================================================== */
+/* BUTTONS */
+/* ===================================================== */
+
+.ui-button{
+  @apply px-4 py-2
+  rounded-lg
+  bg-neutral-900
+  text-white
+  text-sm
+  font-medium
+  transition-all duration-200
+  hover:bg-neutral-800
+  hover:shadow
+  active:scale-[0.97];
+}
+
+.ui-button-success{
+  @apply px-4 py-2
+  rounded-lg
+  bg-emerald-600
+  text-white
+  text-sm
+  font-medium
+  transition-all duration-200
+  hover:bg-emerald-500
+  hover:shadow
+  active:scale-[0.97];
+}
+
+.ui-button-warning{
+  @apply px-4 py-2
+  rounded-lg
+  bg-yellow-600
+  text-white
+  text-sm
+  font-medium
+  transition-all duration-200
+  hover:bg-yellow-500
+  hover:shadow
+  active:scale-[0.97];
+}
+
+
+/* ===================================================== */
+/* TABLE */
+/* ===================================================== */
+
+.ui-table{
+  @apply border border-neutral-200 dark:border-neutral-800
+  rounded-xl
+  overflow-hidden;
+}
+
+/* TABLE ROW */
+
+.ui-row{
+  @apply transition-colors duration-150
+  hover:bg-neutral-100
+  dark:hover:bg-neutral-900;
+}
+
+
+/* ===================================================== */
+/* TITLES */
+/* ===================================================== */
+
+.ui-section-title{
+  @apply text-xs
+  uppercase
+  tracking-widest
+  text-neutral-400;
+}
+
+.ui-page-title{
+  @apply text-2xl
+  font-semibold
+  text-neutral-900 dark:text-neutral-100;
+}
+
+
+/* ===================================================== */
+/* MICRO ANIMATIONS */
+/* ===================================================== */
+
+.ui-hover{
+  @apply transition-all duration-200 hover:translate-x-[2px];
+}
+
+/* SCALE HOVER */
+
+.ui-scale{
+  @apply transition-transform duration-200 hover:scale-[1.02];
+}
+
+
+/* ===================================================== */
+/* SKELETON LOADING */
+/* ===================================================== */
+
+.ui-skeleton{
+  @apply animate-pulse
+  bg-neutral-200 dark:bg-neutral-800
+  rounded;
+}
+
+
+/* ===================================================== */
+/* FADE ANIMATION */
+/* ===================================================== */
+
+.ui-fade{
+  animation: fadeIn .25s ease;
+}
+
+@keyframes fadeIn{
+
+  from{
+    opacity:0;
+    transform:translateY(4px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+}
