@@ -39,6 +39,8 @@ export default function Compras() {
         pagina: "",
         numero_orden: "",
         fecha: "",
+        url_orden: "",
+        descripcion_producto: "",
       });
 
       setReload((prev) => prev + 1);
