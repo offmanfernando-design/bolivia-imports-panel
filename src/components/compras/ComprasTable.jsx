@@ -75,14 +75,29 @@ export default function ComprasTable({ reload }) {
     }
   }
 
+  // 🎯 TEXTO PRO (NO TÉCNICO)
+  function formatEstado(estado) {
+    switch (estado) {
+      case "reparto":
+        return "Reparto";
+      case "entregado":
+        return "En USA";
+      case "recibido":
+        return "En Bolivia";
+      default:
+        return "Reparto";
+    }
+  }
+
+  // 🎨 COLORES PRO
   function getEstadoColor(estado) {
     switch (estado) {
       case "reparto":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300";
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300";
       case "entregado":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300";
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300";
       case "recibido":
-        return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300";
+        return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300";
       default:
         return "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
     }
@@ -110,6 +125,7 @@ export default function ComprasTable({ reload }) {
   return (
     <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-6">
       
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h3 className="text-sm uppercase tracking-widest text-gray-500 dark:text-gray-400">
           Compras registradas
@@ -120,6 +136,7 @@ export default function ComprasTable({ reload }) {
         </span>
       </div>
 
+      {/* Buscador */}
       <input
         type="text"
         placeholder="Buscar cliente, producto, página..."
@@ -128,6 +145,7 @@ export default function ComprasTable({ reload }) {
         className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded dark:bg-[#111]"
       />
 
+      {/* Tabla */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-separate border-spacing-y-2">
 
@@ -147,11 +165,12 @@ export default function ComprasTable({ reload }) {
           <tbody>
             {comprasFiltradas.map((compra) => {
               const tracking = compra.tracking_number;
+              const estadoActual = compra.estado || "reparto";
 
               return (
                 <tr
                   key={compra.id}
-                  className="bg-gray-50 dark:bg-[#181818] rounded-xl"
+                  className="bg-gray-50 dark:bg-[#181818] rounded-xl hover:bg-gray-100 dark:hover:bg-[#222] transition"
                 >
                   <td className="px-3 py-3 font-medium text-gray-900 dark:text-gray-100">
                     {compra.cliente_nombre}
@@ -175,7 +194,7 @@ export default function ComprasTable({ reload }) {
                         href={compra.url_orden}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-500 underline text-xs"
+                        className="text-blue-500 underline text-xs hover:text-blue-400"
                       >
                         Abrir
                       </a>
@@ -190,22 +209,21 @@ export default function ComprasTable({ reload }) {
                       : "—"}
                   </td>
 
+                  {/* 🔥 ESTADO PREMIUM */}
                   <td className="px-3 py-3">
-                    <div className="flex flex-col gap-1">
-                      <span className={`px-2 py-1 rounded text-xs w-fit ${getEstadoColor(compra.estado)}`}>
-                        {compra.estado || "reparto"}
-                      </span>
-
-                      <select
-                        value={compra.estado || "reparto"}
-                        onChange={(e) => cambiarEstado(compra.id, e.target.value)}
-                        className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-700 dark:bg-[#111]"
-                      >
-                        <option value="reparto">Reparto</option>
-                        <option value="entregado">Entregado</option>
-                        <option value="recibido">Recibido</option>
-                      </select>
-                    </div>
+                    <select
+                      value={estadoActual}
+                      onChange={(e) => cambiarEstado(compra.id, e.target.value)}
+                      className={`
+                        px-3 py-1 rounded-full text-xs font-medium border-none outline-none cursor-pointer
+                        ${getEstadoColor(estadoActual)}
+                        hover:opacity-80 transition
+                      `}
+                    >
+                      <option value="reparto">{formatEstado("reparto")}</option>
+                      <option value="entregado">{formatEstado("entregado")}</option>
+                      <option value="recibido">{formatEstado("recibido")}</option>
+                    </select>
                   </td>
 
                   <td className="px-3 py-3">
