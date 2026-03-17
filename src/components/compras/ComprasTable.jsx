@@ -79,9 +79,9 @@ export default function ComprasTable({ reload }) {
   function formatEstado(estado) {
     switch (estado) {
       case "reparto":
-        return "Reparto";
+        return "En Reparto";
       case "entregado":
-        return "En USA";
+        return "En WHEREHOUSE";
       case "recibido":
         return "En Bolivia";
       default:
