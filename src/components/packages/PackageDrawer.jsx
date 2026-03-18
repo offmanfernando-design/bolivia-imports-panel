@@ -6,16 +6,17 @@ export default function PackageDrawer({ pkg }) {
   const [warehouseImage, setWarehouseImage] = useState(null);
   const [loadingUpload, setLoadingUpload] = useState(false);
 
-  // 🔥 SIN DATA FAKE
+  // 🔥 DATA LIMPIA (SIN FAKE + BACKEND CORRECTO)
   const [data, setData] = useState({
-    cliente: pkg?.cliente || "",
+    cliente: pkg?.cliente || pkg?.cliente_nombre || "",
     peso: "",
     volumen: "",
-    ubicacion: "",
-    fecha: ""
+    ubicacion: ""
   });
 
   if (!pkg) return null;
+
+  const tracking = pkg.tracking || pkg.tracking_number;
 
   const handleChange = (field, value) => {
     setData({ ...data, [field]: value });
@@ -50,7 +51,7 @@ export default function PackageDrawer({ pkg }) {
       event: "Compra registrada",
       date: pkg.fecha_estimada
     },
-    pkg.tracking && {
+    tracking && {
       event: "Tracking asignado",
       date: pkg.fecha_estimada
     },
@@ -82,8 +83,6 @@ export default function PackageDrawer({ pkg }) {
       );
 
       setWarehouseImage(null);
-
-      // 🔥 REFRESH TEMPORAL
       window.location.reload();
 
     } catch (err) {
@@ -98,27 +97,21 @@ export default function PackageDrawer({ pkg }) {
 
       <div className="w-full max-w-3xl flex flex-col gap-14">
 
-        {/* HEADER */}
+        {/* HEADER LIMPIO */}
         <div className="flex flex-col gap-2">
 
           <p className="text-xs text-neutral-400 uppercase tracking-widest">
-            Tracking
+            Paquete
           </p>
 
           <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-200">
-            {pkg.tracking}
+            {tracking || "Sin tracking"}
           </h2>
 
           <div className="flex gap-2">
-
             <span className="px-2 py-1 text-xs rounded-md bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">
-              {pkg.estado}
+              {pkg.estado || "en proceso"}
             </span>
-
-            <span className="px-2 py-1 text-xs rounded-md bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
-              {pkg.pago}
-            </span>
-
           </div>
 
         </div>
@@ -134,13 +127,9 @@ export default function PackageDrawer({ pkg }) {
             Cambiar estado
           </button>
 
-          <button className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">
-            Marcar pagado
-          </button>
-
         </div>
 
-        {/* INFO CARD */}
+        {/* INFO */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
 
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
@@ -156,7 +145,7 @@ export default function PackageDrawer({ pkg }) {
 
             <div>
               <p className="text-neutral-500">Tracking</p>
-              <p className="font-medium">{pkg.tracking}</p>
+              <p className="font-medium">{tracking || "—"}</p>
             </div>
 
             <div>
@@ -175,15 +164,19 @@ export default function PackageDrawer({ pkg }) {
             </div>
 
             <div>
-              <p className="text-neutral-500">Fecha llegada</p>
-              {renderEditable("fecha", data.fecha)}
+              <p className="text-neutral-500">Llegada warehouse</p>
+              <p className="font-medium">
+                {pkg.warehouse_fecha
+                  ? new Date(pkg.warehouse_fecha).toLocaleDateString()
+                  : "—"}
+              </p>
             </div>
 
           </div>
 
         </div>
 
-        {/* 🔥 WAREHOUSE CARD CON DRAG & DROP */}
+        {/* WAREHOUSE */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
 
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
@@ -201,33 +194,15 @@ export default function PackageDrawer({ pkg }) {
                     const file = e.dataTransfer.files[0];
                     if (file) setWarehouseImage(file);
                   }}
-                  className="
-                    w-full
-                    border-2 border-dashed
-                    border-neutral-300 dark:border-neutral-700
-                    rounded-lg
-                    p-6
-                    text-center
-                    cursor-pointer
-                    hover:border-black dark:hover:border-white
-                    transition
-                  "
+                  className="w-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-6 text-center cursor-pointer hover:border-black dark:hover:border-white transition"
                 >
                   {warehouseImage ? (
-                    <p className="text-sm">
-                      📦 {warehouseImage.name}
-                    </p>
+                    <p className="text-sm">📦 {warehouseImage.name}</p>
                   ) : (
                     <p className="text-sm text-neutral-400">
-                      Arrastra imagen aquí o haz click
+                      Arrastra imagen aquí
                     </p>
                   )}
-
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={(e) => setWarehouseImage(e.target.files[0])}
-                  />
                 </div>
 
                 <button
@@ -268,7 +243,7 @@ export default function PackageDrawer({ pkg }) {
 
         </div>
 
-        {/* HISTORIAL DINÁMICO */}
+        {/* HISTORIAL */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
 
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
