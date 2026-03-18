@@ -6,20 +6,14 @@ export default function PackageDrawer({ pkg }) {
   const [warehouseImage, setWarehouseImage] = useState(null);
   const [loadingUpload, setLoadingUpload] = useState(false);
 
+  // 🔥 SIN DATA FAKE
   const [data, setData] = useState({
     cliente: pkg?.cliente || "",
-    peso: "2.4 kg",
-    volumen: "0.03 m³",
-    ubicacion: "A3-14",
-    fecha: "12 Mar 2026"
+    peso: "",
+    volumen: "",
+    ubicacion: "",
+    fecha: ""
   });
-
-  const events = [
-    { event: "Carga creada", date: "03 Mar 2026" },
-    { event: "Recibido en Miami", date: "07 Mar 2026" },
-    { event: "Llegó a almacén Santa Cruz", date: "11 Mar 2026" },
-    { event: "En ruta a cliente", date: "12 Mar 2026" }
-  ];
 
   if (!pkg) return null;
 
@@ -45,10 +39,26 @@ export default function PackageDrawer({ pkg }) {
         onClick={() => setEditingField(field)}
         className="font-medium text-neutral-900 dark:text-neutral-200 cursor-pointer hover:text-black dark:hover:text-white transition-colors"
       >
-        {value}
+        {value || "—"}
       </p>
     );
   };
+
+  // 🔥 HISTORIAL REAL
+  const events = [
+    {
+      event: "Compra registrada",
+      date: pkg.fecha_estimada
+    },
+    pkg.tracking && {
+      event: "Tracking asignado",
+      date: pkg.fecha_estimada
+    },
+    pkg.warehouse_confirmado && {
+      event: "Confirmado en warehouse",
+      date: pkg.warehouse_fecha
+    }
+  ].filter(Boolean);
 
   async function handleUpload() {
     if (!warehouseImage) return;
@@ -56,7 +66,6 @@ export default function PackageDrawer({ pkg }) {
     try {
       setLoadingUpload(true);
 
-      // ⚠️ TEMPORAL (luego Cloudinary)
       const fakeUrl = URL.createObjectURL(warehouseImage);
 
       await fetch(
@@ -72,7 +81,10 @@ export default function PackageDrawer({ pkg }) {
         }
       );
 
-      alert("Confirmado en warehouse ✅");
+      setWarehouseImage(null);
+
+      // 🔥 REFRESH TEMPORAL
+      window.location.reload();
 
     } catch (err) {
       console.error(err);
@@ -171,7 +183,7 @@ export default function PackageDrawer({ pkg }) {
 
         </div>
 
-        {/* 🔥 WAREHOUSE CARD */}
+        {/* 🔥 WAREHOUSE CARD CON DRAG & DROP */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
 
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
@@ -182,11 +194,41 @@ export default function PackageDrawer({ pkg }) {
 
             {!pkg.warehouse_confirmado && (
               <>
-                <input
-                  type="file"
-                  onChange={(e) => setWarehouseImage(e.target.files[0])}
-                  className="text-sm"
-                />
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files[0];
+                    if (file) setWarehouseImage(file);
+                  }}
+                  className="
+                    w-full
+                    border-2 border-dashed
+                    border-neutral-300 dark:border-neutral-700
+                    rounded-lg
+                    p-6
+                    text-center
+                    cursor-pointer
+                    hover:border-black dark:hover:border-white
+                    transition
+                  "
+                >
+                  {warehouseImage ? (
+                    <p className="text-sm">
+                      📦 {warehouseImage.name}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-neutral-400">
+                      Arrastra imagen aquí o haz click
+                    </p>
+                  )}
+
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => setWarehouseImage(e.target.files[0])}
+                  />
+                </div>
 
                 <button
                   onClick={handleUpload}
@@ -226,7 +268,7 @@ export default function PackageDrawer({ pkg }) {
 
         </div>
 
-        {/* HISTORIAL */}
+        {/* HISTORIAL DINÁMICO */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
 
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
@@ -238,7 +280,11 @@ export default function PackageDrawer({ pkg }) {
             {events.map((item, index) => (
               <div key={index} className="flex justify-between">
                 <p>{item.event}</p>
-                <span className="text-xs text-neutral-400">{item.date}</span>
+                <span className="text-xs text-neutral-400">
+                  {item.date
+                    ? new Date(item.date).toLocaleString()
+                    : "—"}
+                </span>
               </div>
             ))}
 
