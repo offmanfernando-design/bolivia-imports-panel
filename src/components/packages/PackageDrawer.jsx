@@ -62,35 +62,37 @@ export default function PackageDrawer({ pkg }) {
   ].filter(Boolean);
 
   async function handleUpload() {
-    if (!warehouseImage) return;
+  if (!warehouseImage) return;
 
-    try {
-      setLoadingUpload(true);
+  try {
+    setLoadingUpload(true);
 
-      const fakeUrl = URL.createObjectURL(warehouseImage);
+    const formData = new FormData();
+    formData.append("file", warehouseImage);
 
-      await fetch(
-        `https://bolivia-imports-backend-pg.fly.dev/api/compras/${pkg.id}/warehouse`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            imagen_url: fakeUrl,
-          }),
-        }
-      );
+    const res = await fetch(
+      `https://bolivia-imports-backend-pg.fly.dev/api/compras/${pkg.id}/warehouse`,
+      {
+        method: "PATCH",
+        body: formData,
+      }
+    );
 
-      setWarehouseImage(null);
+    const data = await res.json();
+
+    if (data.ok) {
+      alert("Confirmado en warehouse ✅");
+
+      // 🔥 recargar datos sin reload (temporal)
       window.location.reload();
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingUpload(false);
     }
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingUpload(false);
   }
+}
 
   return (
     <div className="w-full flex justify-center animate-[fadeIn_.25s_ease]">
