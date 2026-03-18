@@ -1,18 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function PackageDrawer({ pkg }) {
-
   const [editingField, setEditingField] = useState(null);
   const [warehouseImage, setWarehouseImage] = useState(null);
   const [loadingUpload, setLoadingUpload] = useState(false);
+  const [events, setEvents] = useState([]);
 
   // 🔥 DATA LIMPIA (SIN FAKE + BACKEND CORRECTO)
   const [data, setData] = useState({
     cliente: pkg?.cliente || pkg?.cliente_nombre || "",
     peso: "",
     volumen: "",
-    ubicacion: ""
+    ubicacion: "",
   });
+
+  useEffect(() => {
+    if (!pkg?.id) return;
+
+    fetch(`https://bolivia-imports-backend-pg.fly.dev/api/compras/${pkg.id}/eventos`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) setEvents(data.data);
+      })
+      .catch(console.error);
+  }, [pkg?.id]);
 
   if (!pkg) return null;
 
@@ -45,63 +56,48 @@ export default function PackageDrawer({ pkg }) {
     );
   };
 
-  // 🔥 HISTORIAL REAL
-  const events = [
-    {
-      event: "Compra registrada",
-      date: pkg.fecha_estimada
-    },
-    tracking && {
-      event: "Tracking asignado",
-      date: pkg.fecha_estimada
-    },
-    pkg.warehouse_confirmado && {
-      event: "Confirmado en warehouse",
-      date: pkg.warehouse_fecha
-    }
-  ].filter(Boolean);
-
   async function handleUpload() {
-  if (!warehouseImage) return;
+    if (!warehouseImage) return;
 
-  try {
-    setLoadingUpload(true);
+    try {
+      setLoadingUpload(true);
 
-    const formData = new FormData();
-    formData.append("file", warehouseImage);
+      const formData = new FormData();
+      formData.append("file", warehouseImage);
 
-    const res = await fetch(
-      `https://bolivia-imports-backend-pg.fly.dev/api/compras/${pkg.id}/warehouse`,
-      {
-        method: "PATCH",
-        body: formData,
+      const res = await fetch(
+        `https://bolivia-imports-backend-pg.fly.dev/api/compras/${pkg.id}/warehouse`,
+        {
+          method: "PATCH",
+          body: formData,
+        },
+      );
+
+      const data = await res.json();
+
+      if (data.ok) {
+        alert("Confirmado en warehouse ✅");
+
+        // 🔥 ACTUALIZAR TIMELINE SIN RELOAD
+        fetch(`https://bolivia-imports-backend-pg.fly.dev/api/compras/${pkg.id}/eventos`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.ok) setEvents(data.data);
+          })
+          .catch(console.error);
       }
-    );
-
-    const data = await res.json();
-
-    if (data.ok) {
-      alert("Confirmado en warehouse ✅");
-
-      // 🔥 recargar datos sin reload (temporal)
-      window.location.reload();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingUpload(false);
     }
-
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoadingUpload(false);
   }
-}
 
   return (
     <div className="w-full flex justify-center animate-[fadeIn_.25s_ease]">
-
       <div className="w-full max-w-3xl flex flex-col gap-14">
-
         {/* HEADER LIMPIO */}
         <div className="flex flex-col gap-2">
-
           <p className="text-xs text-neutral-400 uppercase tracking-widest">
             Paquete
           </p>
@@ -115,12 +111,10 @@ export default function PackageDrawer({ pkg }) {
               {pkg.estado || "en proceso"}
             </span>
           </div>
-
         </div>
 
         {/* ACTIONS */}
         <div className="flex flex-wrap gap-3">
-
           <button className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">
             Imprimir etiqueta
           </button>
@@ -128,18 +122,15 @@ export default function PackageDrawer({ pkg }) {
           <button className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">
             Cambiar estado
           </button>
-
         </div>
 
         {/* INFO */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
-
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
             Información del paquete
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-sm">
-
             <div>
               <p className="text-neutral-500">Cliente</p>
               {renderEditable("cliente", data.cliente)}
@@ -173,20 +164,16 @@ export default function PackageDrawer({ pkg }) {
                   : "—"}
               </p>
             </div>
-
           </div>
-
         </div>
 
         {/* WAREHOUSE */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
-
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
             Confirmación Warehouse (USA)
           </h3>
 
           <div className="flex flex-col gap-4">
-
             {!pkg.warehouse_confirmado && (
               <>
                 <div
@@ -219,7 +206,6 @@ export default function PackageDrawer({ pkg }) {
 
             {pkg.warehouse_confirmado && (
               <div className="flex flex-col gap-2">
-
                 <span className="text-sm text-green-600 dark:text-green-400">
                   ✔ Confirmado en warehouse
                 </span>
@@ -237,38 +223,54 @@ export default function PackageDrawer({ pkg }) {
                     className="rounded-lg max-h-40 object-cover border"
                   />
                 )}
-
               </div>
             )}
-
           </div>
-
         </div>
 
         {/* HISTORIAL */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
-
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
             Historial
           </h3>
 
-          <div className="flex flex-col gap-4">
+          <div className="relative flex flex-col gap-6">
+            {/* línea vertical */}
+            <div className="absolute left-2 top-0 bottom-0 w-px bg-neutral-300 dark:bg-neutral-700" />
 
-            {events.map((item, index) => (
-              <div key={index} className="flex justify-between">
-                <p>{item.event}</p>
-                <span className="text-xs text-neutral-400">
-                  {item.date
-                    ? new Date(item.date).toLocaleString()
-                    : "—"}
-                </span>
-              </div>
-            ))}
+            {events.map((item, index) => {
+              const completed = !!item.fecha;
 
+              return (
+                <div key={index} className="relative flex items-start gap-4">
+                  <div
+                    className={`w-4 h-4 rounded-full mt-1 z-10 
+          ${completed ? "bg-green-500" : "bg-neutral-300 dark:bg-neutral-700"}`}
+                  />
+
+                  <div className="flex flex-col">
+                    <p
+                      className={`text-sm font-medium 
+            ${
+              completed
+                ? "text-neutral-900 dark:text-neutral-200"
+                : "text-neutral-400"
+            }`}
+                    >
+                      {item.descripcion}
+                    </p>
+
+                    <span className="text-xs text-neutral-400">
+                      {item.fecha
+                        ? new Date(item.fecha).toLocaleString()
+                        : "Pendiente"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
         </div>
-
       </div>
     </div>
   );
