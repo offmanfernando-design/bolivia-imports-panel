@@ -11,6 +11,8 @@ export default function RecepcionCarga() {
   const [tipoCambio,setTipoCambio] = useState("")
   const [ubicacion,setUbicacion] = useState("")
   const [loading,setLoading] = useState(false)
+  const [success,setSuccess] = useState(false)
+  const [error,setError] = useState("")
 
   const trackingRef = useRef(null)
 
@@ -37,6 +39,7 @@ export default function RecepcionCarga() {
     }catch(err){
 
       console.error(err)
+      setError("Error al buscar")
 
     }finally{
 
@@ -67,14 +70,17 @@ export default function RecepcionCarga() {
 
   async function registrar(itemId){
 
+    setError("")
+    setSuccess(false)
+
     if(!peso || !tarifa || !tipoCambio || !ubicacion){
-      alert("Completa todos los campos")
+      setError("Completa todos los campos")
       return
     }
 
     try{
 
-      await fetch(`${API_URL}/operativo/carga/recepcion`,{
+      const res = await fetch(`${API_URL}/operativo/carga/recepcion`,{
         method:"POST",
         headers:{
           "Content-Type":"application/json"
@@ -83,21 +89,32 @@ export default function RecepcionCarga() {
           orden_id:itemId,
           peso:Number(peso),
           precio_por_kg:Number(tarifa),
-          ubicacion_id:null // luego conectamos esto bien
+          ubicacion_id:null
         })
       })
 
-      alert("Carga registrada")
+      if(!res.ok){
+        throw new Error("Error al registrar")
+      }
 
-      // limpiar
+      // ✅ éxito
+      setSuccess(true)
+
+      // 🔥 limpiar TODO y volver a inicio
+      setTracking("")
+      setItems([])
       setPeso("")
       setTarifa("")
       setTipoCambio("")
       setUbicacion("")
 
+      // volver foco
+      trackingRef.current?.focus()
+
     }catch(err){
 
       console.error(err)
+      setError("Error al registrar carga")
 
     }
 
@@ -110,6 +127,19 @@ export default function RecepcionCarga() {
       <h3 className="text-sm uppercase tracking-widest text-neutral-500">
         Carga (Bolivia)
       </h3>
+
+      {/* 🔔 feedback */}
+      {success && (
+        <div className="bg-green-100 text-green-700 text-sm p-2 rounded">
+          ✅ Carga registrada
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-100 text-red-700 text-sm p-2 rounded">
+          ❌ {error}
+        </div>
+      )}
 
       <div className="flex gap-3">
 
