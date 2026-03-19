@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 const API_URL = "https://bolivia-imports-backend-pg.fly.dev/api";
 
@@ -17,7 +17,8 @@ export default function RecepcionCarga() {
     trackingRef.current?.focus()
   },[])
 
-  async function buscarTracking(){
+  // 🔥 useCallback para evitar warning
+  const buscarTracking = useCallback(async () => {
 
     if(tracking.length < 2) return
 
@@ -26,12 +27,12 @@ export default function RecepcionCarga() {
       setLoading(true)
 
       const res = await fetch(
-        `${API_URL}/operativo/carga/buscar-tracking/${tracking}`
+        `${API_URL}/operativo/carga/buscar?tracking=${tracking}`
       )
 
       const json = await res.json()
 
-      setItems(json.data || [])
+      setItems(json || [])
 
     }catch(err){
 
@@ -43,7 +44,23 @@ export default function RecepcionCarga() {
 
     }
 
-  }
+  }, [tracking])
+
+  // 🔥 debounce automático
+  useEffect(() => {
+
+    if (tracking.length < 2) {
+      setItems([])
+      return
+    }
+
+    const delay = setTimeout(() => {
+      buscarTracking()
+    }, 400)
+
+    return () => clearTimeout(delay)
+
+  }, [tracking, buscarTracking])
 
   async function registrar(itemId){
 
@@ -55,10 +72,10 @@ export default function RecepcionCarga() {
           "Content-Type":"application/json"
         },
         body:JSON.stringify({
-          item_id:itemId,
+          orden_id:itemId,
           peso:Number(peso),
-          tarifa_kg:Number(tarifa),
-          ubicacion
+          precio_por_kg:Number(tarifa),
+          ubicacion_id:null
         })
       })
 
@@ -87,18 +104,8 @@ export default function RecepcionCarga() {
           placeholder="Últimos 4 dígitos del tracking"
           value={tracking}
           onChange={(e)=>setTracking(e.target.value)}
-          onKeyDown={(e)=>{
-            if(e.key === "Enter") buscarTracking()
-          }}
           className="ui-input"
         />
-
-        <button
-          onClick={buscarTracking}
-          className="ui-button"
-        >
-          Buscar
-        </button>
 
       </div>
 
