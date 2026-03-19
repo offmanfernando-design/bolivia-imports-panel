@@ -8,6 +8,7 @@ export default function RecepcionCarga() {
   const [items,setItems] = useState([])
   const [peso,setPeso] = useState("")
   const [tarifa,setTarifa] = useState("")
+  const [tipoCambio,setTipoCambio] = useState("")
   const [ubicacion,setUbicacion] = useState("")
   const [loading,setLoading] = useState(false)
 
@@ -17,7 +18,6 @@ export default function RecepcionCarga() {
     trackingRef.current?.focus()
   },[])
 
-  // 🔥 useCallback para evitar warning
   const buscarTracking = useCallback(async () => {
 
     if(tracking.length < 2) return
@@ -46,7 +46,6 @@ export default function RecepcionCarga() {
 
   }, [tracking])
 
-  // 🔥 debounce automático
   useEffect(() => {
 
     if (tracking.length < 2) {
@@ -62,7 +61,16 @@ export default function RecepcionCarga() {
 
   }, [tracking, buscarTracking])
 
+  const total = peso && tarifa && tipoCambio
+    ? (Number(peso) * Number(tarifa) * Number(tipoCambio)).toFixed(2)
+    : 0
+
   async function registrar(itemId){
+
+    if(!peso || !tarifa || !tipoCambio || !ubicacion){
+      alert("Completa todos los campos")
+      return
+    }
 
     try{
 
@@ -75,11 +83,17 @@ export default function RecepcionCarga() {
           orden_id:itemId,
           peso:Number(peso),
           precio_por_kg:Number(tarifa),
-          ubicacion_id:null
+          ubicacion_id:null // luego conectamos esto bien
         })
       })
 
       alert("Carga registrada")
+
+      // limpiar
+      setPeso("")
+      setTarifa("")
+      setTipoCambio("")
+      setUbicacion("")
 
     }catch(err){
 
@@ -137,21 +151,32 @@ export default function RecepcionCarga() {
               </div>
 
               <input
-                placeholder="Peso"
+                placeholder="Peso (kg)"
                 value={peso}
                 onChange={(e)=>setPeso(e.target.value)}
                 className="ui-input ui-input-sm"
               />
 
               <input
-                placeholder="Precio por kg"
+                placeholder="Precio por kg ($)"
                 value={tarifa}
                 onChange={(e)=>setTarifa(e.target.value)}
                 className="ui-input ui-input-sm"
               />
 
               <input
-                placeholder="Ubicación (opcional)"
+                placeholder="Tipo de cambio (Bs)"
+                value={tipoCambio}
+                onChange={(e)=>setTipoCambio(e.target.value)}
+                className="ui-input ui-input-sm"
+              />
+
+              <div className="text-sm font-semibold">
+                Total: Bs {total}
+              </div>
+
+              <input
+                placeholder="Ubicación (OBLIGATORIO)"
                 value={ubicacion}
                 onChange={(e)=>setUbicacion(e.target.value)}
                 className="ui-input ui-input-sm"
