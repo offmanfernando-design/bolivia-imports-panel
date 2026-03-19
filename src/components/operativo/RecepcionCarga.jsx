@@ -6,7 +6,6 @@ export default function RecepcionCarga() {
   const [items,setItems] = useState([])
   const [peso,setPeso] = useState("")
   const [tarifa,setTarifa] = useState("")
-  const [tipoCambio,setTipoCambio] = useState("")
   const [ubicacion,setUbicacion] = useState("")
   const [loading,setLoading] = useState(false)
 
@@ -18,16 +17,16 @@ export default function RecepcionCarga() {
 
   async function buscarTracking(){
 
-    if(tracking.length < 4) return
+    if(tracking.length < 2) return
 
     try{
 
       setLoading(true)
 
-      const res = await fetch(`https://bolivia-imports-backend-pg.fly.dev/operativo/buscar-tracking/${tracking}`)
+      const res = await fetch(`https://bolivia-imports-backend-pg.fly.dev/api/operativo/carga/buscar?tracking=${tracking}`)
       const json = await res.json()
 
-      setItems(json.data || [])
+      setItems(json || [])
 
     }catch(err){
 
@@ -45,21 +44,20 @@ export default function RecepcionCarga() {
 
     try{
 
-      await fetch("https://bolivia-imports-backend-pg.fly.dev/operativo/recepcion",{
+      await fetch("https://bolivia-imports-backend-pg.fly.dev/api/operativo/carga",{
         method:"POST",
         headers:{
           "Content-Type":"application/json"
         },
         body:JSON.stringify({
-          item_id:itemId,
-          peso,
-          tarifa_kg:tarifa,
-          tipo_cambio:tipoCambio,
-          ubicacion
+          orden_id:itemId,
+          peso:Number(peso),
+          precio_por_kg:Number(tarifa),
+          ubicacion_id:null
         })
       })
 
-      alert("Paquete registrado")
+      alert("Carga registrada")
 
     }catch(err){
 
@@ -74,7 +72,7 @@ export default function RecepcionCarga() {
     <div className="ui-card flex flex-col gap-6">
 
       <h3 className="text-sm uppercase tracking-widest text-neutral-500">
-        Recepción de carga
+        Carga (Bolivia)
       </h3>
 
       <div className="flex gap-3">
@@ -118,10 +116,10 @@ export default function RecepcionCarga() {
 
               <div className="text-sm">
 
-                <strong>{item.cliente_nombre}</strong>
+                <strong>{item.tracking_number}</strong>
 
                 <p className="text-neutral-400 text-xs">
-                  Tracking: {item.tracking_number}
+                  Fecha warehouse: {item.warehouse_fecha}
                 </p>
 
               </div>
@@ -134,21 +132,14 @@ export default function RecepcionCarga() {
               />
 
               <input
-                placeholder="Tarifa por kg"
+                placeholder="Precio por kg"
                 value={tarifa}
                 onChange={(e)=>setTarifa(e.target.value)}
                 className="ui-input ui-input-sm"
               />
 
               <input
-                placeholder="Tipo de cambio"
-                value={tipoCambio}
-                onChange={(e)=>setTipoCambio(e.target.value)}
-                className="ui-input ui-input-sm"
-              />
-
-              <input
-                placeholder="Ubicación"
+                placeholder="Ubicación (opcional)"
                 value={ubicacion}
                 onChange={(e)=>setUbicacion(e.target.value)}
                 className="ui-input ui-input-sm"
@@ -158,7 +149,7 @@ export default function RecepcionCarga() {
                 onClick={()=>registrar(item.id)}
                 className="ui-button-success"
               >
-                Registrar paquete
+                Registrar carga
               </button>
 
             </div>
