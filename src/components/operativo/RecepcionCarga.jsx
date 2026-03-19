@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 
+const API_URL = "https://bolivia-imports-backend-pg.fly.dev/api";
+
 export default function RecepcionCarga() {
 
   const [tracking,setTracking] = useState("")
@@ -23,10 +25,13 @@ export default function RecepcionCarga() {
 
       setLoading(true)
 
-      const res = await fetch(`https://bolivia-imports-backend-pg.fly.dev/api/operativo/carga/buscar?tracking=${tracking}`)
+      const res = await fetch(
+        `${API_URL}/operativo/carga/buscar-tracking/${tracking}`
+      )
+
       const json = await res.json()
 
-      setItems(json || [])
+      setItems(json.data || [])
 
     }catch(err){
 
@@ -44,16 +49,16 @@ export default function RecepcionCarga() {
 
     try{
 
-      await fetch("https://bolivia-imports-backend-pg.fly.dev/api/operativo/carga",{
+      await fetch(`${API_URL}/operativo/carga/recepcion`,{
         method:"POST",
         headers:{
           "Content-Type":"application/json"
         },
         body:JSON.stringify({
-          orden_id:itemId,
+          item_id:itemId,
           peso:Number(peso),
-          precio_por_kg:Number(tarifa),
-          ubicacion_id:null
+          tarifa_kg:Number(tarifa),
+          ubicacion
         })
       })
 
