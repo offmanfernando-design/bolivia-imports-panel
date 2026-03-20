@@ -9,12 +9,15 @@ export default function RecepcionCarga() {
   const [peso,setPeso] = useState("")
   const [tarifa,setTarifa] = useState("")
   const [tipoCambio,setTipoCambio] = useState("")
+  const [precioBs,setPrecioBs] = useState("")
   const [ubicacion,setUbicacion] = useState("")
+  const [tipoCalculo,setTipoCalculo] = useState("peso")
   const [loading,setLoading] = useState(false)
   const [success,setSuccess] = useState(false)
   const [error,setError] = useState("")
 
   const trackingRef = useRef(null)
+  const lastEdited = useRef(null)
 
   useEffect(()=>{
     trackingRef.current?.focus()
@@ -25,7 +28,6 @@ export default function RecepcionCarga() {
     if(tracking.length < 2) return
 
     try{
-
       setLoading(true)
 
       const res = await fetch(
@@ -37,14 +39,10 @@ export default function RecepcionCarga() {
       setItems(json || [])
 
     }catch(err){
-
       console.error(err)
       setError("Error al buscar")
-
     }finally{
-
       setLoading(false)
-
     }
 
   }, [tracking])
@@ -64,17 +62,37 @@ export default function RecepcionCarga() {
 
   }, [tracking, buscarTracking])
 
-  const total = peso && tarifa && tipoCambio
-    ? (Number(peso) * Number(tarifa) * Number(tipoCambio)).toFixed(2)
-    : 0
+  // BIDIRECCIONAL UNIDAD
+  useEffect(() => {
+
+    if(tipoCalculo !== "unidad") return
+    if(!tipoCambio) return
+
+    const tc = Number(tipoCambio)
+
+    if(lastEdited.current === "usd" && tarifa){
+      setPrecioBs((Number(tarifa) * tc).toFixed(2))
+    }
+
+    if(lastEdited.current === "bs" && precioBs){
+      setTarifa((Number(precioBs) / tc).toFixed(2))
+    }
+
+  }, [tarifa, precioBs, tipoCambio, tipoCalculo])
+
+  const total = tipoCalculo === "peso"
+    ? peso && tarifa && tipoCambio
+      ? (Number(peso) * Number(tarifa) * Number(tipoCambio)).toFixed(2)
+      : 0
+    : precioBs || 0
 
   async function registrar(itemId){
 
     setError("")
     setSuccess(false)
 
-    if(!peso || !tarifa || !tipoCambio || !ubicacion){
-      setError("Completa todos los campos")
+    if(!ubicacion){
+      setError("Ubicación obligatoria")
       return
     }
 
@@ -87,9 +105,9 @@ export default function RecepcionCarga() {
         },
         body:JSON.stringify({
           orden_id:itemId,
-          peso:Number(peso),
-          precio_por_kg:Number(tarifa),
-          ubicacion_id:null
+          peso: tipoCalculo === "peso" ? Number(peso) : null,
+          precio_por_kg: tipoCalculo === "peso" ? Number(tarifa) : null,
+          ubicacion_id:1
         })
       })
 
@@ -97,25 +115,22 @@ export default function RecepcionCarga() {
         throw new Error("Error al registrar")
       }
 
-      // ✅ éxito
       setSuccess(true)
 
-      // 🔥 limpiar TODO y volver a inicio
       setTracking("")
       setItems([])
       setPeso("")
       setTarifa("")
       setTipoCambio("")
+      setPrecioBs("")
       setUbicacion("")
+      setTipoCalculo("peso")
 
-      // volver foco
       trackingRef.current?.focus()
 
     }catch(err){
-
       console.error(err)
       setError("Error al registrar carga")
-
     }
 
   }
@@ -128,7 +143,6 @@ export default function RecepcionCarga() {
         Carga (Bolivia)
       </h3>
 
-      {/* 🔔 feedback */}
       {success && (
         <div className="bg-green-100 text-green-700 text-sm p-2 rounded">
           ✅ Carga registrada
@@ -141,17 +155,13 @@ export default function RecepcionCarga() {
         </div>
       )}
 
-      <div className="flex gap-3">
-
-        <input
-          ref={trackingRef}
-          placeholder="Últimos 4 dígitos del tracking"
-          value={tracking}
-          onChange={(e)=>setTracking(e.target.value)}
-          className="ui-input"
-        />
-
-      </div>
+      <input
+        ref={trackingRef}
+        placeholder="Últimos 4 dígitos del tracking"
+        value={tracking}
+        onChange={(e)=>setTracking(e.target.value)}
+        className="ui-input"
+      />
 
       {loading && (
         <p className="text-sm text-neutral-400">
@@ -159,76 +169,91 @@ export default function RecepcionCarga() {
         </p>
       )}
 
-      {items.length > 0 && (
+      {items.length > 0 && items.map(item => (
 
-        <div className="flex flex-col gap-4">
+        <div key={item.id} className="ui-card flex flex-col gap-3">
 
-          {items.map(item => (
+          <strong>{item.tracking_number}</strong>
 
-            <div
-              key={item.id}
-              className="ui-card ui-card-hover flex flex-col gap-3"
-            >
-
-              <div className="text-sm">
-
-                <strong>{item.tracking_number}</strong>
-
-                <p className="text-neutral-400 text-xs">
-                  Fecha warehouse: {item.warehouse_fecha}
-                </p>
-
-              </div>
-
+          <div className="flex gap-4 text-sm">
+            <label>
               <input
-                placeholder="Peso (kg)"
-                value={peso}
-                onChange={(e)=>setPeso(e.target.value)}
-                className="ui-input ui-input-sm"
-              />
+                type="radio"
+                checked={tipoCalculo==="peso"}
+                onChange={()=>setTipoCalculo("peso")}
+              /> Peso
+            </label>
 
+            <label>
               <input
-                placeholder="Precio por kg ($)"
+                type="radio"
+                checked={tipoCalculo==="unidad"}
+                onChange={()=>setTipoCalculo("unidad")}
+              /> Unidad
+            </label>
+          </div>
+
+          {tipoCalculo === "peso" && (
+            <>
+              <input placeholder="Peso" value={peso} onChange={(e)=>setPeso(e.target.value)} className="ui-input ui-input-sm"/>
+              <input placeholder="Precio por kg" value={tarifa} onChange={(e)=>setTarifa(e.target.value)} className="ui-input ui-input-sm"/>
+              <input placeholder="Tipo cambio" value={tipoCambio} onChange={(e)=>setTipoCambio(e.target.value)} className="ui-input ui-input-sm"/>
+            </>
+          )}
+
+          {tipoCalculo === "unidad" && (
+            <>
+              <input
+                placeholder="Precio USD"
                 value={tarifa}
-                onChange={(e)=>setTarifa(e.target.value)}
+                onChange={(e)=>{
+                  lastEdited.current = "usd"
+                  setTarifa(e.target.value)
+                }}
                 className="ui-input ui-input-sm"
               />
 
               <input
-                placeholder="Tipo de cambio (Bs)"
+                placeholder="Precio Bs"
+                value={precioBs}
+                onChange={(e)=>{
+                  lastEdited.current = "bs"
+                  setPrecioBs(e.target.value)
+                }}
+                className="ui-input ui-input-sm"
+              />
+
+              <input
+                placeholder="Tipo cambio"
                 value={tipoCambio}
                 onChange={(e)=>setTipoCambio(e.target.value)}
                 className="ui-input ui-input-sm"
               />
+            </>
+          )}
 
-              <div className="text-sm font-semibold">
-                Total: Bs {total}
-              </div>
+          <div className="font-semibold">
+            Total: Bs {total}
+          </div>
 
-              <input
-                placeholder="Ubicación (OBLIGATORIO)"
-                value={ubicacion}
-                onChange={(e)=>setUbicacion(e.target.value)}
-                className="ui-input ui-input-sm"
-              />
+          <input
+            placeholder="Ubicación"
+            value={ubicacion}
+            onChange={(e)=>setUbicacion(e.target.value)}
+            className="ui-input ui-input-sm"
+          />
 
-              <button
-                onClick={()=>registrar(item.id)}
-                className="ui-button-success"
-              >
-                Registrar carga
-              </button>
-
-            </div>
-
-          ))}
+          <button
+            onClick={()=>registrar(item.id)}
+            className="ui-button-success"
+          >
+            Registrar carga
+          </button>
 
         </div>
 
-      )}
+      ))}
 
     </div>
-
   )
-
 }
