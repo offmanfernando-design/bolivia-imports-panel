@@ -123,24 +123,78 @@ export default function Entregas(){
           <div
             key={e.id}
             onClick={()=>{
+              console.log("ID CLICK:", e.id)
               setSelected(e.id)
               setOpen(true)
             }}
-            className="ui-card cursor-pointer"
+            className="
+            ui-card
+            cursor-pointer
+            p-4
+            flex flex-col gap-3
+            transition
+            hover:scale-[1.01]
+            active:scale-[0.99]
+            "
           >
 
-            <p>{e.codigo}</p>
-            <p>{e.cliente_nombre}</p>
-            <p>{e.destino}</p>
+            <div className="flex justify-between items-center">
 
-            <button
-              onClick={(ev)=>{
-                ev.stopPropagation()
-                confirmar(e.id)
-              }}
-            >
-              Confirmar
-            </button>
+              <div>
+                <p className="text-xs text-neutral-400">
+                  Tracking
+                </p>
+                <p className="font-semibold text-sm">
+                  {e.codigo}
+                </p>
+              </div>
+
+              <span className={`
+                text-xs
+                px-2 py-1
+                rounded
+                ${e.estado_pago === "pagado"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-yellow-100 text-yellow-700"}
+              `}>
+                {e.estado_pago || "pendiente"}
+              </span>
+
+            </div>
+
+            <div>
+              <p className="text-xs text-neutral-400">
+                Cliente
+              </p>
+              <p className="text-sm font-medium">
+                {e.cliente_nombre}
+              </p>
+            </div>
+
+            {e.estado_operativo === "retenida" && (
+              <div className="text-xs text-red-500 font-medium">
+                ⚠️ Urgente
+              </div>
+            )}
+
+            <div className="flex justify-end">
+
+              <button
+                onClick={(ev)=>{
+                  ev.stopPropagation()
+                  confirmar(e.id)
+                }}
+                className="
+                ui-button-success
+                text-sm
+                px-3 py-1
+                flex items-center gap-2
+                "
+              >
+                ✔ Confirmar
+              </button>
+
+            </div>
 
           </div>
         ))}
