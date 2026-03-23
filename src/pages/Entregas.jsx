@@ -201,9 +201,12 @@ export default function Entregas(){
         </div>
       )}
 
-      <Drawer open={open} onClose={()=>setOpen(false)}>
-        <EntregaDrawer entregaId={selected}/>
-      </Drawer>
+      {/* 🔥 FIX IMPORTANTE */}
+      {open && (
+        <Drawer open={open} onClose={()=>setOpen(false)}>
+          <EntregaDrawer entregaId={selected}/>
+        </Drawer>
+      )}
 
     </div>
 
