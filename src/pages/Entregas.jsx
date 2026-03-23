@@ -72,6 +72,7 @@ export default function Entregas(){
 
 
   function openDetalle(id){
+    console.log("OPEN DRAWER", id) // 🔥 debug
     setSelected(id)
     setOpen(true)
   }
@@ -115,25 +116,11 @@ export default function Entregas(){
 
       <div className="flex gap-2">
 
-        <button
-          onClick={()=>setTab("local")}
-          className={`px-3 py-2 rounded text-sm ${
-            tab==="local"
-              ? "bg-black text-white"
-              : "bg-neutral-200 dark:bg-neutral-800"
-          }`}
-        >
+        <button onClick={()=>setTab("local")} className={`px-3 py-2 rounded text-sm ${tab==="local" ? "bg-black text-white" : "bg-neutral-200 dark:bg-neutral-800"}`}>
           Santa Cruz ({locales.length})
         </button>
 
-        <button
-          onClick={()=>setTab("terminal")}
-          className={`px-3 py-2 rounded text-sm ${
-            tab==="terminal"
-              ? "bg-black text-white"
-              : "bg-neutral-200 dark:bg-neutral-800"
-          }`}
-        >
+        <button onClick={()=>setTab("terminal")} className={`px-3 py-2 rounded text-sm ${tab==="terminal" ? "bg-black text-white" : "bg-neutral-200 dark:bg-neutral-800"}`}>
           Departamental ({terminal.length})
         </button>
 
@@ -142,35 +129,40 @@ export default function Entregas(){
       <div className="space-y-3">
 
         {list.map((e)=>(
-          <div
-            key={e.id}
-            onClick={()=>openDetalle(e.id)}
-            className="ui-card flex flex-col gap-3 cursor-pointer hover:opacity-80"
-          >
+          <div key={e.id} className="ui-card flex flex-col gap-3">
 
-            <div className="flex justify-between items-center">
+            {/* 🔥 SOLO ESTA ZONA ES CLICKABLE */}
+            <div
+              onClick={()=>openDetalle(e.id)}
+              className="cursor-pointer hover:opacity-80"
+            >
 
-              <div>
-                <p className="text-xs text-neutral-400">Tracking</p>
-                <p className="font-semibold">{e.codigo}</p>
+              <div className="flex justify-between items-center">
+
+                <div>
+                  <p className="text-xs text-neutral-400">Tracking</p>
+                  <p className="font-semibold">{e.codigo}</p>
+                </div>
+
+                <span className={`
+                  text-xs px-2 py-1 rounded
+                  ${e.estado_pago === "pendiente"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-green-100 text-green-700"}
+                `}>
+                  {e.estado_pago || "pendiente"}
+                </span>
+
               </div>
 
-              <span className={`
-                text-xs px-2 py-1 rounded
-                ${e.estado_pago === "pendiente"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-green-100 text-green-700"}
-              `}>
-                {e.estado_pago || "pendiente"}
-              </span>
+              <div className="text-sm mt-2">
+                <p className="text-neutral-500">Cliente</p>
+                <p className="font-medium">{e.cliente_nombre}</p>
+              </div>
 
             </div>
 
-            <div className="text-sm">
-              <p className="text-neutral-500">Cliente</p>
-              <p className="font-medium">{e.cliente_nombre}</p>
-            </div>
-
+            {/* 🔥 BOTÓN SEPARADO */}
             <div className="flex justify-between items-center text-sm">
 
               <div>
@@ -179,10 +171,7 @@ export default function Entregas(){
               </div>
 
               <button
-                onClick={(ev)=>{
-                  ev.stopPropagation()
-                  confirmar(e.id)
-                }}
+                onClick={()=>confirmar(e.id)}
                 className="ui-button-success"
               >
                 Confirmar
@@ -201,12 +190,9 @@ export default function Entregas(){
         </div>
       )}
 
-      {/* 🔥 FIX IMPORTANTE */}
-      {open && (
-        <Drawer open={open} onClose={()=>setOpen(false)}>
-          <EntregaDrawer entregaId={selected}/>
-        </Drawer>
-      )}
+      <Drawer open={open} onClose={()=>setOpen(false)}>
+        <EntregaDrawer entregaId={selected}/>
+      </Drawer>
 
     </div>
 
