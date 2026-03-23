@@ -39,6 +39,20 @@ export default function Entregas(){
 
   },[])
 
+  useEffect(()=>{
+
+    function handler(){
+      load()
+    }
+
+    window.addEventListener("entregas-updated", handler)
+
+    return ()=>{
+      window.removeEventListener("entregas-updated", handler)
+    }
+
+  },[])
+
 
   async function confirmar(id){
 
@@ -54,7 +68,9 @@ export default function Entregas(){
         })
       })
 
-      setData(prev => prev.filter(p=>p.id !== id))
+      window.dispatchEvent(new Event("operativo-updated"))
+
+      await load()
 
     }catch(err){
 

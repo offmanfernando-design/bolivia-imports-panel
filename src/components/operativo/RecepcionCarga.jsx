@@ -62,7 +62,6 @@ export default function RecepcionCarga() {
 
   }, [tracking, buscarTracking])
 
-  // BIDIRECCIONAL UNIDAD
   useEffect(() => {
 
     if(tipoCalculo !== "unidad") return
@@ -114,6 +113,9 @@ export default function RecepcionCarga() {
       if(!res.ok){
         throw new Error("Error al registrar")
       }
+
+      // 🔥 EVENTO CLAVE (lo que faltaba)
+      window.dispatchEvent(new Event("entregas-updated"))
 
       setSuccess(true)
 
