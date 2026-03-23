@@ -123,7 +123,6 @@ export default function Entregas(){
           <div
             key={e.id}
             onClick={()=>{
-              console.log("ID CLICK:", e.id)
               setSelected(e.id)
               setOpen(true)
             }}

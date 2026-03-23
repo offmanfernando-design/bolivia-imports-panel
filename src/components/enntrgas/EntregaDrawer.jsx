@@ -46,55 +46,80 @@ export default function EntregaDrawer({ entregaId }){
     return <p className="text-sm text-neutral-400">Sin datos</p>
   }
 
+  const totalItems = data.items?.length || 0
+
+  const resumenItems = totalItems === 0
+    ? "Sin items"
+    : totalItems === 1
+      ? data.items[0]?.descripcion
+      : `${totalItems} items - ${data.items[0]?.descripcion || ""}`
+
   return(
 
     <div className="space-y-6">
 
-      <div>
-        <p className="text-xs text-neutral-400">Tracking</p>
-        <h3 className="text-lg font-semibold">{data.codigo}</h3>
-      </div>
+      <div className="flex justify-between items-start">
 
-      <div>
-        <p className="text-xs text-neutral-400">Cliente</p>
-        <p>{data.cliente?.nombre}</p>
-      </div>
-
-      <div>
-        <p className="text-xs text-neutral-400">Receptor</p>
-        <p>{data.receptor?.nombre || "—"}</p>
-      </div>
-
-      <div>
-        <p className="text-xs text-neutral-400">Destino</p>
-        <p>{data.destino}</p>
-      </div>
-
-      <div>
-        <p className="text-xs text-neutral-400">Estado</p>
-        <p>{data.estado_operativo}</p>
-      </div>
-
-      <div>
-        <p className="text-xs text-neutral-400">Pago</p>
-        <p>{data.estado_pago || "pendiente"}</p>
-      </div>
-
-      {data.eventos?.length > 0 && (
         <div>
-          <p className="text-xs text-neutral-400 mb-2">Eventos</p>
+          <p className="text-xs text-neutral-400">Tracking</p>
+          <h3 className="text-lg font-semibold">{data.codigo}</h3>
+        </div>
 
-          <div className="space-y-2 text-sm">
-            {data.eventos.map(ev=>(
-              <div key={ev.id} className="border-b pb-1">
-                <p className="font-medium">{ev.tipo}</p>
-                <p className="text-neutral-500">{ev.detalle}</p>
-              </div>
-            ))}
-          </div>
+        <div className="flex gap-2">
+
+          <span className={`
+            text-xs px-2 py-1 rounded
+            ${data.estado_pago === "pagado"
+              ? "bg-green-100 text-green-700"
+              : "bg-yellow-100 text-yellow-700"}
+          `}>
+            {data.estado_pago || "pendiente"}
+          </span>
+
+          <span className="text-xs px-2 py-1 rounded bg-neutral-100 text-neutral-700">
+            {data.estado_operativo}
+          </span>
 
         </div>
-      )}
+
+      </div>
+
+      <div className="grid gap-4">
+
+        <div>
+          <p className="text-xs text-neutral-400">Cliente</p>
+          <p className="font-medium">{data.cliente?.nombre}</p>
+          <p className="text-xs text-neutral-500">{data.cliente?.telefono || ""}</p>
+        </div>
+
+        <div>
+          <p className="text-xs text-neutral-400">Receptor</p>
+          <p className="font-medium">{data.receptor?.nombre || "—"}</p>
+          <p className="text-xs text-neutral-500">{data.receptor?.telefono || ""}</p>
+        </div>
+
+        <div>
+          <p className="text-xs text-neutral-400">Destino</p>
+          <p className="font-medium">{data.destino}</p>
+        </div>
+
+      </div>
+
+      <div className="border-t pt-4 space-y-2">
+
+        <p className="text-xs text-neutral-400">Items</p>
+        <p className="text-sm font-medium">{resumenItems}</p>
+
+      </div>
+
+      <div className="border-t pt-4">
+
+        <p className="text-xs text-neutral-400">Total</p>
+        <p className="text-xl font-semibold">
+          {data.monto_total ? `${data.monto_total} ${data.moneda || ""}` : "—"}
+        </p>
+
+      </div>
 
     </div>
 
