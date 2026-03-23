@@ -72,7 +72,8 @@ export default function Entregas(){
 
 
   function openDetalle(id){
-    console.log("OPEN DRAWER", id) // 🔥 debug
+    console.log("CLICK CARD", id)
+    alert("CLICK FUNCIONA")
     setSelected(id)
     setOpen(true)
   }
@@ -129,40 +130,36 @@ export default function Entregas(){
       <div className="space-y-3">
 
         {list.map((e)=>(
-          <div key={e.id} className="ui-card flex flex-col gap-3">
+          <div 
+            key={e.id} 
+            className="ui-card flex flex-col gap-3 cursor-pointer"
+            style={{ position:"relative", zIndex: 1 }} // 🔥 anti-overlay test
+            onClick={()=>openDetalle(e.id)}
+          >
 
-            {/* 🔥 SOLO ESTA ZONA ES CLICKABLE */}
-            <div
-              onClick={()=>openDetalle(e.id)}
-              className="cursor-pointer hover:opacity-80"
-            >
+            <div className="flex justify-between items-center">
 
-              <div className="flex justify-between items-center">
-
-                <div>
-                  <p className="text-xs text-neutral-400">Tracking</p>
-                  <p className="font-semibold">{e.codigo}</p>
-                </div>
-
-                <span className={`
-                  text-xs px-2 py-1 rounded
-                  ${e.estado_pago === "pendiente"
-                    ? "bg-yellow-100 text-yellow-700"
-                    : "bg-green-100 text-green-700"}
-                `}>
-                  {e.estado_pago || "pendiente"}
-                </span>
-
+              <div>
+                <p className="text-xs text-neutral-400">Tracking</p>
+                <p className="font-semibold">{e.codigo}</p>
               </div>
 
-              <div className="text-sm mt-2">
-                <p className="text-neutral-500">Cliente</p>
-                <p className="font-medium">{e.cliente_nombre}</p>
-              </div>
+              <span className={`
+                text-xs px-2 py-1 rounded
+                ${e.estado_pago === "pendiente"
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-green-100 text-green-700"}
+              `}>
+                {e.estado_pago || "pendiente"}
+              </span>
 
             </div>
 
-            {/* 🔥 BOTÓN SEPARADO */}
+            <div className="text-sm">
+              <p className="text-neutral-500">Cliente</p>
+              <p className="font-medium">{e.cliente_nombre}</p>
+            </div>
+
             <div className="flex justify-between items-center text-sm">
 
               <div>
@@ -171,7 +168,10 @@ export default function Entregas(){
               </div>
 
               <button
-                onClick={()=>confirmar(e.id)}
+                onClick={(ev)=>{
+                  ev.stopPropagation()
+                  confirmar(e.id)
+                }}
                 className="ui-button-success"
               >
                 Confirmar
