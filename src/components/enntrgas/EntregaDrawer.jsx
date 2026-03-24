@@ -107,6 +107,11 @@ export default function EntregaDrawer({ entregaId }){
           <p className="font-medium">{data.destino || "—"}</p>
         </div>
 
+        <div>
+          <p className="text-xs text-neutral-400">Ubicación</p>
+          <p className="font-medium">{data.ubicacion || "—"}</p>
+        </div>
+
       </div>
 
       <div className="border-t pt-4 space-y-2">

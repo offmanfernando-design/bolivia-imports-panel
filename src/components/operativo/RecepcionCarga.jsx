@@ -113,7 +113,8 @@ export default function RecepcionCarga() {
         precio_por_kg: tipoCalculo === "peso"
           ? Number(tarifa)
           : Number(precioBs) || 0,
-        ubicacion_id:1
+        ubicacion_id:1,
+        tipo_cambio: Number(tipoCambio) || 1
       }
 
       const res = await fetch(`${API_URL}/operativo/carga/recepcion`,{
