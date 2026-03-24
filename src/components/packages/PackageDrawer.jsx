@@ -6,20 +6,17 @@ export default function PackageDrawer({ pkg }) {
   const [loadingUpload, setLoadingUpload] = useState(false);
   const [events, setEvents] = useState([]);
 
-  // 🔥 NUEVO: estado local sincronizado
   const [localPkg, setLocalPkg] = useState(pkg);
 
-  // 🔥 sync cuando cambia pkg
   useEffect(() => {
     setLocalPkg(pkg);
   }, [pkg]);
 
-  // 🔥 DATA LIMPIA
   const [data, setData] = useState({
     cliente: pkg?.cliente || pkg?.cliente_nombre || "",
-    peso: "",
-    volumen: "",
-    ubicacion: "",
+    peso: pkg?.peso || "",
+    volumen: pkg?.volumen || "",
+    ubicacion: pkg?.ubicacion || "",
   });
 
   useEffect(() => {
@@ -86,7 +83,6 @@ export default function PackageDrawer({ pkg }) {
       if (result.ok) {
         alert("Confirmado en warehouse ✅");
 
-        // 🔥 UPDATE INMEDIATO SIN REFRESH
         setLocalPkg(prev => ({
           ...prev,
           warehouse_confirmado: true,
@@ -95,7 +91,6 @@ export default function PackageDrawer({ pkg }) {
           estado: result.data.estado,
         }));
 
-        // 🔥 actualizar timeline
         fetch(`https://bolivia-imports-backend-pg.fly.dev/api/compras/${localPkg.id}/eventos`)
           .then(res => res.json())
           .then(data => {
@@ -114,7 +109,6 @@ export default function PackageDrawer({ pkg }) {
     <div className="w-full flex justify-center animate-[fadeIn_.25s_ease]">
       <div className="w-full max-w-3xl flex flex-col gap-14">
 
-        {/* HEADER */}
         <div className="flex flex-col gap-2">
           <p className="text-xs text-neutral-400 uppercase tracking-widest">
             Paquete
@@ -131,7 +125,6 @@ export default function PackageDrawer({ pkg }) {
           </div>
         </div>
 
-        {/* ACTIONS */}
         <div className="flex flex-wrap gap-3">
           <button className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md">
             Imprimir etiqueta
@@ -142,7 +135,6 @@ export default function PackageDrawer({ pkg }) {
           </button>
         </div>
 
-        {/* INFO */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
             Información del paquete
@@ -161,17 +153,24 @@ export default function PackageDrawer({ pkg }) {
 
             <div>
               <p className="text-neutral-500">Peso</p>
-              {renderEditable("peso", data.peso)}
+              <p className="font-medium">{localPkg.peso || "—"}</p>
             </div>
 
             <div>
               <p className="text-neutral-500">Volumen</p>
-              {renderEditable("volumen", data.volumen)}
+              <p className="font-medium">{localPkg.volumen || "—"}</p>
             </div>
 
             <div>
               <p className="text-neutral-500">Ubicación</p>
-              {renderEditable("ubicacion", data.ubicacion)}
+              <p className="font-medium">{localPkg.ubicacion || "—"}</p>
+            </div>
+
+            <div>
+              <p className="text-neutral-500">Total</p>
+              <p className="font-medium">
+                {localPkg.total ? `${localPkg.total} Bs` : "—"}
+              </p>
             </div>
 
             <div>
@@ -185,7 +184,6 @@ export default function PackageDrawer({ pkg }) {
           </div>
         </div>
 
-        {/* WAREHOUSE */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
             Confirmación Warehouse (USA)
@@ -249,7 +247,6 @@ export default function PackageDrawer({ pkg }) {
           </div>
         </div>
 
-        {/* HISTORIAL */}
         <div className="bg-neutral-50 dark:bg-neutral-900 border rounded-xl p-6 flex flex-col gap-6 shadow-sm">
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
             Historial

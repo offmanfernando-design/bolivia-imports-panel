@@ -95,26 +95,39 @@ export default function RecepcionCarga() {
       return
     }
 
+    if(tipoCalculo === "peso" && (!peso || !tarifa)){
+      setError("Peso y tarifa obligatorios")
+      return
+    }
+
+    if(tipoCalculo === "unidad" && !precioBs){
+      setError("Precio obligatorio")
+      return
+    }
+
     try{
+
+      const payload = {
+        orden_id:itemId,
+        peso: tipoCalculo === "peso" ? Number(peso) : 1,
+        precio_por_kg: tipoCalculo === "peso"
+          ? Number(tarifa)
+          : Number(precioBs) || 0,
+        ubicacion_id:1
+      }
 
       const res = await fetch(`${API_URL}/operativo/carga/recepcion`,{
         method:"POST",
         headers:{
           "Content-Type":"application/json"
         },
-        body:JSON.stringify({
-          orden_id:itemId,
-          peso: tipoCalculo === "peso" ? Number(peso) : null,
-          precio_por_kg: tipoCalculo === "peso" ? Number(tarifa) : null,
-          ubicacion_id:1
-        })
+        body:JSON.stringify(payload)
       })
 
       if(!res.ok){
         throw new Error("Error al registrar")
       }
 
-      // 🔥 EVENTO CLAVE (lo que faltaba)
       window.dispatchEvent(new Event("entregas-updated"))
 
       setSuccess(true)

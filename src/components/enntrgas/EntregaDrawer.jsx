@@ -46,13 +46,17 @@ export default function EntregaDrawer({ entregaId }){
     return <p className="text-sm text-neutral-400">Sin datos</p>
   }
 
-  const totalItems = data.items?.length || 0
+  const items = Array.isArray(data.items) ? data.items : []
+
+  const totalItems = items.length
 
   const resumenItems = totalItems === 0
-    ? "Sin items"
+    ? "Sin detalle registrado"
     : totalItems === 1
-      ? data.items[0]?.descripcion
-      : `${totalItems} items - ${data.items[0]?.descripcion || ""}`
+      ? items[0]?.descripcion || "Item"
+      : `${totalItems} items - ${items[0]?.descripcion || ""}`
+
+  const total = Number(data.monto_total || 0)
 
   return(
 
@@ -94,13 +98,13 @@ export default function EntregaDrawer({ entregaId }){
 
         <div>
           <p className="text-xs text-neutral-400">Receptor</p>
-          <p className="font-medium">{data.receptor?.nombre || "—"}</p>
+          <p className="font-medium">{data.receptor?.nombre || "No asignado"}</p>
           <p className="text-xs text-neutral-500">{data.receptor?.telefono || ""}</p>
         </div>
 
         <div>
           <p className="text-xs text-neutral-400">Destino</p>
-          <p className="font-medium">{data.destino}</p>
+          <p className="font-medium">{data.destino || "—"}</p>
         </div>
 
       </div>
@@ -110,13 +114,23 @@ export default function EntregaDrawer({ entregaId }){
         <p className="text-xs text-neutral-400">Items</p>
         <p className="text-sm font-medium">{resumenItems}</p>
 
+        {items.length > 0 && (
+          <div className="text-xs text-neutral-500 space-y-1">
+            {items.map((it)=>(
+              <div key={it.id}>
+                {it.descripcion} • {it.cantidad} × {it.precio_unitario}
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
 
       <div className="border-t pt-4">
 
         <p className="text-xs text-neutral-400">Total</p>
         <p className="text-xl font-semibold">
-          {data.monto_total ? `${data.monto_total} ${data.moneda || ""}` : "—"}
+          {total > 0 ? `${total} ${data.moneda || "BOB"}` : "Sin monto registrado"}
         </p>
 
       </div>
