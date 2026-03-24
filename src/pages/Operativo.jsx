@@ -2,15 +2,15 @@ import { useState } from "react"
 import OperativoTable from "../components/operativo/OperativoTable"
 import RecepcionCarga from "../components/operativo/RecepcionCarga"
 import Drawer from "../components/ui/Drawer"
-import PackageDrawer from "../components/packages/PackageDrawer"
+import EntregaDrawer from "../components/entregas/EntregaDrawer"
 
 export default function Operativo(){
 
-  const [selectedPackage,setSelectedPackage] = useState(null)
+  const [selectedEntregaId,setSelectedEntregaId] = useState(null)
   const [drawerOpen,setDrawerOpen] = useState(false)
 
-  const openPackage = (pkg)=>{
-    setSelectedPackage(pkg)
+  const openPackage = (entregaId)=>{
+    setSelectedEntregaId(entregaId)
     setDrawerOpen(true)
   }
 
@@ -35,7 +35,7 @@ export default function Operativo(){
       <RecepcionCarga/>
 
       <Drawer open={drawerOpen} onClose={()=>setDrawerOpen(false)}>
-        <PackageDrawer pkg={selectedPackage}/>
+        <EntregaDrawer entregaId={selectedEntregaId}/>
       </Drawer>
 
     </div>
