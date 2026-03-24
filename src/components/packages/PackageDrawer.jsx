@@ -89,6 +89,8 @@ export default function PackageDrawer({ pkg }) {
           warehouse_imagen: result.data.warehouse_imagen,
           warehouse_fecha: result.data.warehouse_fecha,
           estado: result.data.estado,
+          peso: result.data.peso,
+          total: result.data.total,
         }));
 
         fetch(`https://bolivia-imports-backend-pg.fly.dev/api/compras/${localPkg.id}/eventos`)
