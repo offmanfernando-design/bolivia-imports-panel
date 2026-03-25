@@ -95,8 +95,8 @@ export default function RecepcionCarga() {
       return
     }
 
-    if(tipoCalculo === "peso" && (!peso || !tarifa)){
-      setError("Peso y tarifa obligatorios")
+    if(tipoCalculo === "peso" && (!peso || !tarifa || !tipoCambio)){
+      setError("Peso, tarifa y tipo de cambio obligatorios")
       return
     }
 
@@ -114,7 +114,7 @@ export default function RecepcionCarga() {
           ? Number(tarifa)
           : Number(precioBs) || 0,
         ubicacion_id:1,
-        tipo_cambio: Number(tipoCambio) || 1
+        tipo_cambio: tipoCambio ? Number(tipoCambio) : null
       }
 
       const res = await fetch(`${API_URL}/operativo/carga/recepcion`,{

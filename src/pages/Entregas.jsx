@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import Drawer from "../components/ui/Drawer"
-import EntregaDrawer from "../components/enntrgas/EntregaDrawer"
+import EntregaDrawer from "../components/entregas/EntregaDrawer"
 
 export default function Entregas(){
 
