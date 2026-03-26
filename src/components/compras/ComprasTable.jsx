@@ -163,6 +163,16 @@ export default function ComprasTable({ reload }) {
               const tracking = compra.tracking_number;
               const estadoActual = compra.estado || "reparto";
 
+              const fecha = compra.fecha_estimada
+                ? compra.fecha_estimada.split("T")[0]
+                : "";
+
+              const [year, month, day] = fecha.split("-");
+
+              const fechaFormateada = fecha
+                ? `${day}/${month}/${year}`
+                : "—";
+
               return (
                 <tr
                   key={compra.id}
@@ -204,9 +214,7 @@ export default function ComprasTable({ reload }) {
                   </td>
 
                   <td className="px-3 py-3 text-gray-400">
-                    {compra.fecha_estimada
-                      ? compra.fecha_estimada.split("-").reverse().join("/")
-                      : "—"}
+                    {fechaFormateada}
                   </td>
 
                   <td className="px-3 py-3">
