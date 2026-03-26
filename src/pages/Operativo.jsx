@@ -6,7 +6,7 @@ import Drawer from "../components/ui/Drawer"
 
 export default function Operativo(){
 
-  const [selectedEntregaId,setSelectedEntregaId] = useState(null)
+  const [_,setSelectedEntregaId] = useState(null)
   const [drawerOpen,setDrawerOpen] = useState(false)
 
   const openPackage = (entregaId)=>{

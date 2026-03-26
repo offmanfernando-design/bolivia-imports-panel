@@ -163,14 +163,8 @@ export default function ComprasTable({ reload }) {
               const tracking = compra.tracking_number;
               const estadoActual = compra.estado || "reparto";
 
-              const fecha = compra.fecha_estimada
-                ? compra.fecha_estimada.split("T")[0]
-                : "";
-
-              const [year, month, day] = fecha.split("-");
-
-              const fechaFormateada = fecha
-                ? `${day}/${month}/${year}`
+              const fechaFormateada = compra.fecha_estimada
+                ? new Date(compra.fecha_estimada + "T00:00:00").toLocaleDateString("es-BO")
                 : "—";
 
               return (
