@@ -160,9 +160,7 @@ export default function ComprasTable({ reload }) {
               const estadoActual = compra.estado || "reparto";
 
               const fechaFormateada = compra.fecha_estimada
-                ? new Date(compra.fecha_estimada).toLocaleDateString("es-BO", {
-                    timeZone: "America/La_Paz",
-                  })
+                ? compra.fecha_estimada.split("T")[0].split("-").reverse().join("/")
                 : "—";
 
               return (
