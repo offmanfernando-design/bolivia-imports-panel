@@ -66,9 +66,7 @@ export default function ComprasTable({ reload }) {
       );
 
       setCompras((prev) =>
-        prev.map((c) =>
-          c.id === id ? { ...c, estado } : c,
-        ),
+        prev.map((c) => (c.id === id ? { ...c, estado } : c)),
       );
     } catch (err) {
       console.error(err);
@@ -122,7 +120,6 @@ export default function ComprasTable({ reload }) {
 
   return (
     <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-6">
-      
       <div className="flex justify-between items-center">
         <h3 className="text-sm uppercase tracking-widest text-gray-500 dark:text-gray-400">
           Compras registradas
@@ -143,7 +140,6 @@ export default function ComprasTable({ reload }) {
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-separate border-spacing-y-2">
-
           <thead className="text-xs uppercase text-gray-500 dark:text-gray-400">
             <tr>
               <th className="text-left px-3">Cliente</th>
@@ -164,7 +160,9 @@ export default function ComprasTable({ reload }) {
               const estadoActual = compra.estado || "reparto";
 
               const fechaFormateada = compra.fecha_estimada
-                ? new Date(compra.fecha_estimada + "T00:00:00").toLocaleDateString("es-BO")
+                ? new Date(compra.fecha_estimada).toLocaleDateString("es-BO", {
+                    timeZone: "America/La_Paz",
+                  })
                 : "—";
 
               return (
@@ -180,13 +178,9 @@ export default function ComprasTable({ reload }) {
                     {compra.descripcion_producto || "—"}
                   </td>
 
-                  <td className="px-3 py-3">
-                    {compra.proveedor}
-                  </td>
+                  <td className="px-3 py-3">{compra.proveedor}</td>
 
-                  <td className="px-3 py-3">
-                    {compra.numero_orden || "—"}
-                  </td>
+                  <td className="px-3 py-3">{compra.numero_orden || "—"}</td>
 
                   <td className="px-3 py-3">
                     {compra.url_orden ? (
@@ -203,13 +197,9 @@ export default function ComprasTable({ reload }) {
                     )}
                   </td>
 
-                  <td className="px-3 py-3">
-                    {compra.destino || "—"}
-                  </td>
+                  <td className="px-3 py-3">{compra.destino || "—"}</td>
 
-                  <td className="px-3 py-3 text-gray-400">
-                    {fechaFormateada}
-                  </td>
+                  <td className="px-3 py-3 text-gray-400">{fechaFormateada}</td>
 
                   <td className="px-3 py-3">
                     <select
@@ -222,8 +212,12 @@ export default function ComprasTable({ reload }) {
                       `}
                     >
                       <option value="reparto">{formatEstado("reparto")}</option>
-                      <option value="entregado">{formatEstado("entregado")}</option>
-                      <option value="recibido">{formatEstado("recibido")}</option>
+                      <option value="entregado">
+                        {formatEstado("entregado")}
+                      </option>
+                      <option value="recibido">
+                        {formatEstado("recibido")}
+                      </option>
                     </select>
                   </td>
 
@@ -259,7 +253,6 @@ export default function ComprasTable({ reload }) {
               );
             })}
           </tbody>
-
         </table>
       </div>
     </div>
