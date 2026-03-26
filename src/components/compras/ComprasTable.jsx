@@ -151,6 +151,7 @@ export default function ComprasTable({ reload }) {
               <th className="text-left px-3">Página</th>
               <th className="text-left px-3">Orden</th>
               <th className="text-left px-3">Link</th>
+              <th className="text-left px-3">Destino</th>
               <th className="text-left px-3">Fecha</th>
               <th className="text-left px-3">Estado</th>
               <th className="text-left px-3">Tracking</th>
@@ -198,10 +199,13 @@ export default function ComprasTable({ reload }) {
                     )}
                   </td>
 
-                  {/* ✅ FIX DEFINITIVO DE FECHA */}
+                  <td className="px-3 py-3">
+                    {compra.destino || "—"}
+                  </td>
+
                   <td className="px-3 py-3 text-gray-400">
                     {compra.fecha_estimada
-                      ? new Date(compra.fecha_estimada + "T12:00:00").toLocaleDateString("es-BO")
+                      ? compra.fecha_estimada.split("-").reverse().join("/")
                       : "—"}
                   </td>
 
