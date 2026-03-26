@@ -38,10 +38,14 @@ export default function Compras() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...form,
+          cliente_nombre: form.nombre,
+          telefono: form.telefono,
+          ciudad: form.ciudad,
+          pagina: form.pagina,
           numero_orden: form.numero_orden.trim(),
           url_orden: form.url_orden.trim(),
           descripcion_producto: form.descripcion_producto.trim(),
+          fecha: form.fecha,
         }),
       });
 
@@ -59,7 +63,6 @@ export default function Compras() {
 
       // recargar tabla
       setReload((prev) => prev + 1);
-
     } catch (err) {
       console.error("Error guardando compra:", err);
     }
@@ -73,7 +76,6 @@ export default function Compras() {
       </div>
 
       <div className="ui-card flex flex-col gap-4">
-
         <input
           name="nombre"
           placeholder="Nombre cliente"
@@ -141,11 +143,9 @@ export default function Compras() {
         <button onClick={guardar} className="ui-button">
           Guardar compra
         </button>
-
       </div>
 
       <ComprasTable reload={reload} />
-
     </div>
   );
 }

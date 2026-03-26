@@ -75,7 +75,6 @@ export default function ComprasTable({ reload }) {
     }
   }
 
-  // 🎯 TEXTO PRO (NO TÉCNICO)
   function formatEstado(estado) {
     switch (estado) {
       case "reparto":
@@ -89,7 +88,6 @@ export default function ComprasTable({ reload }) {
     }
   }
 
-  // 🎨 COLORES PRO
   function getEstadoColor(estado) {
     switch (estado) {
       case "reparto":
@@ -125,7 +123,6 @@ export default function ComprasTable({ reload }) {
   return (
     <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-6">
       
-      {/* Header */}
       <div className="flex justify-between items-center">
         <h3 className="text-sm uppercase tracking-widest text-gray-500 dark:text-gray-400">
           Compras registradas
@@ -136,7 +133,6 @@ export default function ComprasTable({ reload }) {
         </span>
       </div>
 
-      {/* Buscador */}
       <input
         type="text"
         placeholder="Buscar cliente, producto, página..."
@@ -145,7 +141,6 @@ export default function ComprasTable({ reload }) {
         className="w-full px-3 py-2 border border-gray-200 dark:border-gray-800 rounded dark:bg-[#111]"
       />
 
-      {/* Tabla */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-separate border-spacing-y-2">
 
@@ -203,13 +198,13 @@ export default function ComprasTable({ reload }) {
                     )}
                   </td>
 
+                  {/* ✅ FIX DEFINITIVO DE FECHA */}
                   <td className="px-3 py-3 text-gray-400">
                     {compra.fecha_estimada
-                      ? new Date(compra.fecha_estimada).toLocaleDateString()
+                      ? new Date(compra.fecha_estimada + "T12:00:00").toLocaleDateString("es-BO")
                       : "—"}
                   </td>
 
-                  {/* 🔥 ESTADO PREMIUM */}
                   <td className="px-3 py-3">
                     <select
                       value={estadoActual}
