@@ -26,14 +26,13 @@ export default function OperativoTable({ onOpenPackage }) {
     load();
   }, []);
 
-  // 🔎 filtro simple (sin hook externo para evitar conflictos)
   const dataset = data.filter((c) => {
     const texto = search.toLowerCase();
 
     return (
-      c.cliente_nombre?.toLowerCase().includes(texto) ||
-      c.tracking_number?.toLowerCase().includes(texto) ||
-      c.numero_orden?.toLowerCase().includes(texto)
+      (c.cliente_nombre || c.cliente || c.nombre_cliente || "").toLowerCase().includes(texto) ||
+      (c.tracking_number || c.tracking || "").toLowerCase().includes(texto) ||
+      (c.numero_orden || "").toLowerCase().includes(texto)
     );
   });
 
@@ -71,9 +70,9 @@ export default function OperativoTable({ onOpenPackage }) {
   ];
 
   const rows = dataset.map((c) => [
-    c.tracking_number || "—",
-    c.cliente_nombre || "—",
-    c.descripcion_producto || "—",
+    c.tracking_number || c.tracking || "—",
+    c.cliente_nombre || c.cliente || c.nombre_cliente || "—",
+    c.descripcion_producto || c.producto || "—",
 
     <Badge type={getEstadoColor(c.estado)}>
       {formatEstado(c.estado)}
