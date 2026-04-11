@@ -73,7 +73,6 @@ export default function OperativoTable({ onOpenPackage }) {
     c.tracking_number || c.tracking || "—",
     c.cliente_nombre || c.cliente || c.nombre_cliente || "—",
     c.descripcion_producto || c.producto || "—",
-
     <Badge type={getEstadoColor(c.estado)}>
       {formatEstado(c.estado)}
     </Badge>,
