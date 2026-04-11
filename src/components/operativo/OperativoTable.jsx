@@ -81,10 +81,7 @@ export default function OperativoTable({ onOpenPackage }) {
 
   const openRow = (index) => {
     const pkg = dataset[index];
-
-    if (!pkg.entrega_id) return;
-
-    onOpenPackage(pkg.entrega_id);
+    onOpenPackage(pkg);
   };
 
   if (loading) {
