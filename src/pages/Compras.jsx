@@ -10,7 +10,6 @@ export default function Compras() {
     numero_orden: "",
     fecha: "",
     url_orden: "",
-    descripcion_producto: "",
     cantidad_items: "",
   });
 
@@ -69,7 +68,7 @@ export default function Compras() {
           url_orden: form.url_orden.trim(),
           descripcion_producto: itemsLimpios.length > 0
             ? itemsLimpios.join(" | ")
-            : form.descripcion_producto.trim(),
+            : "",
           items: itemsLimpios,
           fecha: form.fecha,
         }),
@@ -84,7 +83,6 @@ export default function Compras() {
         numero_orden: "",
         fecha: "",
         url_orden: "",
-        descripcion_producto: "",
         cantidad_items: "",
       });
 
@@ -172,14 +170,6 @@ export default function Compras() {
             className="ui-input"
           />
         ))}
-
-        <input
-          name="descripcion_producto"
-          placeholder="Descripción del producto"
-          value={form.descripcion_producto}
-          onChange={handleChange}
-          className="ui-input"
-        />
 
         <input
           type="date"
