@@ -11,8 +11,10 @@ export default function Compras() {
     fecha: "",
     url_orden: "",
     descripcion_producto: "",
+    cantidad_items: "",
   });
 
+  const [items, setItems] = useState([]);
   const [reload, setReload] = useState(0);
 
   function handleChange(e) {
@@ -22,6 +24,23 @@ export default function Compras() {
       ...prev,
       [name]: value,
     }));
+
+    if (name === "cantidad_items") {
+      const cantidad = parseInt(value) || 0;
+
+      setItems((prev) => {
+        const nuevos = Array.from({ length: cantidad }, (_, index) => prev[index] || "");
+        return nuevos;
+      });
+    }
+  }
+
+  function handleItemChange(index, value) {
+    setItems((prev) => {
+      const nuevos = [...prev];
+      nuevos[index] = value;
+      return nuevos;
+    });
   }
 
   async function guardar() {
@@ -31,6 +50,10 @@ export default function Compras() {
         alert("Faltan datos obligatorios");
         return;
       }
+
+      const itemsLimpios = items
+        .map((item) => item.trim())
+        .filter((item) => item);
 
       await fetch("https://bolivia-imports-backend-pg.fly.dev/api/compras", {
         method: "POST",
@@ -44,7 +67,10 @@ export default function Compras() {
           pagina: form.pagina,
           numero_orden: form.numero_orden.trim(),
           url_orden: form.url_orden.trim(),
-          descripcion_producto: form.descripcion_producto.trim(),
+          descripcion_producto: itemsLimpios.length > 0
+            ? itemsLimpios.join(" | ")
+            : form.descripcion_producto.trim(),
+          items: itemsLimpios,
           fecha: form.fecha,
         }),
       });
@@ -59,7 +85,10 @@ export default function Compras() {
         fecha: "",
         url_orden: "",
         descripcion_producto: "",
+        cantidad_items: "",
       });
+
+      setItems([]);
 
       // recargar tabla
       setReload((prev) => prev + 1);
@@ -123,6 +152,26 @@ export default function Compras() {
           onChange={handleChange}
           className="ui-input"
         />
+
+        <input
+          name="cantidad_items"
+          type="number"
+          min="0"
+          placeholder="Cantidad de ítems"
+          value={form.cantidad_items}
+          onChange={handleChange}
+          className="ui-input"
+        />
+
+        {items.map((item, index) => (
+          <input
+            key={index}
+            placeholder={`Descripción del producto ${index + 1}`}
+            value={item}
+            onChange={(e) => handleItemChange(index, e.target.value)}
+            className="ui-input"
+          />
+        ))}
 
         <input
           name="descripcion_producto"
