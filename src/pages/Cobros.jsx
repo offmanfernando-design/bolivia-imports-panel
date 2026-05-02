@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
-
-const API = "https://bolivia-imports-backend-pg.fly.dev/api"
+import { API_URL } from "../config/api"
 
 export default function Cobros(){
 
@@ -18,7 +17,7 @@ export default function Cobros(){
 
     try{
 
-      const res = await fetch(`${API}/cobros`)
+      const res = await fetch(`${API_URL}/cobros`)
       const json = await res.json()
 
       setData(json.data || [])
@@ -48,7 +47,7 @@ export default function Cobros(){
 
       if(!productos){
 
-        const res = await fetch(`${API}/cobros/detalle/${clienteId}`)
+        const res = await fetch(`${API_URL}/cobros/detalle/${clienteId}`)
         productos = await res.json()
 
         setCache(prev => ({
@@ -122,7 +121,7 @@ export default function Cobros(){
 
         try{
 
-          const resLink = await fetch(`${API}/receptores/link/${clienteId}`)
+          const resLink = await fetch(`${API_URL}/receptores/link/${clienteId}`)
           const dataLink = await resLink.json()
 
           if(dataLink.link){

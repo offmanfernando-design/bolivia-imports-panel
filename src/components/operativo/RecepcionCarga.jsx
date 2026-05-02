@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-
-const API_URL = "https://bolivia-imports-backend-pg.fly.dev/api";
+import { API_URL } from "../../config/api";
 
 export default function RecepcionCarga() {
 

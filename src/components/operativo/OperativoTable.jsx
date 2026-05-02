@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Badge from "../ui/Badge";
 import Table from "../ui/Table";
+import { API_URL } from "../../config/api";
 
 export default function OperativoTable({ onOpenPackage }) {
   const [data, setData] = useState([]);
@@ -11,7 +12,7 @@ export default function OperativoTable({ onOpenPackage }) {
     async function load() {
       try {
         const res = await fetch(
-          "https://bolivia-imports-backend-pg.fly.dev/api/compras/operativo"
+          `${API_URL}/compras/operativo`
         );
         const json = await res.json();
 

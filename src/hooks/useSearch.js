@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_URL } from "../config/api";
 
 export default function useSearch(query) {
 
@@ -19,7 +20,7 @@ export default function useSearch(query) {
         setLoading(true);
 
         const res = await fetch(
-          `https://bolivia-imports-backend-pg.fly.dev/operativo/buscar?q=${encodeURIComponent(query)}`
+          `${API_URL}/operativo/buscar?q=${encodeURIComponent(query)}`
         );
 
         const data = await res.json();

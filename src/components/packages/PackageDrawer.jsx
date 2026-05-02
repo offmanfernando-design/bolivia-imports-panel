@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { API_URL } from "../../config/api";
 
 export default function PackageDrawer({ pkg }) {
   const [editingField, setEditingField] = useState(null);
@@ -22,7 +23,7 @@ export default function PackageDrawer({ pkg }) {
   useEffect(() => {
     if (!pkg?.id) return;
 
-    fetch(`https://bolivia-imports-backend-pg.fly.dev/api/compras/${pkg.id}/eventos`)
+    fetch(`${API_URL}/compras/${pkg.id}/eventos`)
       .then(res => res.json())
       .then(data => {
         if (data.ok) setEvents(data.data);
@@ -71,7 +72,7 @@ export default function PackageDrawer({ pkg }) {
       formData.append("file", warehouseImage);
 
       const res = await fetch(
-        `https://bolivia-imports-backend-pg.fly.dev/api/compras/${localPkg.id}/warehouse`,
+        `${API_URL}/compras/${localPkg.id}/warehouse`,
         {
           method: "PATCH",
           body: formData,
@@ -93,7 +94,7 @@ export default function PackageDrawer({ pkg }) {
           total: result.data.total,
         }));
 
-        fetch(`https://bolivia-imports-backend-pg.fly.dev/api/compras/${localPkg.id}/eventos`)
+        fetch(`${API_URL}/compras/${localPkg.id}/eventos`)
           .then(res => res.json())
           .then(data => {
             if (data.ok) setEvents(data.data);

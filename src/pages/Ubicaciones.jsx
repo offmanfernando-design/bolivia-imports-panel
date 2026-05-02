@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { API_URL } from "../config/api"
 import Drawer from "../components/ui/Drawer"
 import UbicacionDrawer from "../components/ubicaciones/UbicacionDrawer"
 
@@ -16,7 +17,7 @@ export default function Ubicaciones(){
 
       try{
 
-        const res = await fetch("https://bolivia-imports-backend-pg.fly.dev/api/operativo/ubicaciones")
+        const res = await fetch(`${API_URL}/operativo/ubicaciones`)
         const json = await res.json()
 
         setData(json.data || [])

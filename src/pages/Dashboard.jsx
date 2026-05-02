@@ -7,6 +7,7 @@ import PackageDrawer from "../components/packages/PackageDrawer";
 import useSearch from "../hooks/useSearch";
 
 import { Package, Truck, DollarSign } from "lucide-react";
+import { API_URL } from "../config/api";
 
 export default function Dashboard() {
   const [search, setSearch] = useState("");
@@ -22,14 +23,10 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const statsRes = await fetch(
-          "https://bolivia-imports-backend-pg.fly.dev/api/dashboard",
-        );
+        const statsRes = await fetch(`${API_URL}/dashboard`);
         const statsData = await statsRes.json();
 
-        const packagesRes = await fetch(
-          "https://bolivia-imports-backend-pg.fly.dev/api/entregas",
-        );
+        const packagesRes = await fetch(`${API_URL}/entregas`);
         const packagesData = await packagesRes.json();
 
         setStats(statsData);

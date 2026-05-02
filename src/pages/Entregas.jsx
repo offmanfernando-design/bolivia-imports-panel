@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { API_URL } from "../config/api"
 import Drawer from "../components/ui/Drawer"
 import EntregaDrawer from "../components/entregas/EntregaDrawer"
 
@@ -17,9 +18,7 @@ export default function Entregas(){
 
     try{
 
-      const res = await fetch(
-        "https://bolivia-imports-backend-pg.fly.dev/api/entregas?estado_operativo=lista_para_entrega"
-      )
+      const res = await fetch(`${API_URL}/entregas?estado_operativo=lista_para_entrega`)
 
       const json = await res.json()
 
@@ -42,7 +41,7 @@ export default function Entregas(){
 
     try{
 
-      await fetch(`https://bolivia-imports-backend-pg.fly.dev/api/entregas/${id}/estado`,{
+      await fetch(`${API_URL}/entregas/${id}/estado`,{
         method:"PATCH",
         headers:{
           "Content-Type":"application/json"

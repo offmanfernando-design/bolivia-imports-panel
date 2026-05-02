@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { API_URL } from "../../config/api"
 
 export default function EntregaDrawer({ entregaId }){
 
@@ -16,7 +17,7 @@ export default function EntregaDrawer({ entregaId }){
         setLoading(true)
 
         const res = await fetch(
-          `https://bolivia-imports-backend-pg.fly.dev/api/entregas/${entregaId}`
+          `${API_URL}/entregas/${entregaId}`
         )
 
         const json = await res.json()
