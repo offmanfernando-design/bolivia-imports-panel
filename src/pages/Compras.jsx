@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ComprasTable from "../components/compras/ComprasTable";
+import { API_URL } from "../config/api";
 
 export default function Compras() {
   const [form, setForm] = useState({
@@ -44,9 +45,8 @@ export default function Compras() {
 
   async function guardar() {
     try {
-      // evitar guardar compra vacía
-      if (!form.nombre || !form.telefono || !form.numero_orden) {
-        alert("Faltan datos obligatorios");
+      if (!form.nombre || !form.telefono || !form.ciudad || !form.pagina || !form.numero_orden) {
+        alert("Completa nombre, teléfono, ciudad, página y número de orden");
         return;
       }
 
@@ -54,7 +54,12 @@ export default function Compras() {
         .map((item) => item.trim())
         .filter((item) => item);
 
-      await fetch("https://bolivia-imports-backend-pg.fly.dev/api/compras", {
+      if (itemsLimpios.length === 0) {
+        alert("Debes registrar al menos un ítem");
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/compras`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,7 +79,12 @@ export default function Compras() {
         }),
       });
 
-      // limpiar formulario
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "No se pudo guardar la compra");
+      }
+
       setForm({
         nombre: "",
         telefono: "",
@@ -88,10 +98,10 @@ export default function Compras() {
 
       setItems([]);
 
-      // recargar tabla
       setReload((prev) => prev + 1);
     } catch (err) {
       console.error("Error guardando compra:", err);
+      alert(err.message || "Error guardando compra");
     }
   }
 

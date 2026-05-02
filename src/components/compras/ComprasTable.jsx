@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_URL } from "../../config/api";
 
 export default function ComprasTable({ reload }) {
   const [compras, setCompras] = useState([]);
@@ -8,9 +9,7 @@ export default function ComprasTable({ reload }) {
 
   async function load() {
     try {
-      const res = await fetch(
-        "https://bolivia-imports-backend-pg.fly.dev/api/compras",
-      );
+      const res = await fetch(`${API_URL}/compras`);
       const json = await res.json();
 
       setCompras(json.data || []);
@@ -29,8 +28,13 @@ export default function ComprasTable({ reload }) {
     try {
       const tracking = trackingEdit[id];
 
-      await fetch(
-        `https://bolivia-imports-backend-pg.fly.dev/api/compras/${id}/tracking`,
+      if (!tracking || !tracking.trim()) {
+        alert("Ingresa un tracking válido");
+        return;
+      }
+
+      const res = await fetch(
+        `${API_URL}/compras/${id}/tracking`,
         {
           method: "PATCH",
           headers: {
@@ -42,6 +46,12 @@ export default function ComprasTable({ reload }) {
         },
       );
 
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "No se pudo guardar el tracking");
+      }
+
       setCompras((prev) =>
         prev.map((c) =>
           c.id === id ? { ...c, tracking_number: tracking } : c,
@@ -49,13 +59,14 @@ export default function ComprasTable({ reload }) {
       );
     } catch (err) {
       console.error(err);
+      alert(err.message || "Error guardando tracking");
     }
   }
 
   async function cambiarEstado(id, estado) {
     try {
-      await fetch(
-        `https://bolivia-imports-backend-pg.fly.dev/api/compras/${id}/estado`,
+      const res = await fetch(
+        `${API_URL}/compras/${id}/estado`,
         {
           method: "PATCH",
           headers: {
@@ -65,11 +76,18 @@ export default function ComprasTable({ reload }) {
         },
       );
 
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "No se pudo actualizar el estado");
+      }
+
       setCompras((prev) =>
         prev.map((c) => (c.id === id ? { ...c, estado } : c)),
       );
     } catch (err) {
       console.error(err);
+      alert(err.message || "Error actualizando estado");
     }
   }
 
@@ -78,7 +96,7 @@ export default function ComprasTable({ reload }) {
       case "reparto":
         return "En Reparto";
       case "entregado":
-        return "En WHEREHOUSE";
+        return "En Warehouse";
       case "recibido":
         return "En Bolivia";
       default:
