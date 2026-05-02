@@ -21,6 +21,19 @@ export default function PackageDrawer({ pkg }) {
   });
 
   useEffect(() => {
+    function handlePaste(e) {
+      const item = Array.from(e.clipboardData?.items || [])
+        .find(i => i.type.startsWith("image/"));
+      if (item) {
+        const file = item.getAsFile();
+        if (file) setWarehouseImage(file);
+      }
+    }
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, []);
+
+  useEffect(() => {
     if (!pkg?.id) return;
 
     fetch(`${API_URL}/compras/${pkg.id}/eventos`)
@@ -205,10 +218,14 @@ export default function PackageDrawer({ pkg }) {
                   className="w-full border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center cursor-pointer"
                 >
                   {warehouseImage ? (
-                    <p className="text-sm">📦 {warehouseImage.name}</p>
+                    <img
+                      src={URL.createObjectURL(warehouseImage)}
+                      className="max-h-40 rounded-lg object-cover mx-auto"
+                      alt="preview"
+                    />
                   ) : (
                     <p className="text-sm text-neutral-400">
-                      Arrastra imagen aquí
+                      Arrastra imagen aquí o pega con Cmd+V
                     </p>
                   )}
                 </div>
