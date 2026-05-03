@@ -6,11 +6,15 @@ export default function PackageDrawer({ pkg }) {
   const [warehouseImage, setWarehouseImage] = useState(null);
   const [loadingUpload, setLoadingUpload] = useState(false);
   const [events, setEvents] = useState([]);
+  const [items, setItems] = useState([]);
+  const [fotos, setFotos] = useState([]);
+  const [selectedItemId, setSelectedItemId] = useState(null);
 
   const [localPkg, setLocalPkg] = useState(pkg);
 
   useEffect(() => {
     setLocalPkg(pkg);
+    setSelectedItemId(null);
   }, [pkg]);
 
   const [data, setData] = useState({
@@ -44,9 +48,35 @@ export default function PackageDrawer({ pkg }) {
       .catch(console.error);
   }, [pkg?.id]);
 
+  useEffect(() => {
+    if (!pkg?.id) return;
+    loadItems(pkg.id);
+    loadFotos(pkg.id);
+  }, [pkg?.id]);
+
   if (!localPkg) return null;
 
   const tracking = localPkg.tracking || localPkg.tracking_number;
+
+  async function loadItems(id) {
+    try {
+      const res = await fetch(`${API_URL}/compras/${id}/items`);
+      const json = await res.json();
+      if (json.ok) setItems(json.data);
+    } catch (err) {
+      console.error("Error cargando ítems:", err);
+    }
+  }
+
+  async function loadFotos(id) {
+    try {
+      const res = await fetch(`${API_URL}/compras/${id}/fotos`);
+      const json = await res.json();
+      if (json.ok) setFotos(json.data);
+    } catch (err) {
+      console.error("Error cargando fotos:", err);
+    }
+  }
 
   const handleChange = (field, value) => {
     setData({ ...data, [field]: value });
@@ -83,6 +113,9 @@ export default function PackageDrawer({ pkg }) {
 
       const formData = new FormData();
       formData.append("file", warehouseImage);
+      if (selectedItemId) {
+        formData.append("item_id", selectedItemId);
+      }
 
       const res = await fetch(
         `${API_URL}/compras/${localPkg.id}/warehouse`,
@@ -95,8 +128,6 @@ export default function PackageDrawer({ pkg }) {
       const result = await res.json();
 
       if (result.ok) {
-        alert("Confirmado en warehouse ✅");
-
         setLocalPkg(prev => ({
           ...prev,
           warehouse_confirmado: true,
@@ -106,6 +137,12 @@ export default function PackageDrawer({ pkg }) {
           peso: result.data.peso,
           total: result.data.total,
         }));
+
+        await loadItems(localPkg.id);
+        await loadFotos(localPkg.id);
+
+        setWarehouseImage(null);
+        setSelectedItemId(null);
 
         fetch(`${API_URL}/compras/${localPkg.id}/eventos`)
           .then(res => res.json())
@@ -120,6 +157,10 @@ export default function PackageDrawer({ pkg }) {
       setLoadingUpload(false);
     }
   }
+
+  const fotosBadge = (confirmado) => confirmado
+    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+    : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400";
 
   return (
     <div className="w-full flex justify-center animate-[fadeIn_.25s_ease]">
@@ -190,12 +231,25 @@ export default function PackageDrawer({ pkg }) {
             </div>
 
             <div>
-              <p className="text-neutral-500">Llegada warehouse</p>
-              <p className="font-medium">
-                {localPkg.warehouse_fecha
-                  ? new Date(localPkg.warehouse_fecha).toLocaleDateString()
-                  : "—"}
-              </p>
+              <p className="text-neutral-500">Warehouse</p>
+              {items.length > 0 ? (
+                <div className="flex flex-col gap-0.5">
+                  <p className="font-medium">
+                    {items.filter(i => i.warehouse_confirmado).length}/{items.length} ítems confirmados
+                  </p>
+                  {localPkg.warehouse_fecha && (
+                    <p className="text-xs text-neutral-400">
+                      Última confirmación: {new Date(localPkg.warehouse_fecha).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="font-medium">
+                  {localPkg.warehouse_fecha
+                    ? new Date(localPkg.warehouse_fecha).toLocaleDateString()
+                    : "—"}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -205,65 +259,134 @@ export default function PackageDrawer({ pkg }) {
             Confirmación Warehouse (USA)
           </h3>
 
-          <div className="flex flex-col gap-4">
-            {!localPkg.warehouse_confirmado && (
-              <>
+          {/* Lista de ítems con estado warehouse */}
+          {items.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {items.map(compraItem => (
                 <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const file = e.dataTransfer.files[0];
-                    if (file) setWarehouseImage(file);
-                  }}
-                  className="w-full border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center cursor-pointer"
+                  key={compraItem.id}
+                  className="flex items-center justify-between text-sm"
                 >
-                  {warehouseImage ? (
-                    <img
-                      src={URL.createObjectURL(warehouseImage)}
-                      className="max-h-40 rounded-lg object-cover mx-auto"
-                      alt="preview"
-                    />
-                  ) : (
-                    <p className="text-sm text-neutral-400">
-                      Arrastra imagen aquí o pega con Cmd+V
-                    </p>
-                  )}
+                  <span className="text-neutral-700 dark:text-neutral-300">
+                    {compraItem.descripcion}
+                  </span>
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${fotosBadge(compraItem.warehouse_confirmado)}`}>
+                    {compraItem.warehouse_confirmado ? "warehouse ✔" : "pendiente"}
+                  </span>
                 </div>
+              ))}
+            </div>
+          )}
 
-                <button
-                  onClick={handleUpload}
-                  disabled={loadingUpload}
-                  className="px-4 py-2 bg-black text-white rounded-md text-sm"
-                >
-                  {loadingUpload ? "Subiendo..." : "Confirmar llegada"}
-                </button>
-              </>
+          <div className="flex flex-col gap-4">
+
+            {/* Selector de asociación */}
+            {items.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-neutral-500">Asociar foto a:</p>
+                <p className="text-xs text-neutral-400">Usa "Foto general" si la imagen muestra toda la orden o varios productos juntos.</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedItemId(null)}
+                    className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                      selectedItemId === null
+                        ? "bg-black text-white border-black dark:bg-white dark:text-black"
+                        : "border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
+                    }`}
+                  >
+                    Foto general / varios ítems
+                  </button>
+                  {items.map(compraItem => (
+                    <button
+                      key={compraItem.id}
+                      onClick={() => setSelectedItemId(compraItem.id)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        selectedItemId === compraItem.id
+                          ? "bg-black text-white border-black dark:bg-white dark:text-black"
+                          : "border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400"
+                      }`}
+                    >
+                      {compraItem.descripcion}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
-            {localPkg.warehouse_confirmado && (
+            {/* Zona de carga: drag/drop + Cmd+V */}
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
+                if (file) setWarehouseImage(file);
+              }}
+              className="w-full border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center cursor-pointer"
+            >
+              {warehouseImage ? (
+                <img
+                  src={URL.createObjectURL(warehouseImage)}
+                  className="max-h-40 rounded-lg object-cover mx-auto"
+                  alt="preview"
+                />
+              ) : (
+                <p className="text-sm text-neutral-400">
+                  Arrastra imagen aquí o pega con Cmd+V
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={handleUpload}
+              disabled={loadingUpload || !warehouseImage}
+              className="px-4 py-2 bg-black text-white rounded-md text-sm disabled:opacity-40"
+            >
+              {loadingUpload ? "Subiendo..." : "Confirmar llegada"}
+            </button>
+
+            {/* Galería de fotos */}
+            {fotos.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <p className="text-xs text-neutral-500">Fotos registradas</p>
+                <div className="flex flex-wrap gap-3">
+                  {fotos.map(foto => (
+                    <img
+                      key={foto.id}
+                      src={foto.url}
+                      alt="warehouse"
+                      onClick={() => window.open(foto.url, "_blank")}
+                      title={foto.item_id ? "Foto de ítem" : "Foto general"}
+                      className={`h-24 w-24 object-cover rounded-lg border cursor-pointer hover:opacity-80 ${
+                        foto.item_id
+                          ? "border-blue-300 dark:border-blue-700"
+                          : "border-neutral-200 dark:border-neutral-700"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Fallback legacy: solo si no hay fotos en warehouse_fotos */}
+            {fotos.length === 0 && localPkg.warehouse_imagen && (
               <div className="flex flex-col gap-2">
                 <span className="text-sm text-green-600">
                   ✔ Confirmado en warehouse
                 </span>
-
                 {localPkg.warehouse_fecha && (
                   <span className="text-xs text-neutral-400">
                     {new Date(localPkg.warehouse_fecha).toLocaleString()}
                   </span>
                 )}
-
-                {localPkg.warehouse_imagen && (
-                  <img
-                    src={localPkg.warehouse_imagen}
-                    alt="warehouse"
-                    onClick={() =>
-                      window.open(localPkg.warehouse_imagen, "_blank")
-                    }
-                    className="rounded-lg max-h-40 object-cover border cursor-pointer hover:opacity-80"
-                  />
-                )}
+                <img
+                  src={localPkg.warehouse_imagen}
+                  alt="warehouse"
+                  onClick={() => window.open(localPkg.warehouse_imagen, "_blank")}
+                  className="rounded-lg max-h-40 object-cover border cursor-pointer hover:opacity-80"
+                />
               </div>
             )}
+
           </div>
         </div>
 
@@ -273,12 +396,12 @@ export default function PackageDrawer({ pkg }) {
           </h3>
 
           <div className="flex flex-col gap-6">
-            {events.map((item, index) => (
+            {events.map((event, index) => (
               <div key={index} className="flex flex-col">
-                <p className="text-sm">{item.descripcion}</p>
+                <p className="text-sm">{event.descripcion}</p>
                 <span className="text-xs text-neutral-400">
-                  {item.fecha
-                    ? new Date(item.fecha).toLocaleString()
+                  {event.fecha
+                    ? new Date(event.fecha).toLocaleString()
                     : "Pendiente"}
                 </span>
               </div>
