@@ -31,8 +31,7 @@ export default function RecepcionCarga() {
   const [tarifaClienteUsd, setTarifaClienteUsd] = useState("");
   const [tipoCambioInterno, setTipoCambioInterno] = useState("");
   const [tipoCambioCliente, setTipoCambioCliente] = useState("");
-  const [selectedEstante, setSelectedEstante] = useState("");
-  const [selectedFila, setSelectedFila] = useState("");
+  const [selectedUbicacionCodigo, setSelectedUbicacionCodigo] = useState("");
   const [notas, setNotas] = useState("");
 
   const [loadingRegistrar, setLoadingRegistrar] = useState(false);
@@ -42,10 +41,7 @@ export default function RecepcionCarga() {
 
   const trackingRef = useRef(null);
 
-  // Derived location state
-  const ubicacionResultante =
-    selectedEstante && selectedFila ? `${selectedEstante}-${selectedFila}` : "";
-  const ubicacionObj = ubicaciones.find((u) => u.codigo === ubicacionResultante);
+  const ubicacionObj = ubicaciones.find((u) => u.codigo === selectedUbicacionCodigo);
   const ubicacionId = ubicacionObj ? String(ubicacionObj.id) : "";
 
   const estantes = useMemo(() => {
@@ -87,14 +83,7 @@ export default function RecepcionCarga() {
 
   function aplicarSugerida(orden) {
     const codigo = orden?.ubicacion_sugerida?.codigo;
-    if (codigo) {
-      const [est, fil] = codigo.split("-");
-      setSelectedEstante(est || "");
-      setSelectedFila(fil || "");
-    } else {
-      setSelectedEstante("");
-      setSelectedFila("");
-    }
+    setSelectedUbicacionCodigo(codigo || "");
   }
 
   const buscar = useCallback(async (t) => {
@@ -202,7 +191,7 @@ export default function RecepcionCarga() {
       errs.push("T/C interno");
     if (!tipoCambioCliente || Number(tipoCambioCliente) <= 0)
       errs.push("T/C cliente");
-    if (!ubicacionId) errs.push("Ubicación (estante y fila)");
+    if (!ubicacionId) errs.push("Ubicación");
     return errs;
   }, [
     selectedItemId,
@@ -622,7 +611,7 @@ export default function RecepcionCarga() {
             </div>
           )}
 
-          {/* Ubicacion: 2-selector estante + fila */}
+          {/* Ubicacion: grilla visual */}
           <div className="flex flex-col gap-2">
             <label className="text-xs text-neutral-500">
               Ubicación
@@ -632,54 +621,57 @@ export default function RecepcionCarga() {
                 </span>
               )}
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-neutral-400">Estante</label>
-                <select
-                  value={selectedEstante}
-                  onChange={(e) => setSelectedEstante(e.target.value)}
-                  className="ui-input ui-input-sm"
-                >
-                  <option value="">—</option>
-                  {estantes.map((e) => (
-                    <option key={e} value={e}>
-                      {e}
-                      {sugeridaCodigo?.startsWith(e + "-") ? " ★" : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-neutral-400">Fila</label>
-                <select
-                  value={selectedFila}
-                  onChange={(e) => setSelectedFila(e.target.value)}
-                  className="ui-input ui-input-sm"
-                >
-                  <option value="">—</option>
+            <div className="overflow-x-auto">
+              <div className="flex flex-col gap-1 min-w-max">
+                <div className="flex gap-1 ml-7">
                   {filas.map((f) => (
-                    <option key={f} value={f}>
+                    <div key={f} className="w-14 text-center text-xs text-neutral-400 font-medium">
                       {f}
-                      {sugeridaCodigo?.endsWith("-" + f) ? " ★" : ""}
-                    </option>
+                    </div>
                   ))}
-                </select>
+                </div>
+                {estantes.map((est) => (
+                  <div key={est} className="flex items-center gap-1">
+                    <div className="w-6 text-xs text-neutral-400 font-medium text-right">{est}</div>
+                    {filas.map((fil) => {
+                      const codigo = `${est}-${fil}`;
+                      const existe = ubicaciones.some((u) => u.codigo === codigo);
+                      const isSelected = selectedUbicacionCodigo === codigo;
+                      const isSugerida = sugeridaCodigo === codigo;
+                      if (!existe) {
+                        return <div key={fil} className="w-14 h-8 rounded bg-neutral-100 dark:bg-neutral-800" />;
+                      }
+                      let cellClass = "w-14 h-8 rounded text-xs font-medium transition-colors flex items-center justify-center ";
+                      if (isSelected) {
+                        cellClass += "bg-blue-600 text-white border border-blue-600";
+                      } else if (isSugerida) {
+                        cellClass += "border-2 border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 cursor-pointer";
+                      } else {
+                        cellClass += "border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 bg-white dark:bg-neutral-900 hover:border-blue-300 hover:bg-blue-50 cursor-pointer";
+                      }
+                      return (
+                        <button
+                          key={fil}
+                          type="button"
+                          onClick={() => setSelectedUbicacionCodigo(codigo)}
+                          className={cellClass}
+                        >
+                          {codigo}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
-            {ubicacionResultante && (
-              <p className="text-sm">
-                Ubicación:{" "}
-                {ubicacionObj ? (
-                  <span className="font-medium text-blue-700">
-                    {ubicacionResultante}
-                  </span>
-                ) : (
-                  <span className="text-red-500">
-                    {ubicacionResultante} — no encontrada
-                  </span>
-                )}
-              </p>
-            )}
+            <p className="text-sm">
+              Ubicación seleccionada:{" "}
+              {selectedUbicacionCodigo ? (
+                <span className="font-medium text-blue-700">{selectedUbicacionCodigo}</span>
+              ) : (
+                <span className="text-neutral-400">—</span>
+              )}
+            </p>
           </div>
 
           {/* Notas */}
