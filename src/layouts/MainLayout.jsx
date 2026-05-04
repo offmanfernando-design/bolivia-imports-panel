@@ -8,7 +8,8 @@ import {
   DollarSign,
   LayoutGrid,
   PanelLeft,
-  Bell
+  Bell,
+  Settings,
 } from "lucide-react";
 
 import logoLight from "../assets/logo-light.png";
@@ -143,6 +144,20 @@ export default function MainLayout() {
           <NavLink to="/entregas" className={linkStyle} title="Entregas">
             <Truck size={20} />
             {!collapsed && "Entregas"}
+          </NavLink>
+
+
+          {/* SISTEMA */}
+
+          {!collapsed && (
+            <p className="text-[10px] uppercase tracking-widest text-neutral-500 mt-4">
+              Sistema
+            </p>
+          )}
+
+          <NavLink to="/configuracion" className={linkStyle} title="Configuración">
+            <Settings size={20} />
+            {!collapsed && "Configuración"}
           </NavLink>
 
         </nav>

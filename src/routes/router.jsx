@@ -7,6 +7,7 @@ import Operativo from "../pages/Operativo";
 import Ubicaciones from "../pages/Ubicaciones";
 import Cobros from "../pages/Cobros";
 import Entregas from "../pages/Entregas";
+import Configuracion from "../pages/Configuracion";
 
 function Etiquetas() {
   return <div>Etiquetas</div>;
@@ -24,6 +25,7 @@ export default function AppRouter() {
           <Route path="/etiquetas" element={<Etiquetas />} />
           <Route path="/entregas" element={<Entregas />} />
           <Route path="/cobros" element={<Cobros />} />
+          <Route path="/configuracion" element={<Configuracion />} />
         </Route>
       </Routes>
     </BrowserRouter>
