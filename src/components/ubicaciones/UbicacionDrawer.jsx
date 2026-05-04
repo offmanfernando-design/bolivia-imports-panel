@@ -41,7 +41,7 @@ export default function UbicacionDrawer({codigo}){
 
     if(!clientes[p.cliente]) clientes[p.cliente]=[]
 
-    clientes[p.cliente].push(p.tracking)
+    clientes[p.cliente].push(p)
 
   })
 
@@ -71,7 +71,7 @@ export default function UbicacionDrawer({codigo}){
 
       </div>
 
-      {Object.entries(clientes).map(([cliente,trackings])=>{
+      {Object.entries(clientes).map(([cliente,items])=>{
 
         return(
 
@@ -84,28 +84,22 @@ export default function UbicacionDrawer({codigo}){
               {cliente}
             </h3>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2">
 
-              {trackings.map(t=>{
+              {items.map((item,i)=>(
 
-                return(
+                <div key={item.codigo_recepcion || i} className="flex flex-col gap-0.5">
 
-                  <span
-                    key={t}
-                    className="
-                    px-2 py-1
-                    text-xs
-                    rounded
-                    bg-neutral-200
-                    dark:bg-neutral-800
-                    "
-                  >
-                    {t}
-                  </span>
+                  <p className="text-sm">{item.descripcion}</p>
 
-                )
+                  <p className="text-xs text-neutral-400">
+                    {item.tracking_number}
+                    {item.codigo_recepcion && ` · ${item.codigo_recepcion}`}
+                  </p>
 
-              })}
+                </div>
+
+              ))}
 
             </div>
 

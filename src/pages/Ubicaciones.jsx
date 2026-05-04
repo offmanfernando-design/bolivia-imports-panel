@@ -42,12 +42,12 @@ export default function Ubicaciones(){
 
   data.forEach((u)=>{
 
-    const match = u.codigo.match(/E(\d+)F(\d+)/)
+    const match = u.codigo.match(/^(E\d+)-(F\d+)$/)
 
     if(!match) return
 
-    const estante = `E${match[1]}`
-    const fila = `F${match[2]}`
+    const estante = match[1]
+    const fila = match[2]
 
     if(!estantes[estante]) estantes[estante] = []
 
@@ -123,7 +123,7 @@ export default function Ubicaciones(){
 
               {filasOrdenadas.map((f)=>{
 
-                const codigo = `${estante}${f.fila}`
+                const codigo = `${estante}-${f.fila}`
 
                 return(
 
