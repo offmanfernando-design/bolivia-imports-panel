@@ -39,6 +39,17 @@ export default function RecepcionCarga() {
   const [error, setError] = useState("");
   const [ultimaRecepcion, setUltimaRecepcion] = useState(null);
 
+  const [showDesconocido, setShowDesconocido] = useState(false);
+  const [descTracking, setDescTracking] = useState("");
+  const [descDescripcion, setDescDescripcion] = useState("");
+  const [descPeso, setDescPeso] = useState("");
+  const [descUbicacionCodigo, setDescUbicacionCodigo] = useState("");
+  const [descNotas, setDescNotas] = useState("");
+  const [loadingDesconocido, setLoadingDesconocido] = useState(false);
+  const [descTouched, setDescTouched] = useState(false);
+  const [descError, setDescError] = useState("");
+  const [ultimoDesconocido, setUltimoDesconocido] = useState(null);
+
   const trackingRef = useRef(null);
 
   const ubicacionObj = ubicaciones.find((u) => u.codigo === selectedUbicacionCodigo);
@@ -274,6 +285,54 @@ export default function RecepcionCarga() {
 
   const selectedItem = selectedOrden?.items?.find((i) => i.id === selectedItemId);
   const categoriaSeleccionada = categorias.find((c) => String(c.id) === categoriaId);
+
+  const descUbicacionObj = ubicaciones.find((u) => u.codigo === descUbicacionCodigo);
+  const descUbicacionId = descUbicacionObj ? String(descUbicacionObj.id) : "";
+
+  const descValidationErrors = useMemo(() => {
+    if (!showDesconocido) return [];
+    const errs = [];
+    if (!descDescripcion.trim()) errs.push("Descripción");
+    if (!descUbicacionId) errs.push("Ubicación");
+    if (descPeso !== "" && (isNaN(Number(descPeso)) || Number(descPeso) < 0))
+      errs.push("Peso inválido");
+    return errs;
+  }, [showDesconocido, descDescripcion, descUbicacionId, descPeso]);
+
+  async function registrarDesconocido() {
+    setDescTouched(true);
+    if (descValidationErrors.length > 0) return;
+    setDescError("");
+    setLoadingDesconocido(true);
+    try {
+      const payload = {
+        ...(descTracking.trim() ? { tracking: descTracking.trim() } : {}),
+        descripcion: descDescripcion.trim(),
+        ...(descPeso !== "" ? { peso: Number(descPeso) } : {}),
+        ubicacion_id: descUbicacionId,
+        ...(descNotas.trim() ? { notas: descNotas.trim() } : {}),
+      };
+      const res = await fetch(`${API_URL}/operativo/paquetes-desconocidos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "Error al registrar");
+      setUltimoDesconocido(json.data);
+      setDescTracking("");
+      setDescDescripcion("");
+      setDescPeso("");
+      setDescUbicacionCodigo("");
+      setDescNotas("");
+      setDescTouched(false);
+    } catch (err) {
+      console.error(err);
+      setDescError(err.message || "Error al registrar desconocido");
+    } finally {
+      setLoadingDesconocido(false);
+    }
+  }
 
   return (
     <div className="ui-card flex flex-col gap-6">
@@ -713,13 +772,149 @@ export default function RecepcionCarga() {
         </div>
       )}
 
-      <button
-        type="button"
-        disabled
-        className="ui-button opacity-50 cursor-not-allowed self-start text-sm"
-      >
-        Registrar desconocido (próximamente)
-      </button>
+      <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4">
+        <button
+          type="button"
+          onClick={() => {
+            const opening = !showDesconocido;
+            setShowDesconocido(opening);
+            if (opening) {
+              setDescTracking(tracking);
+              setUltimoDesconocido(null);
+              setDescError("");
+              setDescTouched(false);
+            }
+          }}
+          className="text-sm px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+        >
+          {showDesconocido ? "Ocultar formulario desconocido" : "+ Registrar paquete desconocido"}
+        </button>
+      </div>
+
+      {showDesconocido && (
+        <div className="ui-card flex flex-col gap-4 border-amber-200 bg-amber-50/30 dark:bg-amber-950/20">
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+            Paquete desconocido
+          </p>
+
+          {ultimoDesconocido && (
+            <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col gap-1">
+              <p className="text-green-700 font-semibold text-sm">Registrado</p>
+              <p className="text-xs text-neutral-600">
+                {ultimoDesconocido.descripcion}
+                {" · "}{ultimoDesconocido.ubicacion_codigo}
+              </p>
+            </div>
+          )}
+
+          {descError && (
+            <div className="bg-red-100 text-red-700 text-sm p-2 rounded">{descError}</div>
+          )}
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-neutral-500">Tracking (opcional)</label>
+            <input
+              type="text"
+              placeholder="Si se conoce o es parcial"
+              value={descTracking}
+              onChange={(e) => setDescTracking(e.target.value)}
+              className="ui-input ui-input-sm"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-neutral-500">
+              Descripción física <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Ej: caja negra mediana, bolsa con ropa..."
+              value={descDescripcion}
+              onChange={(e) => setDescDescripcion(e.target.value)}
+              className={`ui-input ui-input-sm ${descTouched && !descDescripcion.trim() ? "border-red-400" : ""}`}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-neutral-500">Peso kg (opcional)</label>
+            <input
+              type="number"
+              placeholder="0.00"
+              value={descPeso}
+              onChange={(e) => setDescPeso(e.target.value)}
+              className="ui-input ui-input-sm"
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs text-neutral-500">
+              Zona de depósito <span className="text-red-400">*</span>
+            </label>
+            <div className="flex gap-1 flex-wrap">
+              {["D1", "D2", "D3", "D4", "D5"].map((cod) => {
+                const existe = ubicaciones.some((u) => u.codigo === cod);
+                const isSelected = descUbicacionCodigo === cod;
+                if (!existe) return null;
+                return (
+                  <button
+                    key={cod}
+                    type="button"
+                    onClick={() => setDescUbicacionCodigo(cod)}
+                    className={`w-12 h-9 rounded text-xs font-medium transition-colors flex items-center justify-center border ${
+                      isSelected
+                        ? "bg-amber-500 text-white border-amber-500"
+                        : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 bg-white dark:bg-neutral-900 hover:border-amber-300 hover:bg-amber-50 cursor-pointer"
+                    }`}
+                  >
+                    {cod}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-sm">
+              Ubicación seleccionada:{" "}
+              {descUbicacionCodigo ? (
+                <span className="font-medium text-amber-700">{descUbicacionCodigo}</span>
+              ) : (
+                <span className="text-neutral-400">—</span>
+              )}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-neutral-500">Notas (opcional)</label>
+            <input
+              type="text"
+              placeholder="Observaciones..."
+              value={descNotas}
+              onChange={(e) => setDescNotas(e.target.value)}
+              className="ui-input ui-input-sm"
+            />
+          </div>
+
+          {descTouched && descValidationErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 text-sm">
+              <p className="text-red-600 font-medium mb-1">Completar antes de registrar:</p>
+              <ul className="list-disc list-inside text-red-500 space-y-0.5">
+                {descValidationErrors.map((e) => (
+                  <li key={e}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={registrarDesconocido}
+            disabled={loadingDesconocido || (descTouched && descValidationErrors.length > 0)}
+            className="ui-button disabled:opacity-50 disabled:cursor-not-allowed self-start"
+          >
+            {loadingDesconocido ? "Guardando..." : "Guardar desconocido"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
