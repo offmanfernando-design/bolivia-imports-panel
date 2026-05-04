@@ -55,19 +55,27 @@ export default function RecepcionCarga() {
   const ubicacionObj = ubicaciones.find((u) => u.codigo === selectedUbicacionCodigo);
   const ubicacionId = ubicacionObj ? String(ubicacionObj.id) : "";
 
+  const zonaRecomendada = selectedOrden?.zona_recomendada || null;
+
+  const ubicacionesParaGrilla = useMemo(() => {
+    if (zonaRecomendada)
+      return ubicaciones.filter((u) => u.zona === zonaRecomendada);
+    return ubicaciones.filter((u) => u.zona === "local" || u.zona === "terminal");
+  }, [ubicaciones, zonaRecomendada]);
+
   const estantes = useMemo(() => {
     const s = new Set(
-      ubicaciones.map((u) => u.codigo.split("-")[0]).filter(Boolean)
+      ubicacionesParaGrilla.map((u) => u.codigo.split("-")[0]).filter(Boolean)
     );
     return [...s].sort();
-  }, [ubicaciones]);
+  }, [ubicacionesParaGrilla]);
 
   const filas = useMemo(() => {
     const s = new Set(
-      ubicaciones.map((u) => u.codigo.split("-")[1]).filter(Boolean)
+      ubicacionesParaGrilla.map((u) => u.codigo.split("-")[1]).filter(Boolean)
     );
     return [...s].sort();
-  }, [ubicaciones]);
+  }, [ubicacionesParaGrilla]);
 
   const sugeridaCodigo = selectedOrden?.ubicacion_sugerida?.codigo;
 
@@ -153,8 +161,6 @@ export default function RecepcionCarga() {
     const cat = categorias.find((c) => String(c.id) === id);
     if (!cat) return;
     if (cat.tipo_calculo) setTipoCalculo(cat.tipo_calculo);
-    if (cat.costo_interno_usd != null)
-      setCostoInternoUsd(String(cat.costo_interno_usd));
     if (cat.tarifa_cliente_usd != null)
       setTarifaClienteUsd(String(cat.tarifa_cliente_usd));
   }
@@ -423,6 +429,13 @@ export default function RecepcionCarga() {
                   Ubicación sugerida: {orden.ubicacion_sugerida.codigo}
                 </p>
               )}
+              {orden.zona_recomendada && (
+                <p className={`text-xs font-medium ${orden.zona_recomendada === "local" ? "text-blue-500" : "text-amber-500"}`}>
+                  {orden.zona_recomendada === "local"
+                    ? "Local — Santa Cruz"
+                    : `Terminal — ${orden.cliente_ciudad || "otro departamento"}`}
+                </p>
+              )}
               <p className="text-xs text-neutral-400">
                 {habilitados.length > 0 && (
                   <span>{habilitados.length} pendiente{habilitados.length !== 1 ? "s" : ""}</span>
@@ -611,7 +624,7 @@ export default function RecepcionCarga() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-neutral-500">
-                Tarifa cliente (USD)
+                {tipoCalculo === "kg" ? "Tarifa cliente por kg (USD)" : "Tarifa cliente por unidad (USD)"}
               </label>
               <input
                 type="number"
@@ -674,6 +687,11 @@ export default function RecepcionCarga() {
           <div className="flex flex-col gap-2">
             <label className="text-xs text-neutral-500">
               Ubicación
+              {zonaRecomendada && (
+                <span className={`ml-1 font-medium ${zonaRecomendada === "local" ? "text-blue-400" : "text-amber-400"}`}>
+                  — Zona {zonaRecomendada === "local" ? "local" : "terminal"}
+                </span>
+              )}
               {sugeridaCodigo && (
                 <span className="ml-1 text-blue-400">
                   (sugerida: {sugeridaCodigo})
@@ -694,7 +712,7 @@ export default function RecepcionCarga() {
                     <div className="w-6 text-xs text-neutral-400 font-medium text-right">{est}</div>
                     {filas.map((fil) => {
                       const codigo = `${est}-${fil}`;
-                      const existe = ubicaciones.some((u) => u.codigo === codigo);
+                      const existe = ubicacionesParaGrilla.some((u) => u.codigo === codigo);
                       const isSelected = selectedUbicacionCodigo === codigo;
                       const isSugerida = sugeridaCodigo === codigo;
                       if (!existe) {
