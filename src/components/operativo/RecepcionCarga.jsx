@@ -284,6 +284,7 @@ export default function RecepcionCarga() {
   }
 
   const selectedItem = selectedOrden?.items?.find((i) => i.id === selectedItemId);
+  const categoriaSeleccionada = categorias.find((c) => String(c.id) === categoriaId);
 
   return (
     <div className="ui-card flex flex-col gap-6">
@@ -467,6 +468,14 @@ export default function RecepcionCarga() {
                 </option>
               ))}
             </select>
+            {categoriaId && (
+              <p className="text-xs text-neutral-400">
+                Referencia categoría:{" "}
+                {categoriaSeleccionada?.precio_referencia_usd != null
+                  ? `USD ${Number(categoriaSeleccionada.precio_referencia_usd).toFixed(2)} por ${categoriaSeleccionada.tipo_calculo === "kg" ? "kg" : "unidad"}`
+                  : "sin precio configurado"}
+              </p>
+            )}
           </div>
 
           {/* Tipo calculo */}
