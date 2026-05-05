@@ -2,9 +2,16 @@ export default function Badge({ type, children }) {
 
   const styles = {
 
+    /* ---- estados logísticos ---- */
+
     almacen: `
-      bg-yellow-100 text-yellow-700 border-yellow-200
-      dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20
+      bg-amber-100 text-amber-700 border-amber-200
+      dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20
+    `,
+
+    en_almacen: `
+      bg-amber-100 text-amber-700 border-amber-200
+      dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20
     `,
 
     ruta: `
@@ -13,21 +20,50 @@ export default function Badge({ type, children }) {
     `,
 
     entregado: `
-      bg-green-100 text-green-700 border-green-200
-      dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20
+      bg-emerald-100 text-emerald-700 border-emerald-200
+      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
     `,
 
     pagado: `
-      bg-green-100 text-green-700 border-green-200
-      dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20
+      bg-emerald-100 text-emerald-700 border-emerald-200
+      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
     `,
 
     pendiente: `
       bg-red-100 text-red-700 border-red-200
       dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20
-    `
+    `,
+
+    recibido_bolivia: `
+      bg-blue-100 text-blue-700 border-blue-200
+      dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20
+    `,
+
+    /* ---- genéricos ---- */
+
+    warning: `
+      bg-amber-100 text-amber-700 border-amber-200
+      dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20
+    `,
+
+    success: `
+      bg-emerald-100 text-emerald-700 border-emerald-200
+      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
+    `,
+
+    info: `
+      bg-blue-100 text-blue-700 border-blue-200
+      dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20
+    `,
+
+    default: `
+      bg-neutral-100 text-neutral-600 border-neutral-200
+      dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700
+    `,
 
   }
+
+  const base = styles[type] ?? styles.default
 
   return (
 
@@ -41,7 +77,7 @@ export default function Badge({ type, children }) {
       rounded-md
       border
       transition-colors
-      ${styles[type]}
+      ${base}
       `}
     >
 

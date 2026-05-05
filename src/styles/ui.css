@@ -1,14 +1,14 @@
 /* ===================================================== */
-/* DESIGN SYSTEM - BOLIVIA IMPORTS */
+/* DESIGN SYSTEM - BOLIVIA IMPORTS                       */
 /* ===================================================== */
 
 
 /* ===================================================== */
-/* CARDS */
+/* CARDS                                                 */
 /* ===================================================== */
 
-.ui-card{
-  @apply bg-neutral-100 dark:bg-neutral-950
+.ui-card {
+  @apply bg-white dark:bg-neutral-950
   border border-neutral-200 dark:border-neutral-800
   rounded-xl
   p-6
@@ -18,18 +18,26 @@
   hover:-translate-y-[2px];
 }
 
-/* CARD HOVER */
+/* Panel principal — sin hover transform, para secciones estáticas */
+.ui-section-card {
+  @apply bg-white dark:bg-neutral-950
+  border border-neutral-200 dark:border-neutral-800
+  rounded-xl
+  p-6
+  shadow-sm dark:shadow-black/20;
+}
 
-.ui-card-hover{
+/* CARD HOVER */
+.ui-card-hover {
   @apply hover:border-neutral-300 dark:hover:border-neutral-700;
 }
 
 
 /* ===================================================== */
-/* INPUTS */
+/* INPUTS / SELECTS / LABELS                             */
 /* ===================================================== */
 
-.ui-input{
+.ui-input {
   @apply w-full
   px-4 py-2.5
   rounded-lg
@@ -41,34 +49,68 @@
   transition-all duration-200
   focus:outline-none
   focus:ring-2 focus:ring-neutral-300/40
-  focus:border-neutral-400;
+  focus:border-neutral-400
+  dark:focus:border-neutral-600;
 }
 
-/* SMALL INPUT */
-
-.ui-input-sm{
+.ui-input-sm {
   @apply px-3 py-2 text-sm;
 }
 
+.ui-select {
+  @apply w-full
+  px-4 py-2.5
+  rounded-lg
+  border border-neutral-200 dark:border-neutral-800
+  bg-neutral-50 dark:bg-neutral-900
+  text-neutral-900 dark:text-neutral-100
+  text-sm
+  transition-all duration-200
+  focus:outline-none
+  focus:ring-2 focus:ring-neutral-300/40
+  focus:border-neutral-400
+  dark:focus:border-neutral-600
+  cursor-pointer;
+}
+
+.ui-label {
+  @apply text-xs
+  font-medium
+  text-neutral-500 dark:text-neutral-400;
+}
+
 
 /* ===================================================== */
-/* BUTTONS */
+/* BUTTONS                                               */
 /* ===================================================== */
 
-.ui-button{
+.ui-button {
   @apply px-4 py-2
   rounded-lg
-  bg-neutral-900
-  text-white
+  bg-neutral-900 dark:bg-neutral-100
+  text-white dark:text-neutral-900
   text-sm
   font-medium
   transition-all duration-200
-  hover:bg-neutral-800
+  hover:bg-neutral-700 dark:hover:bg-white
   hover:shadow
   active:scale-[0.97];
 }
 
-.ui-button-success{
+.ui-button-ghost {
+  @apply px-4 py-2
+  rounded-lg
+  border border-neutral-200 dark:border-neutral-800
+  bg-transparent
+  text-neutral-700 dark:text-neutral-300
+  text-sm
+  font-medium
+  transition-all duration-200
+  hover:bg-neutral-100 dark:hover:bg-neutral-900
+  active:scale-[0.97];
+}
+
+.ui-button-success {
   @apply px-4 py-2
   rounded-lg
   bg-emerald-600
@@ -81,77 +123,95 @@
   active:scale-[0.97];
 }
 
-.ui-button-warning{
+.ui-button-warning {
   @apply px-4 py-2
   rounded-lg
-  bg-yellow-600
+  bg-amber-500
   text-white
   text-sm
   font-medium
   transition-all duration-200
-  hover:bg-yellow-500
+  hover:bg-amber-400
+  hover:shadow
+  active:scale-[0.97];
+}
+
+.ui-button-danger {
+  @apply px-4 py-2
+  rounded-lg
+  bg-red-600
+  text-white
+  text-sm
+  font-medium
+  transition-all duration-200
+  hover:bg-red-500
   hover:shadow
   active:scale-[0.97];
 }
 
 
 /* ===================================================== */
-/* TABLE */
+/* TABLE                                                 */
 /* ===================================================== */
 
-.ui-table{
+.ui-table {
   @apply border border-neutral-200 dark:border-neutral-800
   rounded-xl
   overflow-hidden;
 }
 
-/* TABLE ROW */
-
-.ui-row{
+.ui-row {
   @apply transition-colors duration-150
-  hover:bg-neutral-100
+  hover:bg-neutral-50
   dark:hover:bg-neutral-900;
 }
 
 
 /* ===================================================== */
-/* TITLES */
+/* TITLES                                                */
 /* ===================================================== */
 
-.ui-section-title{
+.ui-section-title {
   @apply text-xs
   uppercase
   tracking-widest
-  text-neutral-400;
+  text-neutral-400 dark:text-neutral-500;
 }
 
-.ui-page-title{
+.ui-page-title {
   @apply text-2xl
   font-semibold
+  tracking-tight
   text-neutral-900 dark:text-neutral-100;
 }
 
+.ui-subsection-title {
+  @apply text-xs
+  font-semibold
+  uppercase
+  tracking-widest
+  text-neutral-500 dark:text-neutral-400;
+}
+
 
 /* ===================================================== */
-/* MICRO ANIMATIONS */
+/* MICRO ANIMATIONS                                      */
 /* ===================================================== */
 
-.ui-hover{
+.ui-hover {
   @apply transition-all duration-200 hover:translate-x-[2px];
 }
 
-/* SCALE HOVER */
-
-.ui-scale{
+.ui-scale {
   @apply transition-transform duration-200 hover:scale-[1.02];
 }
 
 
 /* ===================================================== */
-/* SKELETON LOADING */
+/* SKELETON LOADING                                      */
 /* ===================================================== */
 
-.ui-skeleton{
+.ui-skeleton {
   @apply animate-pulse
   bg-neutral-200 dark:bg-neutral-800
   rounded;
@@ -159,23 +219,20 @@
 
 
 /* ===================================================== */
-/* FADE ANIMATION */
+/* FADE ANIMATION                                        */
 /* ===================================================== */
 
-.ui-fade{
+.ui-fade {
   animation: fadeIn .25s ease;
 }
 
-@keyframes fadeIn{
-
-  from{
-    opacity:0;
-    transform:translateY(4px);
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
-
-  to{
-    opacity:1;
-    transform:translateY(0);
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-
 }
