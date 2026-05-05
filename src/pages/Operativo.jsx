@@ -1,6 +1,7 @@
 import { useState } from "react"
 import OperativoTable from "../components/operativo/OperativoTable"
 import RecepcionCarga from "../components/operativo/RecepcionCarga"
+import InventarioBolivia from "../components/operativo/InventarioBolivia"
 import Drawer from "../components/ui/Drawer"
 import PackageDrawer from "../components/packages/PackageDrawer"
 
@@ -33,6 +34,8 @@ export default function Operativo(){
       <OperativoTable onOpenPackage={openPackage}/>
 
       <RecepcionCarga/>
+
+      <InventarioBolivia/>
 
       <Drawer open={drawerOpen} onClose={()=>setDrawerOpen(false)}>
         <PackageDrawer pkg={selectedPackage}/>
