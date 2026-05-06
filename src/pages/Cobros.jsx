@@ -94,7 +94,7 @@ async function generarMensaje(row, itemsCliente) {
   } else {
     let linkFormulario = null
     try {
-      const res  = await fetch(`${API_URL}/receptores/link/${row.cliente_id}`)
+      const res  = await fetch(`${API_URL}/cobros/link-formulario/${row.cliente_id}`)
       const data = await res.json()
       if (data.link) linkFormulario = data.link
     } catch {
