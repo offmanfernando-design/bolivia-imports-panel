@@ -318,6 +318,91 @@ function ModalCargarGuia({ row, onClose, onSaved }) {
   )
 }
 
+// ─── Etiqueta imprimible ──────────────────────────────────────────────────────
+function printEtiqueta(row) {
+  const nombre   = (row.recoge_quien === "tercero" ? row.nombre_receptor   : row.cliente_nombre)   || "—"
+  const telefono = (row.recoge_quien === "tercero" ? row.telefono_receptor : row.cliente_telefono) || "—"
+  const destino  = row.destino || "—"
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Etiqueta</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff;
+    color: #000;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+  }
+  .etiqueta {
+    border: 2.5px solid #000;
+    border-radius: 4px;
+    padding: 36px 40px;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+  }
+  .campo { margin-bottom: 28px; }
+  .campo:last-child { margin-bottom: 0; }
+  .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #777;
+    margin-bottom: 6px;
+  }
+  .valor {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+  .valor.sm { font-size: 22px; }
+  hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 24px 0;
+  }
+  @media print {
+    body { min-height: unset; padding: 0; }
+    .etiqueta { max-width: 100%; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="etiqueta">
+  <div class="campo">
+    <div class="label">Para</div>
+    <div class="valor">${nombre}</div>
+  </div>
+  <hr>
+  <div class="campo">
+    <div class="label">Destino</div>
+    <div class="valor sm">${destino}</div>
+  </div>
+  <div class="campo">
+    <div class="label">Teléfono</div>
+    <div class="valor sm">${telefono}</div>
+  </div>
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+
+  const win = window.open("", "_blank", "width=460,height=400")
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+}
+
 // ─── Helpers de filtro por fecha ──────────────────────────────────────────────
 function startOfMonth() {
   const d = new Date()
@@ -548,26 +633,38 @@ export default function SolicitudesTerminal() {
                       </td>
                     )}
                     <td className="px-4 py-3">
-                      {tab === "pendiente" && (
-                        <button
-                          onClick={() => setModalRow(row)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium
-                            bg-neutral-900 dark:bg-neutral-100
-                            text-white dark:text-neutral-900
-                            hover:opacity-80 transition">
-                          Confirmar envío
-                        </button>
-                      )}
-                      {tab === "enviado" && (
-                        <button
-                          onClick={() => setModalGuia(row)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium
-                            border border-neutral-300 dark:border-neutral-600
-                            text-neutral-600 dark:text-neutral-400
-                            hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
-                          {row.guia_at ? "Actualizar guía" : "Cargar guía"}
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {tab === "pendiente" && (
+                          <button
+                            onClick={() => setModalRow(row)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium
+                              bg-neutral-900 dark:bg-neutral-100
+                              text-white dark:text-neutral-900
+                              hover:opacity-80 transition">
+                            Confirmar envío
+                          </button>
+                        )}
+                        {tab === "enviado" && (
+                          <button
+                            onClick={() => setModalGuia(row)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium
+                              border border-neutral-300 dark:border-neutral-600
+                              text-neutral-600 dark:text-neutral-400
+                              hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
+                            {row.guia_at ? "Actualizar guía" : "Cargar guía"}
+                          </button>
+                        )}
+                        {tab === "pendiente" && (
+                          <button
+                            onClick={() => printEtiqueta(row)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium
+                              border border-neutral-200 dark:border-neutral-700
+                              text-neutral-500 dark:text-neutral-400
+                              hover:bg-neutral-50 dark:hover:bg-neutral-700 transition">
+                            Etiqueta
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -673,31 +770,43 @@ export default function SolicitudesTerminal() {
                     </div>
                   )}
 
-                  {/* Footer: fecha + botón de acción */}
+                  {/* Footer: fecha + botones de acción */}
                   <div className="flex items-center justify-between gap-3 pt-0.5">
                     <p className="text-xs text-neutral-400 dark:text-neutral-500">
                       {formatFecha(row.created_at)}
                     </p>
-                    {row.estado === "pendiente" && (
-                      <button
-                        onClick={() => setModalRow(row)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium
-                          bg-neutral-900 dark:bg-neutral-100
-                          text-white dark:text-neutral-900
-                          hover:opacity-80 transition">
-                        Confirmar envío
-                      </button>
-                    )}
-                    {row.estado === "enviado" && (
-                      <button
-                        onClick={() => setModalGuia(row)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium
-                          border border-neutral-300 dark:border-neutral-600
-                          text-neutral-600 dark:text-neutral-400
-                          hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
-                        {row.guia_at ? "Actualizar guía" : "Cargar guía"}
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {row.estado === "pendiente" && (
+                        <button
+                          onClick={() => setModalRow(row)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium
+                            bg-neutral-900 dark:bg-neutral-100
+                            text-white dark:text-neutral-900
+                            hover:opacity-80 transition">
+                          Confirmar envío
+                        </button>
+                      )}
+                      {row.estado === "enviado" && (
+                        <button
+                          onClick={() => setModalGuia(row)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium
+                            border border-neutral-300 dark:border-neutral-600
+                            text-neutral-600 dark:text-neutral-400
+                            hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
+                          {row.guia_at ? "Actualizar guía" : "Cargar guía"}
+                        </button>
+                      )}
+                      {row.estado === "pendiente" && (
+                        <button
+                          onClick={() => printEtiqueta(row)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium
+                            border border-neutral-200 dark:border-neutral-700
+                            text-neutral-500 dark:text-neutral-400
+                            hover:bg-neutral-50 dark:hover:bg-neutral-700 transition">
+                          Etiqueta
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                 </div>
