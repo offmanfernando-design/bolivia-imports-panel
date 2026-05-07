@@ -11,6 +11,7 @@ import {
   PanelLeft,
   Menu,
   Settings,
+  ClipboardList,
 } from "lucide-react";
 
 import logoLight from "../assets/logo-light.png";
@@ -31,8 +32,9 @@ const NAV_ITEMS = [
   {
     section: "Finanzas",
     items: [
-      { to: "/cobros",   label: "Cobros",   icon: <DollarSign size={18} /> },
-      { to: "/entregas", label: "Entregas", icon: <Truck size={18} /> },
+      { to: "/cobros",                label: "Cobros",               icon: <DollarSign    size={18} /> },
+      { to: "/solicitudes-terminal", label: "Solicitudes Terminal", icon: <ClipboardList size={18} /> },
+      { to: "/entregas",             label: "Entregas",             icon: <Truck         size={18} /> },
     ],
   },
   {
