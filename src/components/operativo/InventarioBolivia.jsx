@@ -38,13 +38,10 @@ function DetalleItem({ row, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-
-      {/* Panel */}
       <div className="relative z-10 w-full sm:max-w-lg bg-white dark:bg-neutral-950
         border border-neutral-200 dark:border-neutral-800
         rounded-t-2xl sm:rounded-2xl shadow-2xl
@@ -52,7 +49,6 @@ function DetalleItem({ row, onClose }) {
         p-6 flex flex-col gap-5
       ">
 
-        {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="ui-section-title">Ítem recibido</p>
@@ -68,7 +64,6 @@ function DetalleItem({ row, onClose }) {
           </button>
         </div>
 
-        {/* Cliente */}
         <section className="flex flex-col gap-3">
           <p className="ui-subsection-title">Cliente</p>
           <div className="grid grid-cols-2 gap-3">
@@ -79,7 +74,6 @@ function DetalleItem({ row, onClose }) {
           </div>
         </section>
 
-        {/* Recepción */}
         <section className="flex flex-col gap-3 border-t border-neutral-100 dark:border-neutral-800 pt-4">
           <p className="ui-subsection-title">Recepción</p>
           <div className="grid grid-cols-2 gap-3">
@@ -101,7 +95,6 @@ function DetalleItem({ row, onClose }) {
           {row.notas && <Campo label="Notas" value={row.notas} />}
         </section>
 
-        {/* Financiero */}
         <section className="flex flex-col gap-3 border-t border-neutral-100 dark:border-neutral-800 pt-4">
           <p className="ui-subsection-title">Financiero</p>
           <div className="grid grid-cols-3 gap-3">
@@ -128,12 +121,12 @@ function DetalleItem({ row, onClose }) {
 }
 
 export default function InventarioBolivia() {
-  const [q, setQ]             = useState("")
-  const [rows, setRows]       = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState(null)
+  const [q, setQ]               = useState("")
+  const [rows, setRows]         = useState([])
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState(null)
   const [selected, setSelected] = useState(null)
-  const debounceRef           = useRef(null)
+  const debounceRef             = useRef(null)
 
   async function fetchInventario(query) {
     setLoading(true)
