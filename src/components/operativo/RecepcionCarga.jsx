@@ -122,12 +122,20 @@ export default function RecepcionCarga() {
       setOrdenes(list);
 
       const allPending = list.flatMap((o) => o.items.filter(esPendiente));
-      if (allPending.length === 1) {
+      const matchedPending = allPending.filter((i) => i.item_match);
+      const autoItem =
+        matchedPending.length === 1
+          ? matchedPending[0]
+          : allPending.length === 1
+            ? allPending[0]
+            : null;
+
+      if (autoItem) {
         const orden = list.find((o) =>
-          o.items.some((i) => i.id === allPending[0].id)
+          o.items.some((i) => i.id === autoItem.id)
         );
         setSelectedOrden(orden);
-        setSelectedItemId(allPending[0].id);
+        setSelectedItemId(autoItem.id);
         setUltimaRecepcion(null);
         setError("");
         setFormTouched(false);
@@ -486,7 +494,14 @@ export default function RecepcionCarga() {
                     disabled={!habilitado}
                     className={rowClass}
                   >
-                    <span className="block truncate">{item.descripcion}</span>
+                    <span className="block truncate">
+                      {item.descripcion}
+                      {item.item_match && (
+                        <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400">
+                          · tracking coincide
+                        </span>
+                      )}
+                    </span>
                     <span className="text-xs">
                       {item.estado === "recibido_bolivia"
                         ? "Recibido en Bolivia"
