@@ -60,6 +60,27 @@ export default function ComprasTable({ reload }) {
     }
   }
 
+  async function guardarTrackingSingle(compraId, singleItemId) {
+    const tracking = trackingEdit[compraId];
+    if (!tracking || !tracking.trim()) { alert("Ingresa un tracking válido"); return; }
+    try {
+      const res  = await fetch(`${API_URL}/compras/items/${singleItemId}/tracking`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tracking_number: tracking }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo guardar el tracking");
+      setCompras(prev => prev.map(c =>
+        c.id === compraId ? { ...c, single_item_tracking: tracking.trim() } : c
+      ));
+      setTrackingEdit(prev => { const n = { ...prev }; delete n[compraId]; return n; });
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Error guardando tracking");
+    }
+  }
+
   async function guardarTrackingItem(itemId, compraId) {
     const tracking = itemTrackEdit[itemId];
     if (!tracking || !tracking.trim()) { alert("Ingresa un tracking válido"); return; }
@@ -240,38 +261,76 @@ export default function ComprasTable({ reload }) {
                     </td>
 
                     <td className="px-3 py-3">
-                      {tracking ? (
-                        <span className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-xs">
-                          {tracking}
-                        </span>
+                      {compra.item_count === 1 ? (
+                        (() => {
+                          const effectiveTracking = compra.single_item_tracking || compra.tracking_number;
+                          const isEditing = trackingEdit[compra.id] !== undefined;
+                          return effectiveTracking && !isEditing ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-xs font-mono">
+                                {effectiveTracking}
+                              </span>
+                              <button
+                                onClick={() => setTrackingEdit(prev => ({ ...prev, [compra.id]: effectiveTracking }))}
+                                className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition underline">
+                                Editar
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                placeholder="Tracking"
+                                value={trackingEdit[compra.id] || ""}
+                                onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
+                                className="px-2 py-1 border border-gray-300 dark:border-gray-700 rounded text-xs bg-white dark:bg-[#111]"
+                              />
+                              <button
+                                onClick={() => guardarTrackingSingle(compra.id, compra.single_item_id)}
+                                className="px-3 py-1 bg-black text-white rounded text-xs hover:opacity-80">
+                                Guardar
+                              </button>
+                            </div>
+                          );
+                        })()
+                      ) : compra.item_count > 1 ? (
+                        <span className="text-xs text-neutral-400 italic">Tracking por ítem</span>
                       ) : (
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Tracking"
-                            className="px-2 py-1 border border-gray-300 dark:border-gray-700 rounded text-xs bg-white dark:bg-[#111]"
-                            onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
-                          />
-                          <button
-                            onClick={() => guardarTracking(compra.id)}
-                            className="px-3 py-1 bg-black text-white rounded text-xs hover:opacity-80">
-                            Guardar
-                          </button>
-                        </div>
+                        tracking ? (
+                          <span className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-xs">
+                            {tracking}
+                          </span>
+                        ) : (
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Tracking"
+                              className="px-2 py-1 border border-gray-300 dark:border-gray-700 rounded text-xs bg-white dark:bg-[#111]"
+                              onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
+                            />
+                            <button
+                              onClick={() => guardarTracking(compra.id)}
+                              className="px-3 py-1 bg-black text-white rounded text-xs hover:opacity-80">
+                              Guardar
+                            </button>
+                          </div>
+                        )
                       )}
                     </td>
 
                     <td className="px-3 py-3">
-                      <button
-                        onClick={() => toggleItems(compra.id)}
-                        className={`px-2 py-1 rounded text-xs font-medium transition
-                          ${isExpanded
-                            ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
-                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                          }`}
-                      >
-                        {isExpanded ? "Cerrar" : "Ver ítems"}
-                      </button>
+                      {compra.item_count > 1 && (
+                        <button
+                          onClick={() => toggleItems(compra.id)}
+                          className={`px-2 py-1 rounded text-xs font-medium transition
+                            ${isExpanded
+                              ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
+                              : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                            }`}
+                        >
+                          {isExpanded ? "Cerrar" : "Ver ítems"}
+                        </button>
+                      )}
                     </td>
                   </tr>
 
