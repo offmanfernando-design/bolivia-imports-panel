@@ -33,7 +33,9 @@ export default function OperativoTable({ onOpenPackage }) {
     return (
       (c.cliente_nombre || c.cliente || c.nombre_cliente || "").toLowerCase().includes(texto) ||
       (c.tracking_number || c.tracking || "").toLowerCase().includes(texto) ||
-      (c.numero_orden || "").toLowerCase().includes(texto)
+      (c.tracking_items || "").toLowerCase().includes(texto) ||
+      (c.numero_orden || "").toLowerCase().includes(texto) ||
+      (c.descripcion_producto || "").toLowerCase().includes(texto)
     );
   });
 

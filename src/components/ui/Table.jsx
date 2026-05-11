@@ -33,7 +33,8 @@ export default function Table({ columns, data, onRowClick }) {
 
   return (
 
-    <div className="ui-table max-h-[520px] overflow-y-auto ui-fade">
+    <div className="ui-table ui-fade">
+    <div className="max-h-[600px] overflow-y-auto">
 
       <table className="w-full text-sm">
 
@@ -131,6 +132,7 @@ export default function Table({ columns, data, onRowClick }) {
 
       </table>
 
+    </div>
     </div>
 
   )
