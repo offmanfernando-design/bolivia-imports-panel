@@ -11,35 +11,52 @@ export default function Compras() {
     numero_orden: "",
     fecha: "",
     url_orden: "",
-    cantidad_items: "",
   });
 
+  const [cantidadItems, setCantidadItems] = useState("");
   const [items, setItems] = useState([]);
   const [reload, setReload] = useState(0);
 
   function handleChange(e) {
     const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (name === "cantidad_items") {
-      const cantidad = parseInt(value) || 0;
-
-      setItems((prev) => {
-        const nuevos = Array.from({ length: cantidad }, (_, index) => prev[index] || "");
-        return nuevos;
-      });
-    }
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function handleItemChange(index, value) {
+  function handleCantidadItems(e) {
+    const value = e.target.value;
+    setCantidadItems(value);
+    if (value === "") {
+      setItems([]);
+      return;
+    }
+    const n = Math.min(99, parseInt(value, 10) || 0);
+    if (n <= 0) {
+      setItems([]);
+      return;
+    }
     setItems((prev) => {
-      const nuevos = [...prev];
-      nuevos[index] = value;
-      return nuevos;
+      if (n > prev.length) {
+        const extras = Array.from({ length: n - prev.length }, () => ({ descripcion: "", cantidad: 1 }));
+        return [...prev, ...extras];
+      }
+      return prev.slice(0, n);
+    });
+  }
+
+  function updateDescripcion(index, value) {
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], descripcion: value };
+      return next;
+    });
+  }
+
+  function updateCantidad(index, value) {
+    const parsed = parseInt(value, 10);
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], cantidad: isNaN(parsed) ? "" : parsed };
+      return next;
     });
   }
 
@@ -50,20 +67,29 @@ export default function Compras() {
         return;
       }
 
-      const itemsLimpios = items
-        .map((item) => item.trim())
-        .filter((item) => item);
+      if (items.length === 0) {
+        alert("Indica la cantidad de ítems");
+        return;
+      }
 
-      if (itemsLimpios.length === 0) {
+      const itemsValidos = items.filter((i) => i.descripcion.trim());
+
+      if (itemsValidos.length === 0) {
         alert("Debes registrar al menos un ítem");
         return;
       }
 
+      for (const item of itemsValidos) {
+        const cant = Number(item.cantidad);
+        if (!Number.isInteger(cant) || cant < 1 || cant > 999) {
+          alert(`Cantidad inválida para "${item.descripcion}": debe ser un número entre 1 y 999`);
+          return;
+        }
+      }
+
       const res = await fetch(`${API_URL}/compras`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cliente_nombre: form.nombre,
           telefono: form.telefono,
@@ -71,10 +97,10 @@ export default function Compras() {
           pagina: form.pagina,
           numero_orden: form.numero_orden.trim(),
           url_orden: form.url_orden.trim(),
-          descripcion_producto: itemsLimpios.length > 0
-            ? itemsLimpios.join(" | ")
-            : "",
-          items: itemsLimpios,
+          items: itemsValidos.map((i) => ({
+            descripcion: i.descripcion.trim(),
+            cantidad: Number(i.cantidad),
+          })),
           fecha: form.fecha,
         }),
       });
@@ -93,11 +119,9 @@ export default function Compras() {
         numero_orden: "",
         fecha: "",
         url_orden: "",
-        cantidad_items: "",
       });
-
+      setCantidadItems("");
       setItems([]);
-
       setReload((prev) => prev + 1);
     } catch (err) {
       console.error("Error guardando compra:", err);
@@ -162,23 +186,32 @@ export default function Compras() {
         />
 
         <input
-          name="cantidad_items"
-          type="number"
-          min="0"
+          type="text"
+          inputMode="numeric"
           placeholder="Cantidad de ítems"
-          value={form.cantidad_items}
-          onChange={handleChange}
+          value={cantidadItems}
+          onChange={handleCantidadItems}
           className="ui-input"
         />
 
         {items.map((item, index) => (
-          <input
-            key={index}
-            placeholder={`Descripción del producto ${index + 1}`}
-            value={item}
-            onChange={(e) => handleItemChange(index, e.target.value)}
-            className="ui-input"
-          />
+          <div key={index} className="grid grid-cols-[minmax(0,1fr)_88px] gap-2 items-center">
+            <input
+              placeholder={`Producto ${index + 1}`}
+              value={item.descripcion}
+              onChange={(e) => updateDescripcion(index, e.target.value)}
+              className="ui-input !w-full min-w-0"
+            />
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Cant."
+              value={item.cantidad}
+              onChange={(e) => updateCantidad(index, e.target.value)}
+              className="ui-input !w-[88px] text-center"
+            />
+          </div>
         ))}
 
         <input

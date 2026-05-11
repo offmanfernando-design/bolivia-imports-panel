@@ -366,6 +366,11 @@ export default function ComprasTable({ reload }) {
                                     <p className="text-xs text-neutral-400 mb-0.5">Ítem {idx + 1}</p>
                                     <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100 truncate">
                                       {item.descripcion}
+                                      {item.cantidad > 1 && (
+                                        <span className="ml-1.5 text-xs font-normal text-neutral-500 dark:text-neutral-400">
+                                          ×{item.cantidad}
+                                        </span>
+                                      )}
                                     </p>
                                     <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium
                                       ${item.estado === "entregado"

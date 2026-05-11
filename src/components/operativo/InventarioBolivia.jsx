@@ -54,6 +54,11 @@ function DetalleItem({ row, onClose }) {
             <p className="ui-section-title">Ítem recibido</p>
             <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-0.5">
               {row.item_descripcion}
+              {row.cantidad_solicitada > 1 && (
+                <span className="ml-2 text-sm font-normal text-neutral-500 dark:text-neutral-400">
+                  ×{row.cantidad_solicitada}
+                </span>
+              )}
             </h3>
           </div>
           <button

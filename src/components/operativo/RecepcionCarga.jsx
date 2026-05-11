@@ -619,6 +619,9 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                       <span className="flex flex-col min-w-0">
                         <span className="truncate">
                           {item.descripcion}
+                          {item.cantidad > 1 && (
+                            <span className="ml-1.5 text-xs font-normal opacity-70">×{item.cantidad}</span>
+                          )}
                           {item.item_match && (
                             <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400">
                               · tracking coincide
@@ -656,6 +659,9 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                   >
                     <span className="block truncate">
                       {item.descripcion}
+                      {item.cantidad > 1 && (
+                        <span className="ml-1.5 text-xs font-normal opacity-70">×{item.cantidad}</span>
+                      )}
                       {item.item_match && (
                         <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400">
                           · tracking coincide
