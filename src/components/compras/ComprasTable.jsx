@@ -14,6 +14,11 @@ export default function ComprasTable({ reload }) {
   const [editForm,         setEditForm]           = useState({});
   const [savingEdit,       setSavingEdit]         = useState(false);
   const [editError,        setEditError]          = useState("");
+  const [editItems,        setEditItems]          = useState([]);
+  const [editDeleteIds,    setEditDeleteIds]      = useState([]);
+  const [loadingItems,     setLoadingItems]       = useState(false);
+  const [savingItems,      setSavingItems]        = useState(false);
+  const [itemsError,       setItemsError]         = useState("");
 
   async function load() {
     try {
@@ -28,6 +33,21 @@ export default function ComprasTable({ reload }) {
   }
 
   useEffect(() => { load(); }, [reload]);
+
+  useEffect(() => {
+    if (!editingId) {
+      setEditItems([]);
+      setEditDeleteIds([]);
+      setItemsError("");
+      return;
+    }
+    setLoadingItems(true);
+    fetch(`${API_URL}/compras/${editingId}/items`)
+      .then(r => r.json())
+      .then(json => setEditItems(json.data || []))
+      .catch(() => setItemsError("Error cargando ítems"))
+      .finally(() => setLoadingItems(false));
+  }, [editingId]);
 
   async function toggleItems(compraId) {
     if (expandedId === compraId) {
@@ -109,6 +129,72 @@ export default function ComprasTable({ reload }) {
       alert(err.message || "Error guardando tracking del ítem");
     } finally {
       setSavingItemId(null);
+    }
+  }
+
+  function updateEditItemDescripcion(idx, value) {
+    setEditItems(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], descripcion: value };
+      return next;
+    });
+  }
+
+  function updateEditItemCantidad(idx, value) {
+    const parsed = parseInt(value, 10);
+    setEditItems(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], cantidad: isNaN(parsed) ? "" : parsed };
+      return next;
+    });
+  }
+
+  function marcarEliminarItem(item, idx) {
+    if (item.id) {
+      setEditDeleteIds(prev => [...prev, item.id]);
+    } else {
+      setEditItems(prev => prev.filter((_, i) => i !== idx));
+    }
+  }
+
+  function agregarEditItem() {
+    setEditItems(prev => [...prev, { descripcion: "", cantidad: 1 }]);
+  }
+
+  async function guardarItems() {
+    setItemsError("");
+    const itemsToSend = editItems.filter(i => {
+      if (i.id && editDeleteIds.includes(i.id)) return false;
+      if (i.id && (i.estado !== "pendiente" || i.warehouse_confirmado === true)) return false;
+      return true;
+    });
+    for (const item of itemsToSend) {
+      if (!String(item.descripcion || "").trim()) {
+        setItemsError("Todos los ítems necesitan descripción"); return;
+      }
+      const cant = Number(item.cantidad);
+      if (!Number.isInteger(cant) || cant < 1 || cant > 999) {
+        setItemsError(`Cantidad inválida para "${item.descripcion}": entero entre 1 y 999`); return;
+      }
+    }
+    setSavingItems(true);
+    try {
+      const res = await fetch(`${API_URL}/compras/${editingId}/items`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: itemsToSend, deleted_item_ids: editDeleteIds }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "Error al guardar ítems");
+      setCompras(prev => prev.map(c =>
+        c.id === editingId ? { ...c, descripcion_producto: json.data.descripcion_producto } : c
+      ));
+      setEditItems(json.data.items);
+      setEditDeleteIds([]);
+    } catch (err) {
+      setItemsError(err.message || "Error al guardar ítems");
+    } finally {
+      setSavingItems(false);
     }
   }
 
@@ -537,13 +623,14 @@ export default function ComprasTable({ reload }) {
 
       {editingId && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white dark:bg-[#111] rounded-xl p-6 w-full max-w-md shadow-xl space-y-4
-          border border-neutral-200 dark:border-neutral-800">
+        <div className="bg-white dark:bg-[#111] rounded-xl p-6 w-full max-w-md shadow-xl
+          border border-neutral-200 dark:border-neutral-800 max-h-[85vh] overflow-y-auto flex flex-col gap-4">
 
           <h3 className="text-sm font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
             Editar compra
           </h3>
 
+          {/* ── Datos generales ── */}
           <div className="flex flex-col gap-3">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Página / Proveedor</label>
@@ -555,7 +642,6 @@ export default function ComprasTable({ reload }) {
                   focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
               />
             </div>
-
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Número de orden</label>
               <input
@@ -566,7 +652,6 @@ export default function ComprasTable({ reload }) {
                   focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
               />
             </div>
-
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Link de la orden</label>
               <input
@@ -578,7 +663,6 @@ export default function ComprasTable({ reload }) {
                   focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
               />
             </div>
-
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Fecha estimada</label>
               <input
@@ -590,7 +674,6 @@ export default function ComprasTable({ reload }) {
                   focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
               />
             </div>
-
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Descripción producto</label>
               <input
@@ -603,19 +686,9 @@ export default function ComprasTable({ reload }) {
             </div>
           </div>
 
-          {editError && (
-            <p className="text-xs text-red-500 dark:text-red-400">{editError}</p>
-          )}
+          {editError && <p className="text-xs text-red-500 dark:text-red-400">{editError}</p>}
 
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              onClick={() => setEditingId(null)}
-              disabled={savingEdit}
-              className="px-4 py-2 rounded text-sm text-neutral-600 dark:text-neutral-400
-                hover:bg-neutral-100 dark:hover:bg-neutral-800 transition disabled:opacity-50"
-            >
-              Cancelar
-            </button>
+          <div className="flex justify-end">
             <button
               onClick={guardarEdicion}
               disabled={savingEdit}
@@ -623,6 +696,97 @@ export default function ComprasTable({ reload }) {
                 text-white dark:text-black hover:opacity-80 transition disabled:opacity-50"
             >
               {savingEdit ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+
+          {/* ── Ítems ── */}
+          <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4 flex flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Ítems de la compra
+            </p>
+
+            {loadingItems ? (
+              <p className="text-xs text-neutral-400">Cargando ítems...</p>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  {editItems.map((item, idx) => {
+                    if (item.id && editDeleteIds.includes(item.id)) return null;
+                    const bloqueado = Boolean(item.id) && (item.estado !== "pendiente" || item.warehouse_confirmado === true);
+                    return (
+                      <div key={item.id || idx} className={`grid grid-cols-[minmax(0,1fr)_56px_24px] gap-1.5 items-center${bloqueado ? " opacity-60" : ""}`}>
+                        <input
+                          disabled={bloqueado}
+                          value={item.descripcion}
+                          onChange={e => updateEditItemDescripcion(idx, e.target.value)}
+                          placeholder="Descripción"
+                          className="px-2 py-1.5 border border-neutral-200 dark:border-neutral-700 rounded
+                            bg-white dark:bg-neutral-900 text-xs text-neutral-900 dark:text-neutral-100
+                            disabled:bg-neutral-100 dark:disabled:bg-neutral-800 disabled:cursor-not-allowed
+                            focus:outline-none"
+                        />
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          disabled={bloqueado}
+                          value={item.cantidad}
+                          onChange={e => updateEditItemCantidad(idx, e.target.value)}
+                          placeholder="Cant."
+                          className="px-1.5 py-1.5 border border-neutral-200 dark:border-neutral-700 rounded
+                            bg-white dark:bg-neutral-900 text-xs text-center text-neutral-900 dark:text-neutral-100
+                            disabled:bg-neutral-100 dark:disabled:bg-neutral-800 disabled:cursor-not-allowed
+                            focus:outline-none"
+                        />
+                        {bloqueado ? (
+                          <span className="text-neutral-300 dark:text-neutral-600 text-xs text-center">🔒</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => marcarEliminarItem(item, idx)}
+                            className="text-neutral-400 hover:text-red-500 transition text-xs text-center"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={agregarEditItem}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline text-left mt-1"
+                >
+                  + Agregar ítem
+                </button>
+
+                {itemsError && <p className="text-xs text-red-500 dark:text-red-400">{itemsError}</p>}
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={guardarItems}
+                    disabled={savingItems}
+                    className="px-3 py-1.5 rounded text-xs font-medium
+                      bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900
+                      hover:opacity-80 transition disabled:opacity-50"
+                  >
+                    {savingItems ? "Guardando..." : "Guardar ítems"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── Cerrar ── */}
+          <div className="border-t border-neutral-200 dark:border-neutral-700 pt-3 flex justify-end">
+            <button
+              onClick={() => setEditingId(null)}
+              className="px-4 py-2 rounded text-sm text-neutral-600 dark:text-neutral-400
+                hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+            >
+              Cerrar
             </button>
           </div>
 
