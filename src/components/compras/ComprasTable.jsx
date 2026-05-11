@@ -10,6 +10,10 @@ export default function ComprasTable({ reload }) {
   const [itemsMap,         setItemsMap]          = useState({});
   const [itemTrackEdit,    setItemTrackEdit]      = useState({});
   const [savingItemId,     setSavingItemId]       = useState(null);
+  const [editingId,        setEditingId]          = useState(null);
+  const [editForm,         setEditForm]           = useState({});
+  const [savingEdit,       setSavingEdit]         = useState(false);
+  const [editError,        setEditError]          = useState("");
 
   async function load() {
     try {
@@ -105,6 +109,58 @@ export default function ComprasTable({ reload }) {
       alert(err.message || "Error guardando tracking del ítem");
     } finally {
       setSavingItemId(null);
+    }
+  }
+
+  function abrirEditar(compra) {
+    setEditingId(compra.id);
+    setEditForm({
+      proveedor: compra.proveedor || "",
+      numero_orden: compra.numero_orden || "",
+      url_orden: compra.url_orden || "",
+      fecha_estimada: compra.fecha_estimada
+        ? compra.fecha_estimada.split("T")[0]
+        : "",
+      descripcion_producto: compra.descripcion_producto || "",
+    });
+    setEditError("");
+  }
+
+  async function guardarEdicion() {
+    if (!editForm.proveedor.trim()) { setEditError("Proveedor requerido"); return; }
+    if (!editForm.numero_orden.trim()) { setEditError("Número de orden requerido"); return; }
+    setSavingEdit(true);
+    setEditError("");
+    try {
+      const res = await fetch(`${API_URL}/compras/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proveedor: editForm.proveedor.trim(),
+          numero_orden: editForm.numero_orden.trim(),
+          url_orden: editForm.url_orden.trim() || null,
+          fecha_estimada: editForm.fecha_estimada || null,
+          descripcion_producto: editForm.descripcion_producto.trim() || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo guardar");
+      setCompras(prev => prev.map(c => {
+        if (c.id !== editingId) return c;
+        return {
+          ...c,
+          proveedor: json.data.proveedor,
+          numero_orden: json.data.numero_orden,
+          url_orden: json.data.url_orden,
+          fecha_estimada: json.data.fecha_estimada,
+          descripcion_producto: json.data.descripcion_producto,
+        };
+      }));
+      setEditingId(null);
+    } catch (err) {
+      setEditError(err.message || "Error guardando");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -319,18 +375,28 @@ export default function ComprasTable({ reload }) {
                     </td>
 
                     <td className="px-3 py-3">
-                      {compra.item_count > 1 && (
+                      <div className="flex gap-1.5 items-center">
                         <button
-                          onClick={() => toggleItems(compra.id)}
-                          className={`px-2 py-1 rounded text-xs font-medium transition
-                            ${isExpanded
-                              ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
-                              : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                            }`}
+                          onClick={() => abrirEditar(compra)}
+                          className="px-2 py-1 rounded text-xs font-medium transition
+                            bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400
+                            hover:bg-neutral-200 dark:hover:bg-neutral-700"
                         >
-                          {isExpanded ? "Cerrar" : "Ver ítems"}
+                          Editar
                         </button>
-                      )}
+                        {compra.item_count > 1 && (
+                          <button
+                            onClick={() => toggleItems(compra.id)}
+                            className={`px-2 py-1 rounded text-xs font-medium transition
+                              ${isExpanded
+                                ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
+                                : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                              }`}
+                          >
+                            {isExpanded ? "Cerrar" : "Ver ítems"}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
 
@@ -468,6 +534,101 @@ export default function ComprasTable({ reload }) {
           </tbody>
         </table>
       </div>
+
+      {editingId && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-[#111] rounded-xl p-6 w-full max-w-md shadow-xl space-y-4
+          border border-neutral-200 dark:border-neutral-800">
+
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+            Editar compra
+          </h3>
+
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Página / Proveedor</label>
+              <input
+                value={editForm.proveedor}
+                onChange={e => setEditForm(f => ({ ...f, proveedor: e.target.value }))}
+                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded
+                  bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100
+                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Número de orden</label>
+              <input
+                value={editForm.numero_orden}
+                onChange={e => setEditForm(f => ({ ...f, numero_orden: e.target.value }))}
+                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded
+                  bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100
+                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Link de la orden</label>
+              <input
+                value={editForm.url_orden}
+                onChange={e => setEditForm(f => ({ ...f, url_orden: e.target.value }))}
+                placeholder="https://..."
+                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded
+                  bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100
+                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Fecha estimada</label>
+              <input
+                type="date"
+                value={editForm.fecha_estimada}
+                onChange={e => setEditForm(f => ({ ...f, fecha_estimada: e.target.value }))}
+                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded
+                  bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100
+                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Descripción producto</label>
+              <input
+                value={editForm.descripcion_producto}
+                onChange={e => setEditForm(f => ({ ...f, descripcion_producto: e.target.value }))}
+                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded
+                  bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100
+                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+              />
+            </div>
+          </div>
+
+          {editError && (
+            <p className="text-xs text-red-500 dark:text-red-400">{editError}</p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={() => setEditingId(null)}
+              disabled={savingEdit}
+              className="px-4 py-2 rounded text-sm text-neutral-600 dark:text-neutral-400
+                hover:bg-neutral-100 dark:hover:bg-neutral-800 transition disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={guardarEdicion}
+              disabled={savingEdit}
+              className="px-4 py-2 rounded text-sm font-medium bg-black dark:bg-white
+                text-white dark:text-black hover:opacity-80 transition disabled:opacity-50"
+            >
+              {savingEdit ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    )}
     </div>
   );
 }
