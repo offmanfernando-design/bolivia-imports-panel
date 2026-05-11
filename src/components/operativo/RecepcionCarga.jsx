@@ -11,7 +11,7 @@ const esEsperandoWarehouse = (item) =>
   item.estado !== "recibido_bolivia" &&
   item.estado !== "entregado";
 
-export default function RecepcionCarga() {
+export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const [categorias, setCategorias] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
 
@@ -101,8 +101,10 @@ export default function RecepcionCarga() {
   }, []);
 
   function aplicarSugerida(orden) {
-    const codigo = orden?.ubicacion_sugerida?.codigo;
-    setSelectedUbicacionCodigo(codigo || "");
+    if (!orden?.ubicacion_sugerida) return;
+    if (orden.ubicacion_sugerida_coincide_zona) {
+      setSelectedUbicacionCodigo(orden.ubicacion_sugerida.codigo);
+    }
   }
 
   const buscar = useCallback(async (t) => {
@@ -289,6 +291,7 @@ export default function RecepcionCarga() {
       setPesoCliente("");
       setUnidades("");
       setNotas("");
+      onRecepcionRegistrada?.();
     } catch (err) {
       console.error(err);
       setError(err.message || "Error al registrar recepción");
@@ -432,9 +435,14 @@ export default function RecepcionCarga() {
               <p className="text-xs text-neutral-500">
                 {orden.numero_orden} · {orden.tracking_number}
               </p>
-              {orden.ubicacion_sugerida && (
+              {orden.ubicacion_sugerida && orden.ubicacion_sugerida_coincide_zona && (
                 <p className="text-xs text-blue-500">
                   Ubicación sugerida: {orden.ubicacion_sugerida.codigo}
+                </p>
+              )}
+              {orden.ubicacion_sugerida && !orden.ubicacion_sugerida_coincide_zona && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Ubicación previa en zona {orden.ubicacion_sugerida.zona}: {orden.ubicacion_sugerida.codigo} — revisar antes de asignar
                 </p>
               )}
               {orden.zona_recomendada && (

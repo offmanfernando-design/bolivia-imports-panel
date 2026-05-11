@@ -9,6 +9,7 @@ export default function Operativo(){
 
   const [selectedPackage,setSelectedPackage] = useState(null)
   const [drawerOpen,setDrawerOpen] = useState(false)
+  const [inventarioReloadKey, setInventarioReloadKey] = useState(0)
 
   const openPackage = (pkg)=>{
     setSelectedPackage(pkg)
@@ -33,9 +34,9 @@ export default function Operativo(){
 
       <OperativoTable onOpenPackage={openPackage}/>
 
-      <RecepcionCarga/>
+      <RecepcionCarga onRecepcionRegistrada={() => setInventarioReloadKey(k => k + 1)}/>
 
-      <InventarioBolivia/>
+      <InventarioBolivia reloadKey={inventarioReloadKey}/>
 
       <Drawer open={drawerOpen} onClose={()=>setDrawerOpen(false)}>
         <PackageDrawer pkg={selectedPackage}/>

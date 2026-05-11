@@ -120,7 +120,7 @@ function DetalleItem({ row, onClose }) {
   )
 }
 
-export default function InventarioBolivia() {
+export default function InventarioBolivia({ reloadKey = 0 }) {
   const [q, setQ]               = useState("")
   const [rows, setRows]         = useState([])
   const [loading, setLoading]   = useState(false)
@@ -143,8 +143,9 @@ export default function InventarioBolivia() {
   }
 
   useEffect(() => {
-    fetchInventario("")
-  }, [])
+    fetchInventario(q)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadKey])
 
   function handleChange(e) {
     const val = e.target.value
