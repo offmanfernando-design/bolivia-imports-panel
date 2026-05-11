@@ -39,6 +39,10 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const [error, setError] = useState("");
   const [ultimaRecepcion, setUltimaRecepcion] = useState(null);
 
+  const [modoLote, setModoLote] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState(new Set());
+  const [modoAplicacion, setModoAplicacion] = useState("individual");
+
   const [showDesconocido, setShowDesconocido] = useState(false);
   const [descTracking, setDescTracking] = useState("");
   const [descDescripcion, setDescDescripcion] = useState("");
@@ -200,7 +204,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   }, [tipoCalculo, pesoCliente, unidades, tarifaClienteUsd, tipoCambioCliente]);
 
   const validationErrors = useMemo(() => {
-    if (!selectedItemId) return [];
+    if (!selectedItemId && selectedItemIds.size === 0) return [];
     const errs = [];
     if (tipoCalculo === "kg") {
       if (!pesoInterno || Number(pesoInterno) <= 0)
@@ -222,6 +226,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     return errs;
   }, [
     selectedItemId,
+    selectedItemIds,
     tipoCalculo,
     pesoInterno,
     pesoCliente,
@@ -300,6 +305,73 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     }
   }
 
+  async function registrarLote() {
+    setFormTouched(true);
+    if (validationErrors.length > 0) return;
+    if (selectedItemIds.size === 0) return;
+    setError("");
+    setLoadingRegistrar(true);
+    try {
+      const payload = {
+        item_ids: [...selectedItemIds],
+        tipo_calculo: tipoCalculo,
+        modo_lote: modoAplicacion,
+        costo_interno_usd: Number(costoInternoUsd),
+        tarifa_cliente_usd: Number(tarifaClienteUsd),
+        tipo_cambio_interno: Number(tipoCambioInterno),
+        tipo_cambio_cliente: Number(tipoCambioCliente),
+        ubicacion_id: ubicacionId,
+        ...(categoriaId ? { categoria_id: categoriaId } : {}),
+        ...(tipoCalculo === "kg"
+          ? { peso_interno: Number(pesoInterno), peso_cliente: Number(pesoCliente) }
+          : { unidades: Number(unidades) }),
+        ...(notas.trim() ? { notas: notas.trim() } : {}),
+      };
+
+      const res = await fetch(`${API_URL}/operativo/carga/recibir-lote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.ok)
+        throw new Error(json.error || "Error al registrar lote");
+
+      const idsRegistrados = new Set(json.data.map((r) => r.item_id));
+
+      setOrdenes((prev) =>
+        prev.map((o) => {
+          if (o.id !== selectedOrden.id) return o;
+          return {
+            ...o,
+            items: o.items.map((i) =>
+              idsRegistrados.has(i.id) ? { ...i, estado: "recibido_bolivia" } : i
+            ),
+          };
+        })
+      );
+
+      setSelectedItemIds(new Set());
+      setModoLote(false);
+      setModoAplicacion("individual");
+      setSelectedItemId(null);
+      setFormTouched(false);
+      setCategoriaId("");
+      setPesoInterno("");
+      setPesoCliente("");
+      setUnidades("");
+      setNotas("");
+      setUltimaRecepcion({ lote: true, count: json.data.length, ubicacion: json.data[0]?.ubicacion });
+      onRecepcionRegistrada?.();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Error al registrar lote");
+    } finally {
+      setLoadingRegistrar(false);
+    }
+  }
+
   const selectedItem = selectedOrden?.items?.find((i) => i.id === selectedItemId);
   const categoriaSeleccionada = categorias.find((c) => String(c.id) === categoriaId);
 
@@ -360,34 +432,42 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
       {ultimaRecepcion && (
         <div className="bg-green-50 border border-green-200 rounded p-4 flex flex-col gap-2">
           <p className="text-green-700 font-semibold text-sm">
-            Recepción registrada
+            {ultimaRecepcion.lote
+              ? `Lote registrado — ${ultimaRecepcion.count} ítems`
+              : "Recepción registrada"}
           </p>
-          <p className="text-sm">
-            <span className="text-neutral-500">Código: </span>
-            <span className="font-mono font-medium">
-              {ultimaRecepcion.codigo_recepcion}
-            </span>
-          </p>
-          <p className="text-sm">
-            <span className="text-neutral-500">Ítem: </span>
-            {ultimaRecepcion.item_descripcion}
-          </p>
+          {!ultimaRecepcion.lote && (
+            <>
+              <p className="text-sm">
+                <span className="text-neutral-500">Código: </span>
+                <span className="font-mono font-medium">
+                  {ultimaRecepcion.codigo_recepcion}
+                </span>
+              </p>
+              <p className="text-sm">
+                <span className="text-neutral-500">Ítem: </span>
+                {ultimaRecepcion.item_descripcion}
+              </p>
+            </>
+          )}
           <p className="text-sm">
             <span className="text-neutral-500">Ubicación: </span>
             {ultimaRecepcion.ubicacion}
           </p>
-          <button
-            type="button"
-            onClick={() =>
-              window.open(
-                `${API_URL}/operativo/etiqueta/recepcion/${ultimaRecepcion.recepcion_id}`,
-                "_blank"
-              )
-            }
-            className="ui-button mt-1 self-start"
-          >
-            Imprimir etiqueta
-          </button>
+          {!ultimaRecepcion.lote && (
+            <button
+              type="button"
+              onClick={() =>
+                window.open(
+                  `${API_URL}/operativo/etiqueta/recepcion/${ultimaRecepcion.recepcion_id}`,
+                  "_blank"
+                )
+              }
+              className="ui-button mt-1 self-start"
+            >
+              Imprimir etiqueta
+            </button>
+          )}
         </div>
       )}
 
@@ -469,36 +549,108 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               </p>
             </div>
 
+            {/* Toggle modo lote — solo si hay 2+ ítems pendientes */}
+            {habilitados.length >= 2 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !modoLote;
+                    setModoLote(next);
+                    setSelectedItemIds(new Set());
+                    setModoAplicacion("individual");
+                    if (!next) {
+                      setSelectedItemId(null);
+                      setFormTouched(false);
+                    }
+                    setSelectedOrden(next ? orden : null);
+                  }}
+                  className={`text-xs px-2 py-1 rounded border transition-colors ${
+                    modoLote
+                      ? "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                      : "border-neutral-200 text-neutral-500 hover:border-blue-300 hover:bg-blue-50"
+                  }`}
+                >
+                  {modoLote ? "Modo lote activo — cancelar" : "Recibir varios ítems juntos"}
+                </button>
+              </div>
+            )}
+
             {/* Items */}
             <div className="flex flex-col gap-1">
               {orden.items.map((item) => {
                 const habilitado = esPendiente(item);
                 const esperando = esEsperandoWarehouse(item);
-                const isSelected = item.id === selectedItemId;
 
+                if (modoLote && selectedOrden?.id === orden.id) {
+                  const isChecked = selectedItemIds.has(item.id);
+                  let rowClass =
+                    "text-left text-sm px-3 py-2 rounded border transition-colors flex items-start gap-2 ";
+                  if (!habilitado) {
+                    rowClass += "border-transparent bg-neutral-100 text-neutral-400 cursor-default opacity-60";
+                  } else if (isChecked) {
+                    rowClass += "border-blue-400 bg-blue-50 text-blue-800 cursor-pointer";
+                  } else {
+                    rowClass += "border-neutral-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer";
+                  }
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      disabled={!habilitado}
+                      onClick={() => {
+                        if (!habilitado) return;
+                        setSelectedItemIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(item.id)) next.delete(item.id);
+                          else next.add(item.id);
+                          return next;
+                        });
+                        setFormTouched(false);
+                      }}
+                      className={rowClass}
+                    >
+                      <input
+                        type="checkbox"
+                        readOnly
+                        checked={isChecked}
+                        className="mt-0.5 flex-shrink-0 pointer-events-none"
+                      />
+                      <span className="flex flex-col min-w-0">
+                        <span className="truncate">
+                          {item.descripcion}
+                          {item.item_match && (
+                            <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400">
+                              · tracking coincide
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-xs text-neutral-400">
+                          {esperando ? "Esperando warehouse" : "Pendiente"}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                }
+
+                const isSelected = item.id === selectedItemId;
                 let rowClass =
                   "text-left text-sm px-3 py-2 rounded border transition-colors ";
                 if (isSelected) {
-                  rowClass +=
-                    "border-blue-400 bg-blue-50 text-blue-800";
+                  rowClass += "border-blue-400 bg-blue-50 text-blue-800";
                 } else if (habilitado) {
-                  rowClass +=
-                    "border-neutral-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer";
+                  rowClass += "border-neutral-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer";
                 } else if (esperando) {
-                  rowClass +=
-                    "border-amber-200 bg-amber-50 text-amber-700 cursor-default";
+                  rowClass += "border-amber-200 bg-amber-50 text-amber-700 cursor-default";
                 } else {
-                  rowClass +=
-                    "border-transparent bg-neutral-100 text-neutral-400 cursor-default";
+                  rowClass += "border-transparent bg-neutral-100 text-neutral-400 cursor-default";
                 }
 
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() =>
-                      habilitado && seleccionarItem(orden, item.id)
-                    }
+                    onClick={() => habilitado && seleccionarItem(orden, item.id)}
                     disabled={!habilitado}
                     className={rowClass}
                   >
@@ -527,13 +679,61 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         );
       })}
 
-      {/* Reception form */}
-      {selectedItemId && selectedItem && (
+      {/* Reception form — unitario o lote */}
+      {((selectedItemId && selectedItem) || (modoLote && selectedItemIds.size > 0 && selectedOrden)) && (
         <div className="ui-card flex flex-col gap-4">
-          <p className="text-sm font-medium">
-            Recibiendo:{" "}
-            <span className="text-blue-700">{selectedItem.descripcion}</span>
-          </p>
+          {modoLote ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">
+                Recibiendo{" "}
+                <span className="text-blue-700">{selectedItemIds.size} ítem{selectedItemIds.size !== 1 ? "s" : ""}</span>
+                {selectedOrden && <span className="text-neutral-500"> — {selectedOrden.cliente_nombre}</span>}
+              </p>
+
+              {/* Selector modo aplicación */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModoAplicacion("individual")}
+                  className={`flex-1 text-xs px-3 py-2 rounded border transition-colors text-left ${
+                    modoAplicacion === "individual"
+                      ? "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                      : "border-neutral-200 text-neutral-500 hover:border-neutral-300 dark:border-neutral-700"
+                  }`}
+                >
+                  <span className="block font-medium">Valores individuales</span>
+                  <span className="block text-xs opacity-70">Los valores ingresados se registran completos en cada ítem.</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModoAplicacion("consolidado")}
+                  className={`flex-1 text-xs px-3 py-2 rounded border transition-colors text-left ${
+                    modoAplicacion === "consolidado"
+                      ? "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                      : "border-neutral-200 text-neutral-500 hover:border-neutral-300 dark:border-neutral-700"
+                  }`}
+                >
+                  <span className="block font-medium">Valores consolidados</span>
+                  <span className="block text-xs opacity-70">Ingresa el total del lote. El sistema divide entre los ítems.</span>
+                </button>
+              </div>
+
+              {modoAplicacion === "individual" ? (
+                <p className="text-xs text-neutral-500 bg-neutral-50 dark:bg-neutral-900 px-2 py-1.5 rounded">
+                  Los valores ingresados se registrarán completos en cada ítem.
+                </p>
+              ) : (
+                <p className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2 py-1.5 rounded border border-blue-200 dark:border-blue-800">
+                  Ingresa el total del lote. El sistema dividirá los valores entre los {selectedItemIds.size} ítems seleccionados.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm font-medium">
+              Recibiendo:{" "}
+              <span className="text-blue-700">{selectedItem.descripcion}</span>
+            </p>
+          )}
 
           {/* Categoria */}
           <div className="flex flex-col gap-1">
@@ -586,7 +786,9 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-500">
-                  Peso interno (kg)
+                  {modoLote && modoAplicacion === "consolidado"
+                    ? `Peso interno TOTAL lote (kg)`
+                    : "Peso interno (kg)"}
                 </label>
                 <input
                   type="number"
@@ -600,7 +802,9 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-neutral-500">
-                  Peso cliente (kg)
+                  {modoLote && modoAplicacion === "consolidado"
+                    ? `Peso cliente TOTAL lote (kg)`
+                    : "Peso cliente (kg)"}
                 </label>
                 <input
                   type="number"
@@ -617,7 +821,11 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
 
           {tipoCalculo === "unidad" && (
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-500">Unidades</label>
+              <label className="text-xs text-neutral-500">
+                {modoLote && modoAplicacion === "consolidado"
+                  ? `Unidades TOTAL lote`
+                  : "Unidades"}
+              </label>
               <input
                 type="number"
                 placeholder="1"
@@ -689,22 +897,89 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           </div>
 
           {/* Live preview */}
-          {(costoInternoBs || cobroClienteBs) && (
-            <div className="bg-neutral-50 rounded p-3 text-sm flex flex-col gap-1">
-              {costoInternoBs && (
-                <p className="text-neutral-600">
-                  Costo interno:{" "}
-                  <span className="font-medium">Bs {costoInternoBs}</span>
-                </p>
-              )}
-              {cobroClienteBs && (
-                <p className="text-neutral-600">
-                  Cobro cliente:{" "}
-                  <span className="font-medium">Bs {cobroClienteBs}</span>
-                </p>
-              )}
-            </div>
-          )}
+          {(costoInternoBs || cobroClienteBs) && (() => {
+            const nItems = modoLote ? selectedItemIds.size : 1;
+            const esConsolidado = modoLote && modoAplicacion === "consolidado" && nItems > 1;
+            // In consolidado: costoInternoBs/cobroClienteBs are totals; per-item = total / N
+            // In individual: costoInternoBs/cobroClienteBs are per-item; total = per-item * N
+            const cobroTotal = esConsolidado
+              ? Number(cobroClienteBs)
+              : Number(cobroClienteBs) * nItems;
+            const cobro1Item = esConsolidado
+              ? (Number(cobroClienteBs) / nItems)
+              : Number(cobroClienteBs);
+            const costoTotal = esConsolidado
+              ? Number(costoInternoBs)
+              : Number(costoInternoBs) * nItems;
+            const costo1Item = esConsolidado
+              ? (Number(costoInternoBs) / nItems)
+              : Number(costoInternoBs);
+
+            // peso/unidades por ítem in consolidado
+            const pI = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "kg" && pesoInterno
+              ? (Number(pesoInterno) / nItems).toFixed(3)
+              : null;
+            const pC = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "kg" && pesoCliente
+              ? (Number(pesoCliente) / nItems).toFixed(3)
+              : null;
+            const uItem = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "unidad" && unidades
+              ? Math.round(Number(unidades) / nItems)
+              : null;
+
+            return (
+              <div className="bg-neutral-50 dark:bg-neutral-900 rounded p-3 text-sm flex flex-col gap-1">
+                {esConsolidado && (tipoCalculo === "kg" ? pI : uItem !== null) && (
+                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">
+                    {tipoCalculo === "kg"
+                      ? <>Peso por ítem: <span className="font-medium">{pI} kg interno / {pC} kg cliente</span></>
+                      : <>Unidades por ítem: <span className="font-medium">{uItem}</span></>
+                    }
+                  </p>
+                )}
+                {cobroClienteBs && (
+                  <>
+                    <p className="text-neutral-600 dark:text-neutral-400">
+                      {esConsolidado ? "Cobro total lote" : "Cobro cliente por ítem"}:{" "}
+                      <span className="font-medium">Bs {cobroTotal.toFixed(2)}</span>
+                    </p>
+                    {esConsolidado && (
+                      <p className="text-neutral-500 dark:text-neutral-400 text-xs">
+                        Por ítem:{" "}
+                        <span className="font-medium">Bs {cobro1Item.toFixed(2)}</span>
+                      </p>
+                    )}
+                  </>
+                )}
+                {costoInternoBs && (
+                  <>
+                    <p className="text-neutral-600 dark:text-neutral-400">
+                      {esConsolidado ? "Costo interno total lote" : "Costo interno por ítem"}:{" "}
+                      <span className="font-medium">Bs {costoTotal.toFixed(2)}</span>
+                    </p>
+                    {esConsolidado && (
+                      <p className="text-neutral-500 dark:text-neutral-400 text-xs">
+                        Por ítem:{" "}
+                        <span className="font-medium">Bs {costo1Item.toFixed(2)}</span>
+                      </p>
+                    )}
+                  </>
+                )}
+                {!esConsolidado && modoLote && nItems > 1 && cobroClienteBs && (
+                  <p className="text-neutral-500 dark:text-neutral-400 text-xs border-t border-neutral-200 dark:border-neutral-700 pt-1 mt-0.5">
+                    Total lote ({nItems} ítems):{" "}
+                    <span className="font-semibold text-neutral-700 dark:text-neutral-200">
+                      Bs {cobroTotal.toFixed(2)} cobro
+                    </span>
+                    {costoInternoBs && (
+                      <span className="text-neutral-400">
+                        {" / "}Bs {costoTotal.toFixed(2)} costo
+                      </span>
+                    )}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Ubicacion: grilla visual */}
           <div className="flex flex-col gap-2">
@@ -802,14 +1077,27 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={registrar}
-            disabled={loadingRegistrar || (formTouched && validationErrors.length > 0)}
-            className="ui-button-success disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loadingRegistrar ? "Registrando..." : "Registrar recepción"}
-          </button>
+          {modoLote ? (
+            <button
+              type="button"
+              onClick={registrarLote}
+              disabled={loadingRegistrar || selectedItemIds.size === 0 || (formTouched && validationErrors.length > 0)}
+              className="ui-button-success disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingRegistrar
+                ? "Registrando..."
+                : `Registrar lote (${selectedItemIds.size} ítem${selectedItemIds.size !== 1 ? "s" : ""})`}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={registrar}
+              disabled={loadingRegistrar || (formTouched && validationErrors.length > 0)}
+              className="ui-button-success disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingRegistrar ? "Registrando..." : "Registrar recepción"}
+            </button>
+          )}
         </div>
       )}
 

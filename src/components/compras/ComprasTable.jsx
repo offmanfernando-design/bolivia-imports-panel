@@ -350,7 +350,13 @@ export default function ComprasTable({ reload }) {
                               <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
                                 Ítems de la compra
                               </p>
-                              {items.map((item, idx) => (
+                              {(() => {
+                                const trackingCount = {};
+                                items.forEach(it => {
+                                  if (!it.tracking_number) return;
+                                  trackingCount[it.tracking_number] = (trackingCount[it.tracking_number] || 0) + 1;
+                                });
+                                return items.map((item, idx) => (
                                 <div key={item.id}
                                   className="flex flex-col sm:flex-row sm:items-center gap-2
                                     border-b border-neutral-100 dark:border-neutral-800 pb-3 last:border-0 last:pb-0">
@@ -380,6 +386,11 @@ export default function ComprasTable({ reload }) {
                                           text-xs font-mono text-neutral-700 dark:text-neutral-300">
                                           {item.tracking_number}
                                         </span>
+                                        {trackingCount[item.tracking_number] > 1 && (
+                                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                            compartido ({trackingCount[item.tracking_number]})
+                                          </span>
+                                        )}
                                         <button
                                           onClick={() => setItemTrackEdit(prev => ({
                                             ...prev, [item.id]: item.tracking_number,
@@ -438,7 +449,8 @@ export default function ComprasTable({ reload }) {
                                   </div>
 
                                 </div>
-                              ))}
+                                ));
+                              })()}
                             </div>
                           )}
                         </div>
