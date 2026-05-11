@@ -11,10 +11,18 @@ export default function PackageDrawer({ pkg }) {
   const [selectedItemId, setSelectedItemId] = useState(null);
 
   const [localPkg, setLocalPkg] = useState(pkg);
+  const [warehouseFechaInput, setWarehouseFechaInput] = useState(
+    pkg?.warehouse_fecha ? new Date(pkg.warehouse_fecha).toISOString().split("T")[0] : ""
+  );
+  const [savingWfecha, setSavingWfecha] = useState(false);
+  const [wfechaError, setWfechaError] = useState("");
 
   useEffect(() => {
     setLocalPkg(pkg);
     setSelectedItemId(null);
+    setWarehouseFechaInput(
+      pkg?.warehouse_fecha ? new Date(pkg.warehouse_fecha).toISOString().split("T")[0] : ""
+    );
   }, [pkg]);
 
   const [data, setData] = useState({
@@ -116,6 +124,9 @@ export default function PackageDrawer({ pkg }) {
       if (selectedItemId) {
         formData.append("item_id", selectedItemId);
       }
+      if (warehouseFechaInput) {
+        formData.append("warehouse_fecha", warehouseFechaInput);
+      }
 
       const res = await fetch(
         `${API_URL}/compras/${localPkg.id}/warehouse`,
@@ -143,6 +154,9 @@ export default function PackageDrawer({ pkg }) {
 
         setWarehouseImage(null);
         setSelectedItemId(null);
+        if (result.data.warehouse_fecha) {
+          setWarehouseFechaInput(new Date(result.data.warehouse_fecha).toISOString().split("T")[0]);
+        }
 
         fetch(`${API_URL}/compras/${localPkg.id}/eventos`)
           .then(res => res.json())
@@ -155,6 +169,26 @@ export default function PackageDrawer({ pkg }) {
       console.error(err);
     } finally {
       setLoadingUpload(false);
+    }
+  }
+
+  async function guardarFechaWarehouse() {
+    if (!warehouseFechaInput) { setWfechaError("Ingresa una fecha"); return; }
+    setSavingWfecha(true);
+    setWfechaError("");
+    try {
+      const res = await fetch(`${API_URL}/compras/${localPkg.id}/warehouse-fecha`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ warehouse_fecha: warehouseFechaInput }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "Error al guardar fecha");
+      setLocalPkg(prev => ({ ...prev, warehouse_fecha: json.data.warehouse_fecha }));
+    } catch (err) {
+      setWfechaError(err.message || "Error guardando fecha");
+    } finally {
+      setSavingWfecha(false);
     }
   }
 
@@ -279,6 +313,43 @@ export default function PackageDrawer({ pkg }) {
           )}
 
           <div className="flex flex-col gap-4">
+
+            {/* Fecha warehouse */}
+            {!localPkg.warehouse_confirmado ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-neutral-500">Fecha llegada warehouse</label>
+                <input
+                  type="date"
+                  value={warehouseFechaInput}
+                  onChange={e => setWarehouseFechaInput(e.target.value)}
+                  className="px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm
+                    bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100
+                    focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-neutral-500">Fecha warehouse</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={warehouseFechaInput}
+                    onChange={e => setWarehouseFechaInput(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm
+                      bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100
+                      focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+                  />
+                  <button
+                    onClick={guardarFechaWarehouse}
+                    disabled={savingWfecha}
+                    className="px-3 py-2 bg-black text-white rounded-md text-sm disabled:opacity-40 whitespace-nowrap"
+                  >
+                    {savingWfecha ? "..." : "Guardar fecha"}
+                  </button>
+                </div>
+                {wfechaError && <p className="text-xs text-red-500">{wfechaError}</p>}
+              </div>
+            )}
 
             {/* Selector de asociación */}
             {items.length > 0 && (
