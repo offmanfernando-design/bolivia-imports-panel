@@ -403,6 +403,56 @@ function printEtiqueta(row) {
   win.document.close()
 }
 
+// ─── Helpers WhatsApp guía ────────────────────────────────────────────────────
+function normalizarTelefonoWhatsapp(value) {
+  const tel = String(value || "").replace(/[\s\-().+]/g, "")
+  if (!tel) return ""
+  if (tel.startsWith("591")) return tel
+  if (tel.length === 8) return `591${tel}`
+  return tel
+}
+
+function esUrlPublica(url) {
+  if (!url) return false
+  if (url.includes("localhost")) return false
+  if (url.includes("127.0.0.1")) return false
+  if (url.startsWith("/")) return false
+  return true
+}
+
+function crearMensajeGuia(row) {
+  const nombre = (row.recoge_quien === "tercero" ? row.nombre_receptor : row.cliente_nombre) || "cliente"
+  const destino = row.destino || "tu destino"
+  let msg = `Hola ${nombre},\n\n`
+  msg += `Tu paquete ya fue despachado hacia ${destino}.\n\n`
+  if (row.numero_guia) {
+    msg += `Guía de transporte:\n${row.numero_guia}\n\n`
+  }
+  if (row.foto_guia_url) {
+    if (esUrlPublica(row.foto_guia_url)) {
+      msg += `Puedes consultar/mostrar esta guía:\n${row.foto_guia_url}\n\n`
+    } else {
+      msg += `La foto de la guía será adjuntada en este chat.\n\n`
+    }
+  }
+  if (row.nota_guia) {
+    msg += `Observación: ${row.nota_guia}\n\n`
+  }
+  msg += "— Bolivia Imports"
+  return msg
+}
+
+function abrirWhatsappGuia(row) {
+  const telRaw = row.recoge_quien === "tercero" ? row.telefono_receptor : row.cliente_telefono
+  const tel = normalizarTelefonoWhatsapp(telRaw)
+  if (!tel) {
+    alert("Esta solicitud no tiene teléfono para WhatsApp")
+    return
+  }
+  const msg = crearMensajeGuia(row)
+  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank")
+}
+
 // ─── Helpers de filtro por fecha ──────────────────────────────────────────────
 function startOfMonth() {
   const d = new Date()
@@ -654,6 +704,16 @@ export default function SolicitudesTerminal() {
                             {row.guia_at ? "Actualizar guía" : "Cargar guía"}
                           </button>
                         )}
+                        {tab === "enviado" && row.guia_at && (
+                          <button
+                            onClick={() => abrirWhatsappGuia(row)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium
+                              border border-green-300 dark:border-green-800
+                              text-green-700 dark:text-green-400
+                              hover:bg-green-50 dark:hover:bg-green-900/20 transition">
+                            Enviar guía
+                          </button>
+                        )}
                         {tab === "pendiente" && (
                           <button
                             onClick={() => printEtiqueta(row)}
@@ -794,6 +854,16 @@ export default function SolicitudesTerminal() {
                             text-neutral-600 dark:text-neutral-400
                             hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
                           {row.guia_at ? "Actualizar guía" : "Cargar guía"}
+                        </button>
+                      )}
+                      {row.estado === "enviado" && row.guia_at && (
+                        <button
+                          onClick={() => abrirWhatsappGuia(row)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium
+                            border border-green-300 dark:border-green-800
+                            text-green-700 dark:text-green-400
+                            hover:bg-green-50 dark:hover:bg-green-900/20 transition">
+                          Enviar guía
                         </button>
                       )}
                       {row.estado === "pendiente" && (
