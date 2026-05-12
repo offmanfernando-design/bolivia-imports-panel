@@ -12,6 +12,7 @@ import {
   Menu,
   Settings,
   ClipboardList,
+  BarChart2,
 } from "lucide-react";
 
 import logoLight from "../assets/logo-light.png";
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
   {
     section: "Sistema",
     items: [
+      { to: "/reportes",      label: "Reportes",      icon: <BarChart2 size={18} /> },
       { to: "/configuracion", label: "Configuración", icon: <Settings size={18} /> },
     ],
   },
