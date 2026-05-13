@@ -84,6 +84,7 @@ function DetalleItem({ row, onClose }) {
           <div className="grid grid-cols-2 gap-3">
             <Campo label="Código REC" value={row.codigo_recepcion} mono />
             <Campo label="Fecha Bolivia" value={formatFecha(row.recibido_at)} />
+            <Campo label="Entrega proveedor" value={formatFecha(row.fecha_entrega_proveedor)} />
             <Campo label="Ubicación" value={row.ubicacion_codigo} mono />
             <div className="flex flex-col gap-0.5">
               <p className="ui-label">Zona</p>
@@ -218,6 +219,7 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                 <th className="text-left px-4 py-3 font-medium">Ubicación</th>
                 <th className="text-left px-4 py-3 font-medium">Zona</th>
                 <th className="text-left px-4 py-3 font-medium">Recepción Bolivia</th>
+                <th className="text-left px-4 py-3 font-medium">Entrega proveedor</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -257,6 +259,9 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                   </td>
                   <td className="px-4 py-3 text-xs text-neutral-400 whitespace-nowrap">
                     {formatFecha(row.recibido_at)}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-neutral-400 whitespace-nowrap">
+                    {formatFecha(row.fecha_entrega_proveedor)}
                   </td>
                 </tr>
               ))}

@@ -19,27 +19,30 @@ function exportarCSV(nombreArchivo, columnas, filas) {
 }
 
 const COLS_COMPRAS = [
-  { key: "cliente_nombre",    label: "Cliente" },
-  { key: "destino",           label: "Ciudad" },
-  { key: "proveedor",         label: "Proveedor" },
-  { key: "numero_orden",      label: "Número Orden" },
-  { key: "tracking_number",   label: "Tracking" },
-  { key: "estado",            label: "Estado" },
-  { key: "created_at",        label: "Fecha Registro" },
-  { key: "warehouse_confirmado", label: "Warehouse Confirmado" },
-  { key: "warehouse_fecha",   label: "Fecha Warehouse" },
-  { key: "item_count",        label: "Cant. Ítems" },
+  { key: "cliente_nombre",          label: "Cliente" },
+  { key: "destino",                 label: "Ciudad" },
+  { key: "proveedor",               label: "Proveedor" },
+  { key: "numero_orden",            label: "Número Orden" },
+  { key: "tracking_number",         label: "Tracking" },
+  { key: "estado",                  label: "Estado" },
+  { key: "comprado_por",            label: "Comprado por" },
+  { key: "fecha_entrega_proveedor", label: "Fecha Entrega Proveedor" },
+  { key: "created_at",              label: "Fecha Registro" },
+  { key: "warehouse_confirmado",    label: "Warehouse Confirmado" },
+  { key: "warehouse_fecha",         label: "Fecha Warehouse" },
+  { key: "item_count",              label: "Cant. Ítems" },
 ]
 
 const COLS_OPERATIVO = [
-  { key: "cliente_nombre",      label: "Cliente" },
-  { key: "numero_orden",        label: "Número Orden" },
-  { key: "tracking_number",     label: "Tracking Efectivo" },
-  { key: "tracking_items",      label: "Tracking Ítems" },
-  { key: "estado",              label: "Estado" },
-  { key: "warehouse_confirmado", label: "Warehouse" },
-  { key: "warehouse_fecha",     label: "Fecha Warehouse" },
-  { key: "created_at",          label: "Fecha Registro" },
+  { key: "cliente_nombre",          label: "Cliente" },
+  { key: "numero_orden",            label: "Número Orden" },
+  { key: "tracking_number",         label: "Tracking Efectivo" },
+  { key: "tracking_items",          label: "Tracking Ítems" },
+  { key: "estado",                  label: "Estado" },
+  { key: "fecha_entrega_proveedor", label: "Fecha Entrega Proveedor" },
+  { key: "warehouse_confirmado",    label: "Warehouse" },
+  { key: "warehouse_fecha",         label: "Fecha Warehouse" },
+  { key: "created_at",              label: "Fecha Registro" },
 ]
 
 const COLS_INVENTARIO = [

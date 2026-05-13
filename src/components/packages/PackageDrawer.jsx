@@ -17,12 +17,26 @@ export default function PackageDrawer({ pkg }) {
   const [savingWfecha, setSavingWfecha] = useState(false);
   const [wfechaError, setWfechaError] = useState("");
 
+  const [fechaEntregaProvInput, setFechaEntregaProvInput] = useState(
+    pkg?.fecha_entrega_proveedor
+      ? new Date(pkg.fecha_entrega_proveedor).toISOString().split("T")[0]
+      : ""
+  );
+  const [savingFep, setSavingFep] = useState(false);
+  const [fepError, setFepError] = useState("");
+
   useEffect(() => {
     setLocalPkg(pkg);
     setSelectedItemId(null);
     setWarehouseFechaInput(
       pkg?.warehouse_fecha ? new Date(pkg.warehouse_fecha).toISOString().split("T")[0] : ""
     );
+    setFechaEntregaProvInput(
+      pkg?.fecha_entrega_proveedor
+        ? new Date(pkg.fecha_entrega_proveedor).toISOString().split("T")[0]
+        : ""
+    );
+    setFepError("");
   }, [pkg]);
 
   const [data, setData] = useState({
@@ -192,6 +206,29 @@ export default function PackageDrawer({ pkg }) {
     }
   }
 
+  async function guardarFechaEntregaProveedor() {
+    setSavingFep(true);
+    setFepError("");
+    try {
+      const res = await fetch(`${API_URL}/compras/${localPkg.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proveedor: localPkg.proveedor,
+          numero_orden: localPkg.numero_orden,
+          fecha_entrega_proveedor: fechaEntregaProvInput || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "Error al guardar fecha");
+      setLocalPkg(prev => ({ ...prev, fecha_entrega_proveedor: json.data.fecha_entrega_proveedor }));
+    } catch (err) {
+      setFepError(err.message || "Error guardando fecha");
+    } finally {
+      setSavingFep(false);
+    }
+  }
+
   const fotosBadge = (confirmado) => confirmado
     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
     : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400";
@@ -350,6 +387,30 @@ export default function PackageDrawer({ pkg }) {
                 {wfechaError && <p className="text-xs text-red-500">{wfechaError}</p>}
               </div>
             )}
+
+            {/* Fecha entrega proveedor */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-neutral-500">Fecha entrega proveedor</label>
+              <p className="text-[10px] text-neutral-400">Fecha "Delivered" del proveedor/courier (Amazon, UPS, FedEx...)</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={fechaEntregaProvInput}
+                  onChange={e => setFechaEntregaProvInput(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm
+                    bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100
+                    focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+                />
+                <button
+                  onClick={guardarFechaEntregaProveedor}
+                  disabled={savingFep}
+                  className="px-3 py-2 bg-black text-white rounded-md text-sm disabled:opacity-40 whitespace-nowrap"
+                >
+                  {savingFep ? "..." : "Guardar"}
+                </button>
+              </div>
+              {fepError && <p className="text-xs text-red-500">{fepError}</p>}
+            </div>
 
             {/* Selector de asociación */}
             {items.length > 0 && (

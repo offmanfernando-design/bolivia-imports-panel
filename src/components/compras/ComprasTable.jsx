@@ -208,6 +208,10 @@ export default function ComprasTable({ reload }) {
         ? compra.fecha_estimada.split("T")[0]
         : "",
       descripcion_producto: compra.descripcion_producto || "",
+      comprado_por: compra.comprado_por || "cliente",
+      fecha_entrega_proveedor: compra.fecha_entrega_proveedor
+        ? compra.fecha_entrega_proveedor.split("T")[0]
+        : "",
     });
     setEditError("");
   }
@@ -227,6 +231,8 @@ export default function ComprasTable({ reload }) {
           url_orden: editForm.url_orden.trim() || null,
           fecha_estimada: editForm.fecha_estimada || null,
           descripcion_producto: editForm.descripcion_producto.trim() || null,
+          comprado_por: editForm.comprado_por,
+          fecha_entrega_proveedor: editForm.fecha_entrega_proveedor || null,
         }),
       });
       const json = await res.json();
@@ -240,6 +246,8 @@ export default function ComprasTable({ reload }) {
           url_orden: json.data.url_orden,
           fecha_estimada: json.data.fecha_estimada,
           descripcion_producto: json.data.descripcion_producto,
+          comprado_por: json.data.comprado_por,
+          fecha_entrega_proveedor: json.data.fecha_entrega_proveedor,
         };
       }));
       setEditingId(null);
@@ -340,6 +348,8 @@ export default function ComprasTable({ reload }) {
               <th className="text-left px-3">Link</th>
               <th className="text-left px-3">Destino</th>
               <th className="text-left px-3">Fecha</th>
+              <th className="text-left px-3">Comprado por</th>
+              <th className="text-left px-3">Entrega prov.</th>
               <th className="text-left px-3">Estado</th>
               <th className="text-left px-3">Tracking</th>
               <th className="text-left px-3">Ítems</th>
@@ -388,6 +398,22 @@ export default function ComprasTable({ reload }) {
                     <td className="px-3 py-3">{compra.destino || "—"}</td>
 
                     <td className="px-3 py-3 text-gray-400">{fechaFormateada}</td>
+
+                    <td className="px-3 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium
+                        ${compra.comprado_por === "empresa"
+                          ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                          : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
+                        }`}>
+                        {compra.comprado_por === "empresa" ? "Empresa" : "Cliente"}
+                      </span>
+                    </td>
+
+                    <td className="px-3 py-3 text-gray-400 text-xs">
+                      {compra.fecha_entrega_proveedor
+                        ? compra.fecha_entrega_proveedor.split("T")[0].split("-").reverse().join("/")
+                        : "—"}
+                    </td>
 
                     <td className="px-3 py-3">
                       <select
@@ -489,7 +515,7 @@ export default function ComprasTable({ reload }) {
                   {/* Panel de ítems expandible */}
                   {isExpanded && (
                     <tr key={`${compra.id}-items`}>
-                      <td colSpan={10} className="px-3 pb-3">
+                      <td colSpan={12} className="px-3 pb-3">
                         <div className="rounded-xl border border-neutral-200 dark:border-neutral-700
                           bg-white dark:bg-neutral-900 p-4">
 
@@ -679,6 +705,31 @@ export default function ComprasTable({ reload }) {
               <input
                 value={editForm.descripcion_producto}
                 onChange={e => setEditForm(f => ({ ...f, descripcion_producto: e.target.value }))}
+                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded
+                  bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100
+                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Comprado por</label>
+              <select
+                value={editForm.comprado_por}
+                onChange={e => setEditForm(f => ({ ...f, comprado_por: e.target.value }))}
+                className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded
+                  bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100
+                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40"
+              >
+                <option value="cliente">Cliente</option>
+                <option value="empresa">Empresa</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Fecha entrega proveedor</label>
+              <p className="text-[10px] text-neutral-400 mb-1">Fecha "Delivered" que muestra Amazon/UPS/FedEx</p>
+              <input
+                type="date"
+                value={editForm.fecha_entrega_proveedor}
+                onChange={e => setEditForm(f => ({ ...f, fecha_entrega_proveedor: e.target.value }))}
                 className="w-full px-3 py-2 border border-neutral-200 dark:border-neutral-700 rounded
                   bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-neutral-100
                   focus:outline-none focus:ring-2 focus:ring-neutral-300/40"

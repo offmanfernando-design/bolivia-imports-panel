@@ -11,6 +11,7 @@ export default function Compras() {
     numero_orden: "",
     fecha: "",
     url_orden: "",
+    comprado_por: "cliente",
   });
 
   const [cantidadItems, setCantidadItems] = useState("");
@@ -102,6 +103,7 @@ export default function Compras() {
             cantidad: Number(i.cantidad),
           })),
           fecha: form.fecha,
+          comprado_por: form.comprado_por,
         }),
       });
 
@@ -119,6 +121,7 @@ export default function Compras() {
         numero_orden: "",
         fecha: "",
         url_orden: "",
+        comprado_por: "cliente",
       });
       setCantidadItems("");
       setItems([]);
@@ -184,6 +187,16 @@ export default function Compras() {
           onChange={handleChange}
           className="ui-input"
         />
+
+        <select
+          name="comprado_por"
+          value={form.comprado_por}
+          onChange={handleChange}
+          className="ui-input"
+        >
+          <option value="cliente">Comprado por: Cliente</option>
+          <option value="empresa">Comprado por: Empresa</option>
+        </select>
 
         <input
           type="text"
