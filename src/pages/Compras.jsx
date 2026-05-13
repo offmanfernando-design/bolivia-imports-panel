@@ -2,133 +2,250 @@ import { useState } from "react";
 import ComprasTable from "../components/compras/ComprasTable";
 import { API_URL } from "../config/api";
 
-export default function Compras() {
-  const [form, setForm] = useState({
-    nombre: "",
-    telefono: "",
-    ciudad: "",
+function emptyOrden() {
+  return {
     pagina: "",
     numero_orden: "",
-    fecha: "",
     url_orden: "",
     comprado_por: "cliente",
-  });
+    fecha: "",
+    fecha_entrega_proveedor: "",
+    cantidadItems: "",
+    items: [],
+  };
+}
 
-  const [cantidadItems, setCantidadItems] = useState("");
-  const [items, setItems] = useState([]);
-  const [reload, setReload] = useState(0);
-
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
+function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
   function handleCantidadItems(e) {
     const value = e.target.value;
-    setCantidadItems(value);
-    if (value === "") {
-      setItems([]);
-      return;
-    }
     const n = Math.min(99, parseInt(value, 10) || 0);
-    if (n <= 0) {
-      setItems([]);
-      return;
-    }
-    setItems((prev) => {
-      if (n > prev.length) {
-        const extras = Array.from({ length: n - prev.length }, () => ({ descripcion: "", cantidad: 1 }));
-        return [...prev, ...extras];
-      }
-      return prev.slice(0, n);
-    });
+    const newItems =
+      value === "" || n <= 0
+        ? []
+        : n > orden.items.length
+        ? [
+            ...orden.items,
+            ...Array.from({ length: n - orden.items.length }, () => ({
+              descripcion: "",
+              cantidad: 1,
+            })),
+          ]
+        : orden.items.slice(0, n);
+    onChange(idx, "cantidadItems", value);
+    onChange(idx, "items", newItems);
   }
 
-  function updateDescripcion(index, value) {
-    setItems((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], descripcion: value };
-      return next;
-    });
+  function updateItem(itemIdx, field, value) {
+    const next = orden.items.map((it, j) =>
+      j === itemIdx ? { ...it, [field]: value } : it
+    );
+    onChange(idx, "items", next);
   }
 
-  function updateCantidad(index, value) {
-    const parsed = parseInt(value, 10);
-    setItems((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], cantidad: isNaN(parsed) ? "" : parsed };
-      return next;
-    });
+  return (
+    <div className="border border-neutral-200 dark:border-neutral-700 rounded-xl p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+          Orden / página {idx + 1}
+        </p>
+        {total > 1 && (
+          <button
+            type="button"
+            onClick={() => onRemove(idx)}
+            className="text-xs text-red-400 hover:text-red-600 dark:hover:text-red-400 transition"
+          >
+            Eliminar
+          </button>
+        )}
+      </div>
+
+      <input
+        placeholder="Página (Amazon, eBay, Shein...)"
+        value={orden.pagina}
+        onChange={(e) => onChange(idx, "pagina", e.target.value)}
+        className="ui-input"
+      />
+
+      <input
+        placeholder="Número de orden"
+        value={orden.numero_orden}
+        onChange={(e) => onChange(idx, "numero_orden", e.target.value)}
+        className="ui-input"
+      />
+
+      <input
+        placeholder="Link de la orden"
+        value={orden.url_orden}
+        onChange={(e) => onChange(idx, "url_orden", e.target.value)}
+        className="ui-input"
+      />
+
+      <select
+        value={orden.comprado_por}
+        onChange={(e) => onChange(idx, "comprado_por", e.target.value)}
+        className="ui-input"
+      >
+        <option value="cliente">Comprado por: Cliente</option>
+        <option value="empresa">Comprado por: Empresa</option>
+      </select>
+
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="Cantidad de ítems"
+        value={orden.cantidadItems}
+        onChange={handleCantidadItems}
+        className="ui-input"
+      />
+
+      {orden.items.map((item, itemIdx) => (
+        <div
+          key={itemIdx}
+          className="grid grid-cols-[minmax(0,1fr)_88px] gap-2 items-center"
+        >
+          <input
+            placeholder={`Producto ${itemIdx + 1}`}
+            value={item.descripcion}
+            onChange={(e) => updateItem(itemIdx, "descripcion", e.target.value)}
+            className="ui-input !w-full min-w-0"
+          />
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            placeholder="Cant."
+            value={item.cantidad}
+            onChange={(e) => {
+              const p = parseInt(e.target.value, 10);
+              updateItem(itemIdx, "cantidad", isNaN(p) ? "" : p);
+            }}
+            className="ui-input !w-[88px] text-center"
+          />
+        </div>
+      ))}
+
+      <input
+        type="date"
+        placeholder="Fecha estimada"
+        value={orden.fecha}
+        onChange={(e) => onChange(idx, "fecha", e.target.value)}
+        className="ui-input"
+      />
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-neutral-500 dark:text-neutral-400">
+          Fecha entrega proveedor (opcional)
+        </label>
+        <input
+          type="date"
+          value={orden.fecha_entrega_proveedor}
+          onChange={(e) => onChange(idx, "fecha_entrega_proveedor", e.target.value)}
+          className="ui-input"
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function Compras() {
+  const [cliente, setCliente] = useState({ nombre: "", telefono: "", ciudad: "" });
+  const [nota, setNota] = useState("");
+  const [ordenes, setOrdenes] = useState([emptyOrden()]);
+  const [reload, setReload] = useState(0);
+
+  function updateCliente(e) {
+    const { name, value } = e.target;
+    setCliente((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function updateOrden(idx, field, value) {
+    setOrdenes((prev) =>
+      prev.map((o, i) => (i === idx ? { ...o, [field]: value } : o))
+    );
+  }
+
+  function agregarOrden() {
+    setOrdenes((prev) => [...prev, emptyOrden()]);
+  }
+
+  function eliminarOrden(idx) {
+    setOrdenes((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function guardar() {
-    try {
-      if (!form.nombre || !form.telefono || !form.ciudad || !form.pagina || !form.numero_orden) {
-        alert("Completa nombre, teléfono, ciudad, página y número de orden");
-        return;
-      }
+    if (!cliente.nombre.trim() || !cliente.telefono.trim() || !cliente.ciudad.trim()) {
+      alert("Completa nombre, teléfono y ciudad");
+      return;
+    }
 
-      if (items.length === 0) {
-        alert("Indica la cantidad de ítems");
-        return;
-      }
+    for (let i = 0; i < ordenes.length; i++) {
+      const o = ordenes[i];
+      const n = i + 1;
+      if (!o.pagina.trim()) { alert(`Orden ${n}: falta página/proveedor`); return; }
+      if (!o.numero_orden.trim()) { alert(`Orden ${n}: falta número de orden`); return; }
+      if (o.items.length === 0) { alert(`Orden ${n}: indica la cantidad de ítems`); return; }
 
-      const itemsValidos = items.filter((i) => i.descripcion.trim());
+      const validos = o.items.filter((it) => it.descripcion.trim());
+      if (validos.length === 0) { alert(`Orden ${n}: debes registrar al menos un ítem`); return; }
 
-      if (itemsValidos.length === 0) {
-        alert("Debes registrar al menos un ítem");
-        return;
-      }
-
-      for (const item of itemsValidos) {
+      for (const item of validos) {
         const cant = Number(item.cantidad);
         if (!Number.isInteger(cant) || cant < 1 || cant > 999) {
-          alert(`Cantidad inválida para "${item.descripcion}": debe ser un número entre 1 y 999`);
+          alert(`Orden ${n}: cantidad inválida para "${item.descripcion}"`);
           return;
         }
       }
 
-      const res = await fetch(`${API_URL}/compras`, {
+      if (o.fecha_entrega_proveedor) {
+        if (isNaN(new Date(o.fecha_entrega_proveedor).getTime())) {
+          alert(`Orden ${n}: fecha entrega proveedor inválida`);
+          return;
+        }
+      }
+    }
+
+    const payload = {
+      cliente: {
+        nombre:   cliente.nombre.trim(),
+        telefono: cliente.telefono.trim(),
+        ciudad:   cliente.ciudad.trim(),
+      },
+      nota: nota.trim() || null,
+      ordenes: ordenes.map((o) => ({
+        pagina:                   o.pagina.trim(),
+        numero_orden:             o.numero_orden.trim(),
+        url_orden:                o.url_orden.trim() || null,
+        comprado_por:             o.comprado_por,
+        fecha_entrega_proveedor:  o.fecha_entrega_proveedor || null,
+        fecha:                    o.fecha || null,
+        items: o.items
+          .filter((it) => it.descripcion.trim())
+          .map((it) => ({
+            descripcion: it.descripcion.trim(),
+            cantidad:    Number(it.cantidad),
+          })),
+      })),
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/compras/solicitud`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cliente_nombre: form.nombre,
-          telefono: form.telefono,
-          ciudad: form.ciudad,
-          pagina: form.pagina,
-          numero_orden: form.numero_orden.trim(),
-          url_orden: form.url_orden.trim(),
-          items: itemsValidos.map((i) => ({
-            descripcion: i.descripcion.trim(),
-            cantidad: Number(i.cantidad),
-          })),
-          fecha: form.fecha,
-          comprado_por: form.comprado_por,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
-
       if (!res.ok || !json.ok) {
-        throw new Error(json.error || "No se pudo guardar la compra");
+        throw new Error(json.error || "No se pudo guardar la solicitud");
       }
 
-      setForm({
-        nombre: "",
-        telefono: "",
-        ciudad: "",
-        pagina: "",
-        numero_orden: "",
-        fecha: "",
-        url_orden: "",
-        comprado_por: "cliente",
-      });
-      setCantidadItems("");
-      setItems([]);
+      setCliente({ nombre: "", telefono: "", ciudad: "" });
+      setNota("");
+      setOrdenes([emptyOrden()]);
       setReload((prev) => prev + 1);
     } catch (err) {
-      console.error("Error guardando compra:", err);
-      alert(err.message || "Error guardando compra");
+      console.error("Error guardando solicitud:", err);
+      alert(err.message || "Error guardando solicitud");
     }
   }
 
@@ -136,107 +253,72 @@ export default function Compras() {
     <div className="space-y-12">
       <div>
         <p className="ui-section-title">Compras</p>
-        <h2 className="ui-page-title">Registrar compra</h2>
+        <h2 className="ui-page-title">Registrar solicitud de compra</h2>
       </div>
 
-      <div className="ui-card flex flex-col gap-4">
-        <input
-          name="nombre"
-          placeholder="Nombre cliente"
-          value={form.nombre}
-          onChange={handleChange}
-          className="ui-input"
-        />
+      <div className="ui-card flex flex-col gap-6">
 
-        <input
-          name="telefono"
-          placeholder="Teléfono"
-          value={form.telefono}
-          onChange={handleChange}
-          className="ui-input"
-        />
+        {/* Datos del cliente */}
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+            Cliente
+          </p>
+          <input
+            name="nombre"
+            placeholder="Nombre cliente"
+            value={cliente.nombre}
+            onChange={updateCliente}
+            className="ui-input"
+          />
+          <input
+            name="telefono"
+            placeholder="Teléfono"
+            value={cliente.telefono}
+            onChange={updateCliente}
+            className="ui-input"
+          />
+          <input
+            name="ciudad"
+            placeholder="Ciudad"
+            value={cliente.ciudad}
+            onChange={updateCliente}
+            className="ui-input"
+          />
+          <input
+            placeholder="Nota solicitud (opcional)"
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            className="ui-input"
+          />
+        </div>
 
-        <input
-          name="ciudad"
-          placeholder="Ciudad"
-          value={form.ciudad}
-          onChange={handleChange}
-          className="ui-input"
-        />
+        {/* Bloques de orden */}
+        <div className="flex flex-col gap-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+            Órdenes / páginas
+          </p>
+          {ordenes.map((orden, idx) => (
+            <OrdenBlock
+              key={idx}
+              orden={orden}
+              idx={idx}
+              total={ordenes.length}
+              onChange={updateOrden}
+              onRemove={eliminarOrden}
+            />
+          ))}
+        </div>
 
-        <input
-          name="pagina"
-          placeholder="Página (Amazon, eBay...)"
-          value={form.pagina}
-          onChange={handleChange}
-          className="ui-input"
-        />
-
-        <input
-          name="numero_orden"
-          placeholder="Número de orden"
-          value={form.numero_orden}
-          onChange={handleChange}
-          className="ui-input"
-        />
-
-        <input
-          name="url_orden"
-          placeholder="Link de la orden"
-          value={form.url_orden}
-          onChange={handleChange}
-          className="ui-input"
-        />
-
-        <select
-          name="comprado_por"
-          value={form.comprado_por}
-          onChange={handleChange}
-          className="ui-input"
+        <button
+          type="button"
+          onClick={agregarOrden}
+          className="ui-button-ghost text-sm"
         >
-          <option value="cliente">Comprado por: Cliente</option>
-          <option value="empresa">Comprado por: Empresa</option>
-        </select>
-
-        <input
-          type="text"
-          inputMode="numeric"
-          placeholder="Cantidad de ítems"
-          value={cantidadItems}
-          onChange={handleCantidadItems}
-          className="ui-input"
-        />
-
-        {items.map((item, index) => (
-          <div key={index} className="grid grid-cols-[minmax(0,1fr)_88px] gap-2 items-center">
-            <input
-              placeholder={`Producto ${index + 1}`}
-              value={item.descripcion}
-              onChange={(e) => updateDescripcion(index, e.target.value)}
-              className="ui-input !w-full min-w-0"
-            />
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Cant."
-              value={item.cantidad}
-              onChange={(e) => updateCantidad(index, e.target.value)}
-              className="ui-input !w-[88px] text-center"
-            />
-          </div>
-        ))}
-
-        <input
-          type="date"
-          name="fecha"
-          value={form.fecha}
-          onChange={handleChange}
-          className="ui-input"
-        />
+          + Agregar otra página / proveedor
+        </button>
 
         <button onClick={guardar} className="ui-button">
-          Guardar compra
+          Guardar solicitud
         </button>
       </div>
 

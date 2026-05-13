@@ -347,6 +347,7 @@ export default function ComprasTable({ reload }) {
               <th className="text-left px-3">Orden</th>
               <th className="text-left px-3">Link</th>
               <th className="text-left px-3">Destino</th>
+              <th className="text-left px-3">Solicitud</th>
               <th className="text-left px-3">Fecha</th>
               <th className="text-left px-3">Comprado por</th>
               <th className="text-left px-3">Entrega prov.</th>
@@ -396,6 +397,15 @@ export default function ComprasTable({ reload }) {
                     </td>
 
                     <td className="px-3 py-3">{compra.destino || "—"}</td>
+
+                    <td className="px-3 py-3">
+                      {compra.codigo_solicitud ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium
+                          bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 whitespace-nowrap">
+                          {compra.codigo_solicitud}
+                        </span>
+                      ) : "—"}
+                    </td>
 
                     <td className="px-3 py-3 text-gray-400">{fechaFormateada}</td>
 
@@ -515,7 +525,7 @@ export default function ComprasTable({ reload }) {
                   {/* Panel de ítems expandible */}
                   {isExpanded && (
                     <tr key={`${compra.id}-items`}>
-                      <td colSpan={12} className="px-3 pb-3">
+                      <td colSpan={13} className="px-3 pb-3">
                         <div className="rounded-xl border border-neutral-200 dark:border-neutral-700
                           bg-white dark:bg-neutral-900 p-4">
 

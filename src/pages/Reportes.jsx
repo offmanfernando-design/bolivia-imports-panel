@@ -21,6 +21,7 @@ function exportarCSV(nombreArchivo, columnas, filas) {
 const COLS_COMPRAS = [
   { key: "cliente_nombre",          label: "Cliente" },
   { key: "destino",                 label: "Ciudad" },
+  { key: "codigo_solicitud",        label: "Solicitud" },
   { key: "proveedor",               label: "Proveedor" },
   { key: "numero_orden",            label: "Número Orden" },
   { key: "tracking_number",         label: "Tracking" },
@@ -35,6 +36,7 @@ const COLS_COMPRAS = [
 
 const COLS_OPERATIVO = [
   { key: "cliente_nombre",          label: "Cliente" },
+  { key: "codigo_solicitud",        label: "Solicitud" },
   { key: "numero_orden",            label: "Número Orden" },
   { key: "tracking_number",         label: "Tracking Efectivo" },
   { key: "tracking_items",          label: "Tracking Ítems" },
