@@ -1,56 +1,57 @@
-/* ===================================================== */
-/* DESIGN SYSTEM - BOLIVIA IMPORTS                       */
-/* ===================================================== */
+/* ============================================================ */
+/* DESIGN SYSTEM — BOLIVIA IMPORTS                              */
+/* Logistics Control Center — v2                                */
+/* ============================================================ */
 
 
-/* ===================================================== */
-/* CARDS                                                 */
-/* ===================================================== */
+/* ============================================================ */
+/* CARDS                                                        */
+/* ============================================================ */
 
+/* Card interactiva — con hover elevado */
 .ui-card {
-  @apply bg-white dark:bg-neutral-950
+  @apply bg-white dark:bg-neutral-900
   border border-neutral-200 dark:border-neutral-800
   rounded-xl
   p-6
-  shadow-sm dark:shadow-black/20
-  transition-all duration-200
-  hover:shadow-md
-  hover:-translate-y-[2px];
+  shadow-sm
+  transition-all duration-150
+  hover:border-neutral-300 dark:hover:border-neutral-700
+  hover:shadow-md hover:-translate-y-px;
 }
 
-/* Panel principal — sin hover transform, para secciones estáticas */
+/* Card de sección — estática, sin hover transform */
 .ui-section-card {
-  @apply bg-white dark:bg-neutral-950
+  @apply bg-white dark:bg-neutral-900
   border border-neutral-200 dark:border-neutral-800
   rounded-xl
   p-6
-  shadow-sm dark:shadow-black/20;
+  shadow-sm;
 }
 
-/* CARD HOVER */
+/* Modificador hover suave para cards */
 .ui-card-hover {
   @apply hover:border-neutral-300 dark:hover:border-neutral-700;
 }
 
 
-/* ===================================================== */
-/* INPUTS / SELECTS / LABELS                             */
-/* ===================================================== */
+/* ============================================================ */
+/* INPUTS / SELECTS / LABELS                                    */
+/* ============================================================ */
 
 .ui-input {
   @apply w-full
-  px-4 py-2.5
+  px-3.5 py-2.5
   rounded-lg
-  border border-neutral-200 dark:border-neutral-800
-  bg-neutral-50 dark:bg-neutral-900
+  border border-neutral-300 dark:border-neutral-700
+  bg-white dark:bg-neutral-800
   text-neutral-900 dark:text-neutral-100
   placeholder-neutral-400
   text-sm
-  transition-all duration-200
+  transition-colors duration-150
   focus:outline-none
-  focus:ring-2 focus:ring-neutral-300/40
-  focus:border-neutral-400
-  dark:focus:border-neutral-600;
+  focus:ring-2 focus:ring-cyan-500/20
+  focus:border-cyan-500 dark:focus:border-cyan-500;
 }
 
 .ui-input-sm {
@@ -59,17 +60,16 @@
 
 .ui-select {
   @apply w-full
-  px-4 py-2.5
+  px-3.5 py-2.5
   rounded-lg
-  border border-neutral-200 dark:border-neutral-800
-  bg-neutral-50 dark:bg-neutral-900
+  border border-neutral-300 dark:border-neutral-700
+  bg-white dark:bg-neutral-800
   text-neutral-900 dark:text-neutral-100
   text-sm
-  transition-all duration-200
+  transition-colors duration-150
   focus:outline-none
-  focus:ring-2 focus:ring-neutral-300/40
-  focus:border-neutral-400
-  dark:focus:border-neutral-600
+  focus:ring-2 focus:ring-cyan-500/20
+  focus:border-cyan-500 dark:focus:border-cyan-500
   cursor-pointer;
 }
 
@@ -80,136 +80,280 @@
 }
 
 
-/* ===================================================== */
-/* BUTTONS                                               */
-/* ===================================================== */
+/* ============================================================ */
+/* BUTTONS                                                      */
+/* ============================================================ */
 
+/* Botón primario oscuro — para acciones de guardado/cierre */
 .ui-button {
-  @apply px-4 py-2
+  @apply inline-flex items-center justify-center gap-2
+  px-4 py-2
   rounded-lg
   bg-neutral-900 dark:bg-neutral-100
   text-white dark:text-neutral-900
-  text-sm
-  font-medium
-  transition-all duration-200
+  text-sm font-medium
+  transition-all duration-150
   hover:bg-neutral-700 dark:hover:bg-white
-  hover:shadow
-  active:scale-[0.97];
+  hover:shadow-sm
+  active:scale-[0.97]
+  disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-.ui-button-ghost {
-  @apply px-4 py-2
+/* Botón primario con acento cyan — para acciones de flujo */
+.ui-button-primary {
+  @apply inline-flex items-center justify-center gap-2
+  px-4 py-2
   rounded-lg
-  border border-neutral-200 dark:border-neutral-800
+  bg-cyan-600 dark:bg-cyan-500
+  text-white
+  text-sm font-medium
+  transition-all duration-150
+  hover:bg-cyan-700 dark:hover:bg-cyan-400
+  hover:shadow-sm
+  active:scale-[0.97]
+  disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Botón ghost — acción secundaria */
+.ui-button-ghost {
+  @apply inline-flex items-center justify-center gap-2
+  px-4 py-2
+  rounded-lg
+  border border-neutral-200 dark:border-neutral-700
   bg-transparent
   text-neutral-700 dark:text-neutral-300
-  text-sm
-  font-medium
-  transition-all duration-200
-  hover:bg-neutral-100 dark:hover:bg-neutral-900
-  active:scale-[0.97];
+  text-sm font-medium
+  transition-all duration-150
+  hover:bg-neutral-100 dark:hover:bg-neutral-800
+  hover:border-neutral-300 dark:hover:border-neutral-600
+  active:scale-[0.97]
+  disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
+/* Botón éxito — confirmar, completar */
 .ui-button-success {
-  @apply px-4 py-2
+  @apply inline-flex items-center justify-center gap-2
+  px-4 py-2
   rounded-lg
-  bg-emerald-600
+  bg-emerald-600 dark:bg-emerald-500
   text-white
-  text-sm
-  font-medium
-  transition-all duration-200
-  hover:bg-emerald-500
-  hover:shadow
-  active:scale-[0.97];
+  text-sm font-medium
+  transition-all duration-150
+  hover:bg-emerald-500 dark:hover:bg-emerald-400
+  hover:shadow-sm
+  active:scale-[0.97]
+  disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
+/* Botón advertencia — acción de atención */
 .ui-button-warning {
-  @apply px-4 py-2
+  @apply inline-flex items-center justify-center gap-2
+  px-4 py-2
   rounded-lg
   bg-amber-500
   text-white
-  text-sm
-  font-medium
-  transition-all duration-200
+  text-sm font-medium
+  transition-all duration-150
   hover:bg-amber-400
-  hover:shadow
-  active:scale-[0.97];
+  hover:shadow-sm
+  active:scale-[0.97]
+  disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
+/* Botón peligro — eliminar, cancelar irreversible */
 .ui-button-danger {
-  @apply px-4 py-2
+  @apply inline-flex items-center justify-center gap-2
+  px-4 py-2
   rounded-lg
   bg-red-600
   text-white
-  text-sm
-  font-medium
-  transition-all duration-200
+  text-sm font-medium
+  transition-all duration-150
   hover:bg-red-500
-  hover:shadow
-  active:scale-[0.97];
+  hover:shadow-sm
+  active:scale-[0.97]
+  disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 
-/* ===================================================== */
-/* TABLE                                                 */
-/* ===================================================== */
+/* ============================================================ */
+/* TABLE                                                        */
+/* ============================================================ */
 
+/* Wrapper de tabla con borde y fondo */
 .ui-table {
-  @apply border border-neutral-200 dark:border-neutral-800
-  rounded-xl
-  overflow-hidden;
+  @apply overflow-hidden rounded-xl
+  border border-neutral-200 dark:border-neutral-800
+  bg-white dark:bg-neutral-900;
 }
 
+/* Header de columna */
+.ui-th {
+  @apply px-4 py-3
+  text-left text-[11px] font-semibold uppercase tracking-widest
+  text-neutral-400 dark:text-neutral-500;
+}
+
+/* Celda de dato */
+.ui-td {
+  @apply px-4 py-3 text-sm
+  text-neutral-800 dark:text-neutral-200;
+}
+
+/* Fila con hover cyan sutil */
 .ui-row {
-  @apply transition-colors duration-150
-  hover:bg-neutral-50
-  dark:hover:bg-neutral-900;
+  @apply border-b border-neutral-100 dark:border-neutral-800/80
+  cursor-pointer
+  transition-colors duration-100
+  hover:bg-cyan-50/40 dark:hover:bg-cyan-950/10;
 }
 
 
-/* ===================================================== */
-/* TITLES                                                */
-/* ===================================================== */
+/* ============================================================ */
+/* BADGE BASE                                                   */
+/* ============================================================ */
+
+.ui-badge {
+  @apply inline-flex items-center gap-1
+  px-2 py-0.5
+  text-[11px] font-medium
+  rounded-full
+  border
+  transition-colors duration-150;
+}
+
+
+/* ============================================================ */
+/* MODAL / OVERLAY                                              */
+/* ============================================================ */
+
+/* Overlay oscuro con blur */
+.ui-modal-overlay {
+  @apply fixed inset-0 z-50
+  bg-black/40 backdrop-blur-sm
+  flex items-center justify-center
+  p-4;
+}
+
+/* Panel de modal estándar */
+.ui-modal-panel {
+  @apply relative
+  bg-white dark:bg-neutral-900
+  border border-neutral-200 dark:border-neutral-800
+  rounded-2xl shadow-2xl
+  w-full max-w-md
+  max-h-[90vh] overflow-y-auto;
+}
+
+
+/* ============================================================ */
+/* DRAWER / SIDE PANEL                                          */
+/* ============================================================ */
+
+/* Overlay del side panel */
+.ui-drawer-overlay {
+  @apply fixed inset-0 z-40
+  bg-black/30 backdrop-blur-sm;
+}
+
+/* Panel lateral desde la derecha */
+.ui-drawer-panel {
+  @apply fixed inset-y-0 right-0 z-50
+  w-full sm:w-[540px]
+  bg-white dark:bg-neutral-900
+  border-l border-neutral-200 dark:border-neutral-800
+  flex flex-col overflow-hidden;
+  box-shadow: -20px 0 60px -15px rgba(0, 0, 0, 0.15);
+}
+
+
+/* ============================================================ */
+/* TITLES                                                       */
+/* ============================================================ */
 
 .ui-section-title {
-  @apply text-xs
+  @apply text-[11px]
+  font-medium
   uppercase
   tracking-widest
   text-neutral-400 dark:text-neutral-500;
 }
 
 .ui-page-title {
-  @apply text-2xl
+  @apply text-[22px]
   font-semibold
   tracking-tight
+  leading-tight
   text-neutral-900 dark:text-neutral-100;
 }
 
 .ui-subsection-title {
-  @apply text-xs
+  @apply text-[11px]
   font-semibold
   uppercase
   tracking-widest
-  text-neutral-500 dark:text-neutral-400;
+  text-neutral-400 dark:text-neutral-500;
 }
 
 
-/* ===================================================== */
-/* MICRO ANIMATIONS                                      */
-/* ===================================================== */
+/* ============================================================ */
+/* MICRO ANIMACIONES                                            */
+/* ============================================================ */
 
-.ui-hover {
-  @apply transition-all duration-200 hover:translate-x-[2px];
+/* Entrada con fadeUp — para contenido al montarse */
+.ui-fade-up {
+  animation: uiFadeUp 0.2s ease-out;
 }
 
-.ui-scale {
-  @apply transition-transform duration-200 hover:scale-[1.02];
+/* Entrada con scale — para modales */
+.ui-scale-in {
+  animation: uiScaleIn 0.18s ease-out;
+}
+
+/* Slide desde la derecha — para side panels */
+.ui-slide-right {
+  animation: uiSlideRight 0.28s ease-out;
+}
+
+/* Slide desde abajo — para bottom sheets mobile */
+.ui-slide-up {
+  animation: uiSlideUp 0.28s ease-out;
+}
+
+@keyframes uiFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes uiScaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes uiSlideRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes uiSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Backward compat — usado en Table.jsx y otros */
+.ui-fade {
+  animation: uiFadeIn 0.25s ease;
+}
+
+@keyframes uiFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 
-/* ===================================================== */
-/* SKELETON LOADING                                      */
-/* ===================================================== */
+/* ============================================================ */
+/* SKELETON LOADING                                             */
+/* ============================================================ */
 
 .ui-skeleton {
   @apply animate-pulse
@@ -218,21 +362,14 @@
 }
 
 
-/* ===================================================== */
-/* FADE ANIMATION                                        */
-/* ===================================================== */
+/* ============================================================ */
+/* UTILIDADES HEREDADAS                                         */
+/* ============================================================ */
 
-.ui-fade {
-  animation: fadeIn .25s ease;
+.ui-hover {
+  @apply transition-all duration-150 hover:translate-x-[2px];
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.ui-scale {
+  @apply transition-transform duration-150 hover:scale-[1.02];
 }
