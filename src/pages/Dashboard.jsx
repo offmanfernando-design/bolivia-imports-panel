@@ -107,18 +107,21 @@ export default function Dashboard() {
           title="Paquetes en almacén"
           value={stats?.en_almacen ?? "-"}
           icon={<Package size={20} />}
+          accent="cyan"
         />
 
         <StatCard
           title="Entregas hoy"
           value={stats?.entregas_hoy ?? "-"}
           icon={<Truck size={20} />}
+          accent="emerald"
         />
 
         <StatCard
           title="Cobros pendientes"
           value={stats?.pendiente_cobro ?? "-"}
           icon={<DollarSign size={20} />}
+          accent="amber"
         />
       </div>
 

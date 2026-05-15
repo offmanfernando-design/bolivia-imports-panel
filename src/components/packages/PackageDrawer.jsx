@@ -234,7 +234,7 @@ export default function PackageDrawer({ pkg }) {
     : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400";
 
   return (
-    <div className="w-full flex justify-center animate-[fadeIn_.25s_ease]">
+    <div className="w-full flex justify-center ui-fade-up">
       <div className="w-full max-w-3xl flex flex-col gap-14">
 
         <div className="flex flex-col gap-2">
@@ -253,16 +253,6 @@ export default function PackageDrawer({ pkg }) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <button className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md">
-            Imprimir etiqueta
-          </button>
-
-          <button className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md">
-            Cambiar estado
-          </button>
-        </div>
-
         <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 flex flex-col gap-6 shadow-sm">
           <h3 className="text-xs font-semibold text-neutral-500 uppercase tracking-widest">
             Información del paquete
@@ -279,27 +269,47 @@ export default function PackageDrawer({ pkg }) {
               <p className="font-medium">{tracking || "—"}</p>
             </div>
 
-            <div>
-              <p className="text-neutral-500">Peso</p>
-              <p className="font-medium">{localPkg.peso || "—"}</p>
-            </div>
+            {localPkg.codigo_solicitud && (
+              <div>
+                <p className="text-neutral-500">Solicitud</p>
+                <p className="font-medium font-mono text-xs">{localPkg.codigo_solicitud}</p>
+              </div>
+            )}
 
-            <div>
-              <p className="text-neutral-500">Volumen</p>
-              <p className="font-medium">{localPkg.volumen || "—"}</p>
-            </div>
+            {(localPkg.proveedor || localPkg.numero_orden) && (
+              <div>
+                <p className="text-neutral-500">Orden</p>
+                <p className="font-medium">{localPkg.proveedor}{localPkg.proveedor && localPkg.numero_orden ? " — " : ""}{localPkg.numero_orden}</p>
+              </div>
+            )}
 
-            <div>
-              <p className="text-neutral-500">Ubicación</p>
-              <p className="font-medium">{localPkg.ubicacion || "—"}</p>
-            </div>
+            {localPkg.peso && (
+              <div>
+                <p className="text-neutral-500">Peso</p>
+                <p className="font-medium">{localPkg.peso}</p>
+              </div>
+            )}
 
-            <div>
-              <p className="text-neutral-500">Total</p>
-              <p className="font-medium">
-                {localPkg.total ? `${localPkg.total} Bs` : "—"}
-              </p>
-            </div>
+            {localPkg.volumen && (
+              <div>
+                <p className="text-neutral-500">Volumen</p>
+                <p className="font-medium">{localPkg.volumen}</p>
+              </div>
+            )}
+
+            {localPkg.ubicacion && (
+              <div>
+                <p className="text-neutral-500">Ubicación</p>
+                <p className="font-medium">{localPkg.ubicacion}</p>
+              </div>
+            )}
+
+            {localPkg.total && (
+              <div>
+                <p className="text-neutral-500">Total</p>
+                <p className="font-medium">{localPkg.total} Bs</p>
+              </div>
+            )}
 
             <div>
               <p className="text-neutral-500">Warehouse</p>

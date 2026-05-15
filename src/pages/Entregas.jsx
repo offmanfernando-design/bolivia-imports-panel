@@ -44,7 +44,7 @@ function FirmaCanvas({ canvasRef, onHasFirma }) {
     ctx.beginPath()
     ctx.moveTo(lastPos.current.x, lastPos.current.y)
     ctx.lineTo(pos.x, pos.y)
-    ctx.strokeStyle = "#1a1a1a"
+    ctx.strokeStyle = document.documentElement.classList.contains("dark") ? "#e5e5e5" : "#1a1a1a"
     ctx.lineWidth   = 2
     ctx.lineCap     = "round"
     ctx.lineJoin    = "round"
