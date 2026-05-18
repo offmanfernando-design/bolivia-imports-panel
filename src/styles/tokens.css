@@ -1,0 +1,85 @@
+/* ============================================================ */
+/* DESIGN TOKENS — Bolivia Imports · Premium Slate Ops          */
+/* ============================================================ */
+
+:root {
+  /* Backgrounds */
+  --bg:              #EEF1F4;
+  --surface:         #FFFFFF;
+  --surface-2:       #F8FAFC;
+  --surface-3:       #E5E9EF;
+
+  /* Borders */
+  --border:          #CBD5E1;
+  --border-strong:   #94A3B8;
+
+  /* Text */
+  --text:            #111827;
+  --text-2:          #64748B;
+  --text-3:          #94A3B8;
+
+  /* Accent (slate frío) */
+  --accent:          #4F7180;
+  --accent-2:        #375A6B;
+  --accent-soft:     #DCE8EC;
+
+  /* Semánticos */
+  --success:         #3D6B58;
+  --success-soft:    #D4E4DC;
+  --warning:         #6E5B36;
+  --warning-soft:    #E4D9C0;
+  --danger:          #8E443C;
+  --danger-soft:     #ECD4CF;
+
+  /* Sidebar — siempre oscuro */
+  --nav:             #131A20;
+  --nav-text:        #E3E8EE;
+  --nav-mute:        #5F6B77;
+  --nav-accent:      #6FA4B7;
+  --nav-accent-soft: rgba(111, 164, 183, 0.14);
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px rgba(15,20,25,0.06), 0 1px 6px rgba(15,20,25,0.04);
+  --shadow-md: 0 2px 4px rgba(15,20,25,0.08), 0 4px 16px rgba(15,20,25,0.07);
+  --shadow-lg: 0 6px 16px rgba(15,20,25,0.10), 0 20px 48px rgba(15,20,25,0.12);
+}
+
+/* Dark mode — responde a .dark (Tailwind) y data-theme="dark" */
+.dark,
+[data-theme="dark"] {
+  --bg:              #0B1014;
+  --surface:         #13191F;
+  --surface-2:       #1A2128;
+  --surface-3:       #232C34;
+  --border:          #252F38;
+  --border-strong:   #374350;
+  --text:            #E2E8EE;
+  --text-2:          #98A4B0;
+  --text-3:          #5E6B77;
+  --accent:          #6FA4B7;
+  --accent-2:        #9CC8D8;
+  --accent-soft:     #1A2A30;
+  --success:         #6E9E89;
+  --success-soft:    #162018;
+  --warning:         #B49658;
+  --warning-soft:    #211B0D;
+  --danger:          #B8675D;
+  --danger-soft:     #2A1714;
+  --nav:             #080C10;
+  --nav-text:        #D8DEE5;
+  --nav-mute:        #535E6B;
+  --nav-accent:      #6FA4B7;
+  --nav-accent-soft: rgba(111, 164, 183, 0.14);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.24);
+  --shadow-md: 0 2px 4px rgba(0,0,0,0.36), 0 6px 18px rgba(0,0,0,0.28);
+  --shadow-lg: 0 8px 18px rgba(0,0,0,0.4),  0 24px 56px rgba(0,0,0,0.5);
+}
+
+body {
+  font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'ss01', 'cv11', 'tnum';
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

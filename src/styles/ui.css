@@ -1,6 +1,7 @@
 /* ============================================================ */
-/* DESIGN SYSTEM — BOLIVIA IMPORTS                              */
-/* Logistics Control Center — v2                                */
+/* DESIGN SYSTEM — Bolivia Imports · Premium Slate Ops          */
+/* Componentes: Card · Input · Button · Table · Badge · Drawer  */
+/* Todos los colores vienen de tokens.css (CSS variables)       */
 /* ============================================================ */
 
 
@@ -8,30 +9,41 @@
 /* CARDS                                                        */
 /* ============================================================ */
 
-/* Card interactiva — con hover elevado */
 .ui-card {
-  @apply bg-white dark:bg-neutral-900
-  border border-neutral-200 dark:border-neutral-800
-  rounded-xl
-  p-6
-  shadow-sm
-  transition-all duration-150
-  hover:border-neutral-300 dark:hover:border-neutral-700
-  hover:shadow-md hover:-translate-y-px;
+  background:    var(--surface);
+  border:        1px solid var(--border);
+  border-radius: 10px;
+  padding:       20px;
+  box-shadow:    var(--shadow-sm);
+  transition:    border-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+.ui-card:hover {
+  border-color: var(--border-strong);
+  box-shadow:   var(--shadow-md);
 }
 
-/* Card de sección — estática, sin hover transform */
 .ui-section-card {
-  @apply bg-white dark:bg-neutral-900
-  border border-neutral-200 dark:border-neutral-800
-  rounded-xl
-  p-6
-  shadow-sm;
+  background:    var(--surface);
+  border:        1px solid var(--border);
+  border-radius: 10px;
+  padding:       20px;
+  box-shadow:    var(--shadow-sm);
 }
 
-/* Modificador hover suave para cards */
 .ui-card-hover {
-  @apply hover:border-neutral-300 dark:hover:border-neutral-700;
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+}
+.ui-card-hover:hover {
+  border-color: var(--border-strong);
+  box-shadow:   var(--shadow-md);
+}
+
+/* Superficie interna — secciones dentro de cards/drawers */
+.ui-data-surface {
+  background:    var(--surface-2);
+  border:        1px solid var(--border);
+  border-radius: 8px;
+  padding:       16px;
 }
 
 
@@ -40,43 +52,118 @@
 /* ============================================================ */
 
 .ui-input {
-  @apply w-full
-  px-3.5 py-2.5
-  rounded-lg
-  border border-neutral-300 dark:border-neutral-700
-  bg-white dark:bg-neutral-800
-  text-neutral-900 dark:text-neutral-100
-  placeholder-neutral-400
-  text-sm
-  transition-colors duration-150
-  focus:outline-none
-  focus:ring-2 focus:ring-cyan-500/20
-  focus:border-cyan-500 dark:focus:border-cyan-500;
+  display:          block;
+  width:            100%;
+  height:           38px;
+  padding:          0 12px;
+  border-radius:    8px;
+  background:       var(--surface);
+  border:           1px solid var(--border);
+  color:            var(--text);
+  font-size:        13px;
+  font-family:      'Geist', ui-sans-serif, sans-serif;
+  box-shadow:       var(--shadow-sm);
+  transition:       border-color 80ms ease-out, box-shadow 80ms ease-out;
+  outline:          none;
+}
+.ui-input::placeholder {
+  color: var(--text-3);
+}
+.ui-input:focus {
+  border-color: var(--accent);
+  box-shadow:   0 0 0 3px var(--accent-soft), var(--shadow-sm);
 }
 
 .ui-input-sm {
-  @apply px-3 py-2 text-sm;
+  height:     32px;
+  padding:    0 10px;
+  font-size:  12.5px;
 }
 
 .ui-select {
-  @apply w-full
-  px-3.5 py-2.5
-  rounded-lg
-  border border-neutral-300 dark:border-neutral-700
-  bg-white dark:bg-neutral-800
-  text-neutral-900 dark:text-neutral-100
-  text-sm
-  transition-colors duration-150
-  focus:outline-none
-  focus:ring-2 focus:ring-cyan-500/20
-  focus:border-cyan-500 dark:focus:border-cyan-500
-  cursor-pointer;
+  display:       block;
+  width:         100%;
+  height:        38px;
+  padding:       0 12px;
+  border-radius: 8px;
+  background:    var(--surface);
+  border:        1px solid var(--border);
+  color:         var(--text);
+  font-size:     13px;
+  font-family:   'Geist', ui-sans-serif, sans-serif;
+  box-shadow:    var(--shadow-sm);
+  transition:    border-color 80ms ease-out, box-shadow 80ms ease-out;
+  outline:       none;
+  cursor:        pointer;
+}
+.ui-select:focus {
+  border-color: var(--accent);
+  box-shadow:   0 0 0 3px var(--accent-soft), var(--shadow-sm);
+}
+
+.ui-textarea {
+  display:       block;
+  width:         100%;
+  min-height:    64px;
+  padding:       10px 12px;
+  border-radius: 8px;
+  background:    var(--surface);
+  border:        1px solid var(--border);
+  color:         var(--text);
+  font-size:     13px;
+  font-family:   'Geist', ui-sans-serif, sans-serif;
+  box-shadow:    var(--shadow-sm);
+  transition:    border-color 80ms ease-out, box-shadow 80ms ease-out;
+  outline:       none;
+  resize:        none;
+}
+.ui-textarea::placeholder { color: var(--text-3); }
+.ui-textarea:focus {
+  border-color: var(--accent);
+  box-shadow:   0 0 0 3px var(--accent-soft), var(--shadow-sm);
 }
 
 .ui-label {
-  @apply text-xs
-  font-medium
-  text-neutral-500 dark:text-neutral-400;
+  display:        block;
+  font-size:      11.5px;
+  font-weight:    500;
+  color:          var(--text-2);
+  letter-spacing: 0.005em;
+  margin-bottom:  5px;
+}
+
+.ui-label-mono {
+  display:        block;
+  font-family:    'Geist Mono', ui-monospace, monospace;
+  font-size:      10.5px;
+  font-weight:    600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color:          var(--text-3);
+  margin-bottom:  5px;
+}
+
+
+/* ============================================================ */
+/* UBICACION CELL — fila de estante en /ubicaciones             */
+/* !important necesario: browser UA stylesheet aplica ring auto */
+/* sobre <button> con :focus-visible (Chrome/Safari/macOS)      */
+/* ============================================================ */
+
+.ubicacion-cell {
+  outline:                     none !important;
+  box-shadow:                  none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ubicacion-cell:hover,
+.ubicacion-cell:focus,
+.ubicacion-cell:focus-visible,
+.ubicacion-cell:active {
+  border-color: var(--accent)      !important;
+  background:   var(--accent-soft) !important;
+  outline:      none               !important;
+  box-shadow:   none               !important;
 }
 
 
@@ -84,142 +171,277 @@
 /* BUTTONS                                                      */
 /* ============================================================ */
 
-/* Botón primario oscuro — para acciones de guardado/cierre */
+/* Primary — graphite oscuro (acción dominante) */
 .ui-button {
-  @apply inline-flex items-center justify-center gap-2
-  px-4 py-2
-  rounded-lg
-  bg-neutral-900 dark:bg-neutral-100
-  text-white dark:text-neutral-900
-  text-sm font-medium
-  transition-all duration-150
-  hover:bg-neutral-700 dark:hover:bg-white
-  hover:shadow-sm
-  active:scale-[0.97]
-  disabled:opacity-50 disabled:cursor-not-allowed;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             7px;
+  height:          36px;
+  padding:         0 14px;
+  border-radius:   8px;
+  background:      var(--text);
+  color:           var(--bg);
+  font-size:       13px;
+  font-weight:     500;
+  font-family:     'Geist', ui-sans-serif, sans-serif;
+  border:          none;
+  cursor:          pointer;
+  transition:      opacity 120ms ease-out, transform 80ms ease-out;
+  user-select:     none;
+  white-space:     nowrap;
+}
+.ui-button:hover   { opacity: 0.88; }
+.ui-button:active  { transform: translateY(0.5px); }
+.ui-button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+.ui-button-sm {
+  height:        30px;
+  padding:       0 10px;
+  border-radius: 7px;
+  font-size:     12px;
 }
 
-/* Botón primario con acento cyan — para acciones de flujo */
+/* Accent — teal (acción principal del módulo) */
+.ui-button-accent {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             7px;
+  height:          36px;
+  padding:         0 14px;
+  border-radius:   8px;
+  background:      var(--accent);
+  color:           #ffffff;
+  font-size:       13px;
+  font-weight:     500;
+  font-family:     'Geist', ui-sans-serif, sans-serif;
+  border:          none;
+  cursor:          pointer;
+  transition:      opacity 120ms ease-out, transform 80ms ease-out;
+  user-select:     none;
+  white-space:     nowrap;
+}
+.ui-button-accent:hover   { opacity: 0.88; }
+.ui-button-accent:active  { transform: translateY(0.5px); }
+.ui-button-accent:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* Alias para compatibilidad con código existente */
 .ui-button-primary {
-  @apply inline-flex items-center justify-center gap-2
-  px-4 py-2
-  rounded-lg
-  bg-cyan-600 dark:bg-cyan-500
-  text-white
-  text-sm font-medium
-  transition-all duration-150
-  hover:bg-cyan-700 dark:hover:bg-cyan-400
-  hover:shadow-sm
-  active:scale-[0.97]
-  disabled:opacity-50 disabled:cursor-not-allowed;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             7px;
+  height:          36px;
+  padding:         0 14px;
+  border-radius:   8px;
+  background:      var(--text);
+  color:           var(--bg);
+  font-size:       13px;
+  font-weight:     500;
+  font-family:     'Geist', ui-sans-serif, sans-serif;
+  border:          none;
+  cursor:          pointer;
+  transition:      opacity 120ms ease-out, transform 80ms ease-out;
+  user-select:     none;
+  white-space:     nowrap;
 }
+.ui-button-primary:hover   { opacity: 0.88; }
+.ui-button-primary:active  { transform: translateY(0.5px); }
+.ui-button-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
-/* Botón ghost — acción secundaria */
+/* Secondary — borde + surface (acción secundaria) */
 .ui-button-ghost {
-  @apply inline-flex items-center justify-center gap-2
-  px-4 py-2
-  rounded-lg
-  border border-neutral-200 dark:border-neutral-700
-  bg-transparent
-  text-neutral-700 dark:text-neutral-300
-  text-sm font-medium
-  transition-all duration-150
-  hover:bg-neutral-100 dark:hover:bg-neutral-800
-  hover:border-neutral-300 dark:hover:border-neutral-600
-  active:scale-[0.97]
-  disabled:opacity-50 disabled:cursor-not-allowed;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             7px;
+  height:          36px;
+  padding:         0 14px;
+  border-radius:   8px;
+  background:      var(--surface);
+  color:           var(--text);
+  font-size:       13px;
+  font-weight:     500;
+  font-family:     'Geist', ui-sans-serif, sans-serif;
+  border:          1px solid var(--border);
+  cursor:          pointer;
+  box-shadow:      var(--shadow-sm);
+  transition:      border-color 120ms ease-out, background 120ms ease-out, transform 80ms ease-out;
+  user-select:     none;
+  white-space:     nowrap;
+}
+.ui-button-ghost:hover  { border-color: var(--border-strong); background: var(--surface-2); }
+.ui-button-ghost:active { transform: translateY(0.5px); }
+.ui-button-ghost:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+.ui-button-ghost-sm {
+  height:        30px;
+  padding:       0 10px;
+  border-radius: 7px;
+  font-size:     12px;
 }
 
-/* Botón éxito — confirmar, completar */
+/* Success */
 .ui-button-success {
-  @apply inline-flex items-center justify-center gap-2
-  px-4 py-2
-  rounded-lg
-  bg-emerald-600 dark:bg-emerald-500
-  text-white
-  text-sm font-medium
-  transition-all duration-150
-  hover:bg-emerald-500 dark:hover:bg-emerald-400
-  hover:shadow-sm
-  active:scale-[0.97]
-  disabled:opacity-50 disabled:cursor-not-allowed;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             7px;
+  height:          36px;
+  padding:         0 14px;
+  border-radius:   8px;
+  background:      var(--success);
+  color:           #ffffff;
+  font-size:       13px;
+  font-weight:     500;
+  border:          none;
+  cursor:          pointer;
+  transition:      opacity 120ms, transform 80ms ease-out;
+  user-select:     none;
 }
+.ui-button-success:hover   { opacity: 0.88; }
+.ui-button-success:active  { transform: translateY(0.5px); }
+.ui-button-success:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
-/* Botón advertencia — acción de atención */
+/* Warning */
 .ui-button-warning {
-  @apply inline-flex items-center justify-center gap-2
-  px-4 py-2
-  rounded-lg
-  bg-amber-500
-  text-white
-  text-sm font-medium
-  transition-all duration-150
-  hover:bg-amber-400
-  hover:shadow-sm
-  active:scale-[0.97]
-  disabled:opacity-50 disabled:cursor-not-allowed;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             7px;
+  height:          36px;
+  padding:         0 14px;
+  border-radius:   8px;
+  background:      var(--warning);
+  color:           #ffffff;
+  font-size:       13px;
+  font-weight:     500;
+  border:          none;
+  cursor:          pointer;
+  transition:      opacity 120ms, transform 80ms ease-out;
+  user-select:     none;
 }
+.ui-button-warning:hover   { opacity: 0.88; }
+.ui-button-warning:active  { transform: translateY(0.5px); }
+.ui-button-warning:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
-/* Botón peligro — eliminar, cancelar irreversible */
+/* Danger */
 .ui-button-danger {
-  @apply inline-flex items-center justify-center gap-2
-  px-4 py-2
-  rounded-lg
-  bg-red-600
-  text-white
-  text-sm font-medium
-  transition-all duration-150
-  hover:bg-red-500
-  hover:shadow-sm
-  active:scale-[0.97]
-  disabled:opacity-50 disabled:cursor-not-allowed;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             7px;
+  height:          36px;
+  padding:         0 14px;
+  border-radius:   8px;
+  background:      var(--danger);
+  color:           #ffffff;
+  font-size:       13px;
+  font-weight:     500;
+  border:          none;
+  cursor:          pointer;
+  transition:      opacity 120ms, transform 80ms ease-out;
+  user-select:     none;
 }
+.ui-button-danger:hover   { opacity: 0.88; }
+.ui-button-danger:active  { transform: translateY(0.5px); }
+.ui-button-danger:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
 
 /* ============================================================ */
 /* TABLE                                                        */
 /* ============================================================ */
 
-/* Wrapper de tabla con borde y fondo */
 .ui-table {
-  @apply overflow-hidden rounded-xl
-  border border-neutral-200 dark:border-neutral-800
-  bg-white dark:bg-neutral-900;
+  background:    var(--surface);
+  border:        1px solid var(--border);
+  border-radius: 10px;
+  overflow:      hidden;
+  box-shadow:    var(--shadow-sm);
 }
 
-/* Header de columna */
 .ui-th {
-  @apply px-4 py-3
-  text-left text-[11px] font-semibold uppercase tracking-widest
-  text-neutral-400 dark:text-neutral-500;
+  padding:        10px 16px;
+  text-align:     left;
+  font-family:    'Geist Mono', ui-monospace, monospace;
+  font-size:      10.5px;
+  font-weight:    600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color:          var(--text-3);
+  background:     var(--surface-2);
+  border-bottom:  1px solid var(--border);
+  position:       sticky;
+  top:            0;
+  z-index:        1;
 }
 
-/* Celda de dato */
 .ui-td {
-  @apply px-4 py-3 text-sm
-  text-neutral-800 dark:text-neutral-200;
+  padding:       12px 16px;
+  font-size:     12.5px;
+  color:         var(--text);
+  border-bottom: 1px solid var(--border);
 }
 
-/* Fila con hover cyan sutil */
 .ui-row {
-  @apply border-b border-neutral-100 dark:border-neutral-800/80
-  cursor-pointer
-  transition-colors duration-100
-  hover:bg-cyan-50/40 dark:hover:bg-cyan-950/10;
+  cursor:     pointer;
+  transition: background 120ms ease-out;
+}
+.ui-row:hover {
+  background: var(--surface-2);
+}
+.ui-row:last-child .ui-td {
+  border-bottom: none;
 }
 
 
 /* ============================================================ */
-/* BADGE BASE                                                   */
+/* BADGE                                                        */
 /* ============================================================ */
 
 .ui-badge {
-  @apply inline-flex items-center gap-1
-  px-2 py-0.5
-  text-[11px] font-medium
-  rounded-full
-  border
-  transition-colors duration-150;
+  display:       inline-flex;
+  align-items:   center;
+  gap:           5px;
+  padding:       3px 9px;
+  border-radius: 99px;
+  font-size:     11.5px;
+  font-weight:   600;
+  line-height:   1.3;
+}
+
+.ui-badge-sm {
+  padding:   2px 7px;
+  font-size: 10.5px;
+}
+
+.ui-badge-square {
+  border-radius:  4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Tonos */
+.ui-badge-neutral {
+  background: var(--surface-2);
+  color:      var(--text-2);
+}
+.ui-badge-accent {
+  background: var(--accent-soft);
+  color:      var(--accent-2);
+}
+.ui-badge-success {
+  background: var(--success-soft);
+  color:      var(--success);
+}
+.ui-badge-warning {
+  background: var(--warning-soft);
+  color:      var(--warning);
+}
+.ui-badge-danger {
+  background: var(--danger-soft);
+  color:      var(--danger);
 }
 
 
@@ -227,22 +449,29 @@
 /* MODAL / OVERLAY                                              */
 /* ============================================================ */
 
-/* Overlay oscuro con blur */
 .ui-modal-overlay {
-  @apply fixed inset-0 z-50
-  bg-black/40 backdrop-blur-sm
-  flex items-center justify-center
-  p-4;
+  position:        fixed;
+  inset:           0;
+  z-index:         50;
+  background:      rgba(11, 16, 20, 0.36);
+  backdrop-filter: blur(2px);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         16px;
 }
 
-/* Panel de modal estándar */
 .ui-modal-panel {
-  @apply relative
-  bg-white dark:bg-neutral-900
-  border border-neutral-200 dark:border-neutral-800
-  rounded-2xl shadow-2xl
-  w-full max-w-md
-  max-h-[90vh] overflow-y-auto;
+  position:      relative;
+  background:    var(--surface);
+  border:        1px solid var(--border-strong);
+  border-radius: 14px;
+  width:         100%;
+  max-width:     420px;
+  max-height:    90vh;
+  overflow-y:    auto;
+  box-shadow:    var(--shadow-lg);
+  padding:       24px;
 }
 
 
@@ -250,83 +479,131 @@
 /* DRAWER / SIDE PANEL                                          */
 /* ============================================================ */
 
-/* Overlay del side panel */
 .ui-drawer-overlay {
-  @apply fixed inset-0 z-40
-  bg-black/30 backdrop-blur-sm;
+  position:        fixed;
+  inset:           0;
+  z-index:         40;
+  background:      rgba(11, 16, 20, 0.36);
+  backdrop-filter: blur(2px);
 }
 
-/* Panel lateral desde la derecha */
 .ui-drawer-panel {
-  @apply fixed inset-y-0 right-0 z-50
-  w-full sm:w-[540px]
-  bg-white dark:bg-neutral-900
-  border-l border-neutral-200 dark:border-neutral-800
-  flex flex-col overflow-hidden;
-  box-shadow: -20px 0 60px -15px rgba(0, 0, 0, 0.15);
+  position:      fixed;
+  inset-block:   0;
+  right:         0;
+  z-index:       50;
+  width:         100%;
+  background:    var(--surface);
+  border-left:   1px solid var(--border-strong);
+  display:       flex;
+  flex-direction: column;
+  overflow:      hidden;
+  box-shadow:    var(--shadow-lg);
+}
+@media (min-width: 640px) {
+  .ui-drawer-panel { width: 560px; }
 }
 
 
 /* ============================================================ */
-/* TITLES                                                       */
+/* TITLES / PAGE HEADERS                                        */
 /* ============================================================ */
-
-.ui-section-title {
-  @apply text-[11px]
-  font-medium
-  uppercase
-  tracking-widest
-  text-neutral-400 dark:text-neutral-500;
-}
 
 .ui-page-title {
-  @apply text-[22px]
-  font-semibold
-  tracking-tight
-  leading-tight
-  text-neutral-900 dark:text-neutral-100;
+  font-size:      20px;
+  font-weight:    600;
+  letter-spacing: -0.02em;
+  line-height:    1.2;
+  color:          var(--text);
+}
+
+.ui-section-title {
+  font-family:    'Geist Mono', ui-monospace, monospace;
+  font-size:      10.5px;
+  font-weight:    600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color:          var(--text-3);
 }
 
 .ui-subsection-title {
-  @apply text-[11px]
-  font-semibold
-  uppercase
-  tracking-widest
-  text-neutral-400 dark:text-neutral-500;
+  font-family:    'Geist Mono', ui-monospace, monospace;
+  font-size:      10.5px;
+  font-weight:    600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color:          var(--text-3);
+}
+
+.ui-page-header {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  padding-bottom: 8px;
 }
 
 
 /* ============================================================ */
-/* MICRO ANIMACIONES                                            */
+/* TABS                                                         */
 /* ============================================================ */
 
-/* Entrada con fadeUp — para contenido al montarse */
+.ui-tabs {
+  display:        flex;
+  gap:            0;
+  overflow-x:     auto;
+  border-bottom:  1px solid var(--border);
+  scrollbar-width: none;
+}
+.ui-tabs::-webkit-scrollbar { display: none; }
+
+.ui-tab {
+  white-space:    nowrap;
+  padding:        12px 18px;
+  font-size:      13.5px;
+  font-weight:    500;
+  color:          var(--text-2);
+  border-bottom:  2px solid transparent;
+  transition:     color 150ms ease-out;
+  cursor:         pointer;
+  user-select:    none;
+}
+.ui-tab:hover { color: var(--text); }
+
+.ui-tab-active {
+  color:          var(--text);
+  font-weight:    600;
+  border-bottom:  2px solid var(--accent);
+  margin-bottom:  -1px;
+}
+
+
+/* ============================================================ */
+/* MICROANIMACIONES                                             */
+/* ============================================================ */
+
 .ui-fade-up {
-  animation: uiFadeUp 0.2s ease-out;
+  animation: uiFadeUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Entrada con scale — para modales */
 .ui-scale-in {
-  animation: uiScaleIn 0.18s ease-out;
+  animation: uiScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Slide desde la derecha — para side panels */
 .ui-slide-right {
-  animation: uiSlideRight 0.28s ease-out;
+  animation: uiSlideRight 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-/* Slide desde abajo — para bottom sheets mobile */
 .ui-slide-up {
-  animation: uiSlideUp 0.28s ease-out;
+  animation: uiSlideUp 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @keyframes uiFadeUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes uiScaleIn {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
 }
 
@@ -340,25 +617,35 @@
   to   { transform: translateY(0); }
 }
 
-/* Backward compat — usado en Table.jsx y otros */
 .ui-fade {
-  animation: uiFadeIn 0.25s ease;
+  animation: uiFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes uiFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(5px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-fade-up, .ui-scale-in, .ui-slide-right, .ui-slide-up, .ui-fade {
+    animation-duration: 0.01ms !important;
+  }
 }
 
 
 /* ============================================================ */
-/* SKELETON LOADING                                             */
+/* SKELETON                                                     */
 /* ============================================================ */
 
 .ui-skeleton {
-  @apply animate-pulse
-  bg-neutral-200 dark:bg-neutral-800
-  rounded;
+  background:    var(--surface-2);
+  border-radius: 6px;
+  animation:     uiPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes uiPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
 }
 
 
@@ -367,9 +654,11 @@
 /* ============================================================ */
 
 .ui-hover {
-  @apply transition-all duration-150 hover:translate-x-[2px];
+  transition: transform 150ms ease-out;
 }
+.ui-hover:hover { transform: translateX(2px); }
 
 .ui-scale {
-  @apply transition-transform duration-150 hover:scale-[1.02];
+  transition: transform 150ms ease-out;
 }
+.ui-scale:hover { transform: scale(1.02); }

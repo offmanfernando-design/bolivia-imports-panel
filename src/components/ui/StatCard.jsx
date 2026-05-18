@@ -1,71 +1,116 @@
 /**
- * StatCard — tarjeta de métrica del dashboard
+ * StatCard — tarjeta de KPI del dashboard
  *
  * Props:
- *   title   — etiqueta de la métrica
+ *   title   — etiqueta de la métrica (kicker mono)
  *   value   — valor principal
  *   icon    — ícono (elemento JSX)
- *   accent  — color del ícono: "cyan" | "emerald" | "amber" | "neutral" (default)
- *             Prop opcional y retrocompatible — si no se pasa, usa "neutral"
+ *   accent  — "teal" | "success" | "warning" | "neutral"
  */
 export default function StatCard({ title, value, icon, accent = "neutral" }) {
 
-  const accentStyles = {
-    cyan: `
-      bg-cyan-50 text-cyan-600
-      dark:bg-cyan-500/10 dark:text-cyan-400
-      group-hover:bg-cyan-100 dark:group-hover:bg-cyan-500/20
-    `,
-    emerald: `
-      bg-emerald-50 text-emerald-600
-      dark:bg-emerald-500/10 dark:text-emerald-400
-      group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/20
-    `,
-    amber: `
-      bg-amber-50 text-amber-600
-      dark:bg-amber-500/10 dark:text-amber-400
-      group-hover:bg-amber-100 dark:group-hover:bg-amber-500/20
-    `,
-    neutral: `
-      bg-neutral-100 text-neutral-500
-      dark:bg-neutral-800 dark:text-neutral-400
-      group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700
-    `,
-  }
+  const lineColors = {
+    teal:    "var(--accent)",
+    cyan:    "var(--accent)",      // alias legacy
+    success: "var(--success)",
+    emerald: "var(--success)",     // alias legacy
+    warning: "var(--warning)",
+    amber:   "var(--warning)",     // alias legacy
+    neutral: "var(--text-3)",
+  };
 
-  const iconStyle = accentStyles[accent] ?? accentStyles.neutral
+  const iconBgColors = {
+    teal:    "var(--accent-soft)",
+    cyan:    "var(--accent-soft)",
+    success: "var(--success-soft)",
+    emerald: "var(--success-soft)",
+    warning: "var(--warning-soft)",
+    amber:   "var(--warning-soft)",
+    neutral: "var(--surface-2)",
+  };
+
+  const iconTextColors = {
+    teal:    "var(--accent)",
+    cyan:    "var(--accent)",
+    success: "var(--success)",
+    emerald: "var(--success)",
+    warning: "var(--warning)",
+    amber:   "var(--warning)",
+    neutral: "var(--text-2)",
+  };
+
+  const lineColor    = lineColors[accent]    ?? lineColors.neutral;
+  const iconBgColor  = iconBgColors[accent]  ?? iconBgColors.neutral;
+  const iconTxtColor = iconTextColors[accent] ?? iconTextColors.neutral;
 
   return (
-    <div className="ui-card ui-fade-up group">
+    <div
+      className="relative overflow-hidden ui-fade-up"
+      style={{
+        background:    "var(--surface)",
+        border:        "1px solid var(--border)",
+        borderRadius:  "10px",
+        padding:       "18px",
+        boxShadow:     "var(--shadow-sm)",
+        transition:    "border-color 140ms ease-out, box-shadow 140ms ease-out",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = "var(--border-strong)";
+        e.currentTarget.style.boxShadow   = "var(--shadow-md)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = "var(--border)";
+        e.currentTarget.style.boxShadow   = "var(--shadow-sm)";
+      }}
+    >
+      {/* Línea de acento superior */}
+      <div
+        className="absolute top-0 left-[18px] w-8 rounded-b-full"
+        style={{ height: "2.5px", background: lineColor }}
+      />
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-end justify-between gap-4 mt-1">
 
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <p className="ui-section-title truncate">
+        <div className="flex flex-col gap-2 min-w-0">
+          <p
+            className="uppercase truncate"
+            style={{
+              fontFamily:    "'Geist Mono', ui-monospace, monospace",
+              fontSize:      "10.5px",
+              fontWeight:    600,
+              letterSpacing: "0.14em",
+              color:         "var(--text-3)",
+            }}
+          >
             {title}
           </p>
-          <p className="
-            text-3xl font-semibold tracking-tight
-            text-neutral-900 dark:text-neutral-100
-            leading-none
-          ">
+          <p
+            className="leading-none tabular-nums"
+            style={{
+              fontSize:      "26px",
+              fontWeight:    600,
+              letterSpacing: "-0.025em",
+              color:         "var(--text)",
+            }}
+          >
             {value}
           </p>
         </div>
 
-        <div className={`
-          flex items-center justify-center flex-shrink-0
-          w-11 h-11
-          rounded-xl
-          transition-all duration-200
-          ${iconStyle}
-        `}>
+        <div
+          className="flex items-center justify-center flex-shrink-0 rounded-xl"
+          style={{
+            width:      "42px",
+            height:     "42px",
+            background: iconBgColor,
+            color:      iconTxtColor,
+          }}
+        >
           {icon}
         </div>
 
       </div>
-
     </div>
-  )
+  );
 
 }

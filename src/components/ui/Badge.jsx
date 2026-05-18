@@ -1,140 +1,119 @@
 /**
  * Badge — indicador de estado semántico
  *
- * Tipos existentes (no eliminar):
- *   almacen, en_almacen, ruta, entregado, pagado, pendiente,
- *   recibido_bolivia, warning, success, info, default
+ * Tonos (basados en tokens CSS Premium Slate Ops):
+ *   neutral  → surface-2 / text-2           (default, contadores)
+ *   accent   → accent-soft / accent-2        (en tránsito, en proceso)
+ *   success  → success-soft / success        (recibida, completado)
+ *   warning  → warning-soft / warning        (pendiente, atención)
+ *   danger   → danger-soft / danger          (crítico, vencido)
  *
- * Tipos nuevos agregados:
- *   en_transito, reparto, recibido, warehouse, compra_registrada,
- *   solicitud, empresa, error
+ * Tipos legacy (retrocompatibilidad):
+ *   almacen, en_almacen, warehouse, pendiente  → warning
+ *   entregado, pagado, recibido, recibido_bolivia, success, compra_registrada → success
+ *   ruta, en_transito, reparto, info  → accent
+ *   error  → danger
+ *   solicitud  → accent
+ *   empresa  → accent (teal distingue empresa vs cliente)
+ *   default  → neutral
  *
  * Prop dot (opcional): muestra un punto de color antes del texto
+ * Prop variant (opcional): "sm" | "square" para tamaño/forma alternativa
  */
-export default function Badge({ type, children, dot = false }) {
+export default function Badge({ type, children, dot = false, variant }) {
 
-  const styles = {
+  const toneMap = {
+    /* ── Éxito / completado ── */
+    entregado:        "success",
+    pagado:           "success",
+    recibido:         "success",
+    recibido_bolivia: "success",
+    success:          "success",
+    compra_registrada:"success",
 
-    /* ── Logístico: completado / positivo ─────────────────── */
+    /* ── Proceso / tránsito ── */
+    ruta:             "accent",
+    en_transito:      "accent",
+    reparto:          "accent",
+    info:             "accent",
+    solicitud:        "accent",
+    empresa:          "accent",
 
-    entregado: `
-      bg-emerald-50 text-emerald-700 border-emerald-200
-      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
-    `,
-    pagado: `
-      bg-emerald-50 text-emerald-700 border-emerald-200
-      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
-    `,
-    recibido: `
-      bg-emerald-50 text-emerald-700 border-emerald-200
-      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
-    `,
-    recibido_bolivia: `
-      bg-emerald-50 text-emerald-700 border-emerald-200
-      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
-    `,
-    success: `
-      bg-emerald-50 text-emerald-700 border-emerald-200
-      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
-    `,
-    compra_registrada: `
-      bg-emerald-50 text-emerald-700 border-emerald-200
-      dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20
-    `,
+    /* ── Atención / pendiente ── */
+    pendiente:        "warning",
+    almacen:          "warning",
+    en_almacen:       "warning",
+    warehouse:        "warning",
+    warning:          "warning",
 
-    /* ── Logístico: proceso / tránsito / información ─────── */
+    /* ── Error / crítico ── */
+    error:            "danger",
 
-    ruta: `
-      bg-cyan-50 text-cyan-700 border-cyan-200
-      dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20
-    `,
-    en_transito: `
-      bg-cyan-50 text-cyan-700 border-cyan-200
-      dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20
-    `,
-    reparto: `
-      bg-cyan-50 text-cyan-700 border-cyan-200
-      dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20
-    `,
-    info: `
-      bg-cyan-50 text-cyan-700 border-cyan-200
-      dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20
-    `,
+    /* ── Neutral ── */
+    default:          "neutral",
+  };
 
-    /* ── Logístico: pendiente / atención / warehouse ────────
-       NOTA: pendiente es amber (atención, no error).
-             Solo "error" / "critico" van en rojo.           */
+  const tone = toneMap[type] ?? "neutral";
 
-    pendiente: `
-      bg-amber-50 text-amber-700 border-amber-200
-      dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20
-    `,
-    almacen: `
-      bg-amber-50 text-amber-700 border-amber-200
-      dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20
-    `,
-    en_almacen: `
-      bg-amber-50 text-amber-700 border-amber-200
-      dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20
-    `,
-    warehouse: `
-      bg-amber-50 text-amber-700 border-amber-200
-      dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20
-    `,
-    warning: `
-      bg-amber-50 text-amber-700 border-amber-200
-      dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20
-    `,
+  const toneStyles = {
+    neutral: {
+      background: "var(--surface-2)",
+      color:      "var(--text-2)",
+    },
+    accent: {
+      background: "var(--accent-soft)",
+      color:      "var(--accent-2)",
+    },
+    success: {
+      background: "var(--success-soft)",
+      color:      "var(--success)",
+    },
+    warning: {
+      background: "var(--warning-soft)",
+      color:      "var(--warning)",
+    },
+    danger: {
+      background: "var(--danger-soft)",
+      color:      "var(--danger)",
+    },
+  };
 
-    /* ── Error / crítico ────────────────────────────────────── */
+  const style = toneStyles[tone];
 
-    error: `
-      bg-red-50 text-red-700 border-red-200
-      dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20
-    `,
-
-    /* ── Referencia interna / solicitud ─────────────────────── */
-
-    solicitud: `
-      bg-indigo-50 text-indigo-700 border-indigo-200
-      dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20
-    `,
-
-    /* ── Comprado por empresa ────────────────────────────────── */
-
-    empresa: `
-      bg-purple-50 text-purple-700 border-purple-200
-      dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20
-    `,
-
-    /* ── Neutral / sin estado relevante ─────────────────────── */
-
-    default: `
-      bg-neutral-100 text-neutral-600 border-neutral-200
-      dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700
-    `,
-
-  }
-
-  const base = styles[type] ?? styles.default
+  const isSmall  = variant === "sm";
+  const isSquare = variant === "square";
 
   return (
     <span
-      className={`
-        inline-flex items-center gap-1
-        px-2 py-0.5
-        text-[11px] font-medium
-        rounded-full
-        border
-        transition-colors duration-150
-        ${base}
-      `}
+      style={{
+        display:       "inline-flex",
+        alignItems:    "center",
+        gap:           "5px",
+        padding:       isSmall ? "2px 7px" : "3px 9px",
+        borderRadius:  isSquare ? "4px" : "99px",
+        fontSize:      isSmall ? "10.5px" : "11.5px",
+        fontWeight:    600,
+        lineHeight:    1.3,
+        letterSpacing: isSquare ? "0.04em" : undefined,
+        textTransform: isSquare ? "uppercase" : undefined,
+        whiteSpace:    "nowrap",
+        background:    style.background,
+        color:         style.color,
+      }}
     >
       {dot && (
-        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70 flex-shrink-0" />
+        <span
+          style={{
+            width:        "5px",
+            height:       "5px",
+            borderRadius: "50%",
+            background:   "currentColor",
+            flexShrink:   0,
+            opacity:      0.8,
+          }}
+        />
       )}
       {children}
     </span>
-  )
-
+  );
 }

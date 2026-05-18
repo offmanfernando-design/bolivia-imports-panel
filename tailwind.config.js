@@ -1,14 +1,54 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: "class",
+  darkMode: ["class", "[data-theme='dark']"],
   content: [
     "./index.html",
     "./src/**/*.{js,jsx}"
   ],
   theme: {
     extend: {
+      colors: {
+        bg:           "var(--bg)",
+        surface:      "var(--surface)",
+        "surface-2":  "var(--surface-2)",
+        "surface-3":  "var(--surface-3)",
+        border:       "var(--border)",
+        "border-strong": "var(--border-strong)",
+        text: {
+          DEFAULT: "var(--text)",
+          2:       "var(--text-2)",
+          3:       "var(--text-3)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          2:       "var(--accent-2)",
+          soft:    "var(--accent-soft)",
+        },
+        success: { DEFAULT: "var(--success)", soft: "var(--success-soft)" },
+        warning: { DEFAULT: "var(--warning)", soft: "var(--warning-soft)" },
+        danger:  { DEFAULT: "var(--danger)",  soft: "var(--danger-soft)" },
+        nav: {
+          DEFAULT: "var(--nav)",
+          text:    "var(--nav-text)",
+          mute:    "var(--nav-mute)",
+          accent:  "var(--nav-accent)",
+        },
+      },
       fontFamily: {
-        sans: ["Inter", "sans-serif"]
+        sans: ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["Geist Mono", "ui-monospace", "monospace"],
+      },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+      },
+      borderRadius: {
+        xs: "4px",
+        sm: "6px",
+        md: "8px",
+        lg: "10px",
+        xl: "14px",
       },
       keyframes: {
         fadeUp: {
@@ -35,9 +75,9 @@ export default {
       animation: {
         "fade-up":     "fadeUp 0.2s ease-out",
         "scale-in":    "scaleIn 0.18s ease-out",
-        "slide-right": "slideRight 0.28s ease-out",
-        "slide-up":    "slideUp 0.28s ease-out",
-        "fade-in":     "fadeIn 0.25s ease",
+        "slide-right": "slideRight 0.24s cubic-bezier(.4,0,.2,1)",
+        "slide-up":    "slideUp 0.24s cubic-bezier(.4,0,.2,1)",
+        "fade-in":     "fadeIn 0.22s ease-out",
       },
     }
   },

@@ -1,4 +1,5 @@
-import { createPortal } from "react-dom"
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 
 /**
  * Drawer — contenedor de paneles y modales
@@ -8,37 +9,31 @@ import { createPortal } from "react-dom"
  *   onClose   — función de cierre
  *   children  — contenido
  *   variant   — "modal" (default) | "side"
- *
- * variant="modal"  → panel centrado con scale-in (comportamiento actual)
- * variant="side"   → side panel desde la derecha con slide-right
- *
- * Retrocompatible: sin variant, se comporta exactamente igual que antes.
  */
 export default function Drawer({ open, onClose, children, variant = "modal" }) {
 
-  if (!open) return null
+  if (!open) return null;
 
+  /* ── variant="side" — slide desde la derecha ──────────── */
   if (variant === "side") {
     return createPortal(
-
       <div className="fixed inset-0 z-[9999]">
 
-        {/* OVERLAY */}
+        {/* Overlay */}
         <div
           onClick={onClose}
-          className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+          className="absolute inset-0 ui-fade"
+          style={{ background: "rgba(11,16,20,0.36)", backdropFilter: "blur(2px)" }}
         />
 
-        {/* SIDE PANEL */}
-        <div className="
-          absolute inset-y-0 right-0
-          w-full sm:w-[540px]
-          bg-white dark:bg-neutral-900
-          border-l border-neutral-200 dark:border-neutral-800
-          flex flex-col overflow-hidden
-          ui-slide-right
-        "
-          style={{ boxShadow: "-20px 0 60px -15px rgba(0,0,0,0.15)" }}
+        {/* Panel */}
+        <div
+          className="absolute inset-y-0 right-0 w-full sm:w-[560px] flex flex-col overflow-hidden ui-slide-right"
+          style={{
+            background: "var(--surface)",
+            borderLeft: "1px solid var(--border-strong)",
+            boxShadow:  "var(--shadow-lg)",
+          }}
         >
           <div className="h-full overflow-y-auto">
             {children}
@@ -46,44 +41,67 @@ export default function Drawer({ open, onClose, children, variant = "modal" }) {
         </div>
 
       </div>,
-
       document.body
-    )
+    );
   }
 
-  /* ── variant="modal" — comportamiento por defecto ───────── */
+  /* ── variant="modal" — panel centrado ─────────────────── */
   return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 ui-fade"
+      style={{ background: "rgba(11,16,20,0.36)", backdropFilter: "blur(2px)" }}
+    >
 
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-
-      {/* OVERLAY */}
       <div
         onClick={onClose}
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0"
       />
 
-      {/* PANEL */}
-      <div className="
-        relative
-        bg-white dark:bg-neutral-900
-        rounded-2xl
-        border border-neutral-200 dark:border-neutral-800
-        w-full h-full
-        sm:h-[90vh] sm:w-[90vw]
-        lg:w-[1000px]
-        overflow-hidden
-        ui-scale-in
-      "
-        style={{ boxShadow: "0 40px 80px -20px rgba(0,0,0,0.4)" }}
+      <div
+        className="relative flex flex-col overflow-hidden ui-scale-in"
+        style={{
+          background:    "var(--surface)",
+          borderRadius:  "14px",
+          border:        "1px solid var(--border-strong)",
+          width:         "100%",
+          maxWidth:      "800px",
+          maxHeight:     "90vh",
+          boxShadow:     "var(--shadow-lg)",
+        }}
       >
-        <div className="h-full overflow-y-auto p-8">
+
+        {/* Botón de cierre */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 flex items-center justify-center rounded-full transition-colors"
+          style={{
+            width:      "30px",
+            height:     "30px",
+            background: "var(--surface-2)",
+            color:      "var(--text-2)",
+            border:     "1px solid var(--border)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--surface-3)";
+            e.currentTarget.style.color      = "var(--text)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--surface-2)";
+            e.currentTarget.style.color      = "var(--text-2)";
+          }}
+          aria-label="Cerrar"
+        >
+          <X size={13} />
+        </button>
+
+        <div className="flex-1 overflow-y-auto">
           {children}
         </div>
+
       </div>
 
     </div>,
-
     document.body
-  )
+  );
 
 }
