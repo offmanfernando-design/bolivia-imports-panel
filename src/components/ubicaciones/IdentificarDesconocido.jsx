@@ -151,9 +151,10 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
   if (exito) {
     const mensaje = exito === "crear" ? "Compra creada e identificada" : "Identificado correctamente"
     return (
-      <div className="ui-card flex items-center gap-2 text-sm text-emerald-500">
-        <span>✓</span>
-        <span>{mensaje}</span>
+      <div className="rounded-xl px-4 py-3 flex items-center gap-2.5"
+        style={{ background: "var(--success-soft)", border: "1px solid var(--success)" }}>
+        <span className="text-base font-bold" style={{ color: "var(--success)" }}>✓</span>
+        <span className="text-sm font-medium" style={{ color: "var(--success)" }}>{mensaje}</span>
       </div>
     )
   }
@@ -165,71 +166,85 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
     itemDescripcion.trim()
 
   return (
-    <div className="ui-card flex flex-col gap-3">
+    <div className="rounded-xl overflow-hidden"
+      style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
 
-      {/* Datos del paquete desconocido */}
-      <div className="flex flex-col gap-1">
-
-        <p className="text-sm font-medium">{desconocido.descripcion}</p>
-
-        {desconocido.tracking && (
-          <p className="text-xs text-neutral-400">
-            Tracking parcial: {desconocido.tracking}
+      {/* ── Header: descripción + badge ── */}
+      <div className="px-4 py-3 flex items-start justify-between gap-3"
+        style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <p className="text-sm font-bold leading-snug" style={{ color: "var(--text)" }}>
+            {desconocido.descripcion}
           </p>
-        )}
-
-        {desconocido.peso != null && (
-          <p className="text-xs text-neutral-400">{desconocido.peso} kg</p>
-        )}
-
-        {desconocido.notas && (
-          <p className="text-xs text-neutral-400 italic">{desconocido.notas}</p>
-        )}
-
+          {desconocido.peso != null && (
+            <p className="text-xs" style={{ color: "var(--text-3)" }}>{desconocido.peso} kg</p>
+          )}
+        </div>
+        <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+          style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>
+          Sin identificar
+        </span>
       </div>
 
-      {/* Estado inicial: dos acciones */}
-      {modo === null && (
-
-        <div className="flex flex-col gap-2 pt-2 border-t border-neutral-200 dark:border-neutral-800">
-
-          <button
-            onClick={() => setModo("vincular")}
-            className="text-xs font-medium text-blue-500 hover:underline self-start"
-          >
-            Vincular a compra existente
-          </button>
-
-          <div className="flex flex-col gap-1">
-
-            <button
-              onClick={() => setModo("crear")}
-              className="text-xs font-medium text-blue-500 hover:underline self-start"
-            >
-              Crear compra desde desconocido
-            </button>
-
-            <p className="text-xs text-neutral-400">
-              Usar cuando el paquete llegó pero la compra no existe en el sistema.
-            </p>
-
-          </div>
-
+      {/* ── Body: tracking + notas ── */}
+      {(desconocido.tracking || desconocido.notas) && (
+        <div className="px-4 py-3 flex flex-col gap-2"
+          style={{ borderBottom: "1px solid var(--border)" }}>
+          {desconocido.tracking && (
+            <div className="flex flex-col gap-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+                Tracking parcial
+              </p>
+              <p className="font-mono text-xs" style={{ color: "var(--text-2)" }}>
+                {desconocido.tracking}
+              </p>
+            </div>
+          )}
+          {desconocido.notas && (
+            <div className="flex flex-col gap-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+                Notas
+              </p>
+              <p className="text-xs italic" style={{ color: "var(--text-2)" }}>
+                {desconocido.notas}
+              </p>
+            </div>
+          )}
         </div>
-
       )}
 
-      {/* Modo vincular: buscar tracking y seleccionar ítem */}
+      {/* ── Acciones iniciales ── */}
+      {modo === null && (
+        <div className="px-4 py-3 flex flex-col gap-2.5">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => setModo("vincular")}
+              className="ui-button flex-1 text-sm text-center"
+            >
+              Vincular a compra existente
+            </button>
+            <button
+              onClick={() => setModo("crear")}
+              className="ui-button-ghost flex-1 text-sm text-center"
+            >
+              Crear compra nueva
+            </button>
+          </div>
+          <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-3)" }}>
+            Usar &ldquo;Crear&rdquo; cuando el paquete llegó pero la compra no existe en el sistema.
+          </p>
+        </div>
+      )}
+
+      {/* ── Modo vincular ── */}
       {modo === "vincular" && (
+        <div className="px-4 py-3 flex flex-col gap-3" style={{ borderTop: "1px solid var(--border)" }}>
 
-        <div className="flex flex-col gap-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
-
-          <p className="text-xs font-semibold text-neutral-500">
+          <p className="text-xs font-semibold" style={{ color: "var(--text-2)" }}>
             Vincular a compra existente
           </p>
 
           <div className="flex gap-2">
-
             <input
               className="ui-input flex-1"
               placeholder="Buscar tracking o últimos dígitos"
@@ -237,7 +252,6 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
               onChange={(e) => setBusqueda(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && buscar()}
             />
-
             <button
               onClick={buscar}
               disabled={buscando || !busqueda.trim()}
@@ -245,28 +259,23 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
             >
               {buscando ? "..." : "Buscar"}
             </button>
-
           </div>
 
           {resultados !== null && resultados.length === 0 && (
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs" style={{ color: "var(--text-3)" }}>
               No se encontró una orden/ítem con ese tracking. Prueba con el tracking completo o sus últimos dígitos.
             </p>
           )}
 
           {resultados && resultados.length > 0 && (
-
             <div className="flex flex-col gap-4">
-
-              <p className="text-xs text-neutral-400 italic">
+              <p className="text-xs italic" style={{ color: "var(--text-3)" }}>
                 Selecciona el ítem real al que pertenece este paquete. Identificar no registra recepción.
               </p>
 
               {resultados.map((orden) => (
-
                 <div key={orden.id} className="flex flex-col gap-2">
-
-                  <p className="text-xs font-semibold text-neutral-500">
+                  <p className="text-xs font-semibold" style={{ color: "var(--text-3)" }}>
                     {orden.cliente_nombre} · {orden.numero_orden}
                   </p>
 
@@ -279,51 +288,37 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
                       <div
                         key={item.id}
                         onClick={() => elegible && setItemSeleccionado(item.id)}
-                        className={`
-                          flex items-center justify-between gap-2
-                          px-3 py-2 rounded-lg border text-sm transition
-                          ${elegible
-                            ? selected
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 cursor-pointer"
-                              : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer"
-                            : "border-neutral-100 dark:border-neutral-900 opacity-50 cursor-not-allowed"
-                          }
-                        `}
+                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-sm transition"
+                        style={elegible
+                          ? selected
+                            ? { borderColor: "var(--accent)", background: "var(--accent-soft)", color: "var(--text)", cursor: "pointer" }
+                            : { borderColor: "var(--border)", background: "transparent", color: "var(--text-2)", cursor: "pointer" }
+                          : { borderColor: "var(--border)", opacity: 0.5, cursor: "not-allowed", color: "var(--text-3)" }
+                        }
                       >
-
                         <div className="flex items-center gap-2 min-w-0">
-                          <span
-                            className={`
-                              w-3 h-3 rounded-full border-2 flex-shrink-0 transition
-                              ${elegible
-                                ? selected
-                                  ? "bg-blue-500 border-blue-500"
-                                  : "border-neutral-400"
-                                : "border-neutral-200 dark:border-neutral-700"
-                              }
-                            `}
-                          />
+                          <span className="w-3 h-3 rounded-full border-2 flex-shrink-0 transition"
+                            style={elegible && selected
+                              ? { background: "var(--accent)", borderColor: "var(--accent)" }
+                              : { borderColor: "var(--border-strong)" }
+                            } />
                           <span className="truncate">{item.descripcion}</span>
                         </div>
-
                         {razon && (
-                          <span className="text-xs text-neutral-400 flex-shrink-0">{razon}</span>
+                          <span className="text-xs flex-shrink-0" style={{ color: "var(--text-3)" }}>
+                            {razon}
+                          </span>
                         )}
-
                       </div>
                     )
                   })}
-
                 </div>
-
               ))}
-
             </div>
-
           )}
 
           {errorVincular && (
-            <p className="text-xs text-red-500">{errorVincular}</p>
+            <p className="text-xs" style={{ color: "var(--danger)" }}>{errorVincular}</p>
           )}
 
           {itemSeleccionado && (
@@ -338,44 +333,42 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
 
           <button
             onClick={cancelarVincular}
-            className="text-xs text-neutral-400 hover:underline self-start"
+            className="text-xs hover:underline self-start transition-colors"
+            style={{ color: "var(--text-3)" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--text-2)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; }}
           >
             Cancelar
           </button>
 
         </div>
-
       )}
 
-      {/* Modo crear: formulario nueva compra */}
+      {/* ── Modo crear ── */}
       {modo === "crear" && (
+        <div className="px-4 py-3 flex flex-col gap-3" style={{ borderTop: "1px solid var(--border)" }}>
 
-        <div className="flex flex-col gap-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
-
-          <p className="text-xs font-semibold text-neutral-500">
+          <p className="text-xs font-semibold" style={{ color: "var(--text-2)" }}>
             Crear compra desde desconocido
           </p>
 
-          <p className="text-xs text-neutral-400 italic">
+          <p className="text-xs italic" style={{ color: "var(--text-3)" }}>
             Se creará una orden con warehouse confirmado. No registra recepción.
           </p>
 
-          <div className="flex flex-col gap-2">
-
-            <label className="text-xs text-neutral-500">Cliente *</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="ui-label">Cliente *</label>
             <input
               className="ui-input"
               placeholder="Nombre del cliente"
               value={clienteNombre}
               onChange={(e) => setClienteNombre(e.target.value)}
             />
-
           </div>
 
           <div className="flex gap-2">
-
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="text-xs text-neutral-500">Ciudad *</label>
+            <div className="flex flex-col gap-1.5 flex-1">
+              <label className="ui-label">Ciudad *</label>
               <input
                 className="ui-input"
                 placeholder="Ej. Santa Cruz"
@@ -383,9 +376,8 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
                 onChange={(e) => setClienteCiudad(e.target.value)}
               />
             </div>
-
-            <div className="flex flex-col gap-2 flex-1">
-              <label className="text-xs text-neutral-500">Teléfono</label>
+            <div className="flex flex-col gap-1.5 flex-1">
+              <label className="ui-label">Teléfono</label>
               <input
                 className="ui-input"
                 placeholder="Opcional"
@@ -393,11 +385,10 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
                 onChange={(e) => setClienteTelefono(e.target.value)}
               />
             </div>
-
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-neutral-500">Tracking *</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="ui-label">Tracking *</label>
             <input
               className="ui-input"
               placeholder="Tracking real"
@@ -406,8 +397,8 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-neutral-500">Descripción del ítem *</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="ui-label">Descripción del ítem *</label>
             <input
               className="ui-input"
               placeholder="Descripción del producto"
@@ -417,7 +408,7 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
           </div>
 
           {errorCrear && (
-            <p className="text-xs text-red-500">{errorCrear}</p>
+            <p className="text-xs" style={{ color: "var(--danger)" }}>{errorCrear}</p>
           )}
 
           <button
@@ -430,13 +421,15 @@ export default function IdentificarDesconocido({ desconocido, onIdentificado }) 
 
           <button
             onClick={cancelarCrear}
-            className="text-xs text-neutral-400 hover:underline self-start"
+            className="text-xs hover:underline self-start transition-colors"
+            style={{ color: "var(--text-3)" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--text-2)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; }}
           >
             Cancelar
           </button>
 
         </div>
-
       )}
 
     </div>

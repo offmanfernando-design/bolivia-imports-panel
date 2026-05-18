@@ -11,6 +11,28 @@ const esEsperandoWarehouse = (item) =>
   item.estado !== "recibido_bolivia" &&
   item.estado !== "entregado";
 
+function SectionLabel({ children }) {
+  return (
+    <p className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: "var(--text-3)" }}>
+      {children}
+    </p>
+  );
+}
+
+function StepLabel({ number, children }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold"
+        style={{ background: "var(--text)", color: "var(--surface)" }}>
+        {number}
+      </span>
+      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
 export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const [categorias, setCategorias] = useState([]);
   const [ubicaciones, setUbicaciones] = useState([]);
@@ -177,6 +199,8 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     if (cat.tipo_calculo) setTipoCalculo(cat.tipo_calculo);
     if (cat.tarifa_cliente_usd != null)
       setTarifaClienteUsd(String(cat.tarifa_cliente_usd));
+    if (cat.precio_referencia_usd != null && costoInternoUsd === "")
+      setCostoInternoUsd(String(cat.precio_referencia_usd));
   }
 
   const costoInternoBs = useMemo(() => {
@@ -424,14 +448,20 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   }
 
   return (
-    <div className="ui-card flex flex-col gap-6">
-      <h3 className="text-sm uppercase tracking-widest text-neutral-500">
-        Carga (Bolivia)
-      </h3>
+    <div className="flex flex-col gap-6">
 
+      {/* Section header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
+          Carga Bolivia
+        </h3>
+      </div>
+
+      {/* Success banner */}
       {ultimaRecepcion && (
-        <div className="bg-green-50 border border-green-200 rounded p-4 flex flex-col gap-2">
-          <p className="text-green-700 font-semibold text-sm">
+        <div className="rounded-xl p-4 flex flex-col gap-2"
+          style={{ background: "var(--success-soft)", border: "1px solid var(--success)" }}>
+          <p className="font-semibold text-sm" style={{ color: "var(--success)" }}>
             {ultimaRecepcion.lote
               ? `Lote registrado — ${ultimaRecepcion.count} ítems`
               : "Recepción registrada"}
@@ -439,20 +469,20 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           {!ultimaRecepcion.lote && (
             <>
               <p className="text-sm">
-                <span className="text-neutral-500">Código: </span>
-                <span className="font-mono font-medium">
+                <span style={{ color: "var(--text-3)" }}>Código: </span>
+                <span className="font-mono font-medium" style={{ color: "var(--text)" }}>
                   {ultimaRecepcion.codigo_recepcion}
                 </span>
               </p>
               <p className="text-sm">
-                <span className="text-neutral-500">Ítem: </span>
-                {ultimaRecepcion.item_descripcion}
+                <span style={{ color: "var(--text-3)" }}>Ítem: </span>
+                <span style={{ color: "var(--text-2)" }}>{ultimaRecepcion.item_descripcion}</span>
               </p>
             </>
           )}
           <p className="text-sm">
-            <span className="text-neutral-500">Ubicación: </span>
-            {ultimaRecepcion.ubicacion}
+            <span style={{ color: "var(--text-3)" }}>Ubicación: </span>
+            <span className="font-medium" style={{ color: "var(--text)" }}>{ultimaRecepcion.ubicacion}</span>
           </p>
           {!ultimaRecepcion.lote && (
             <button
@@ -471,11 +501,16 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         </div>
       )}
 
+      {/* Error banner */}
       {error && (
-        <div className="bg-red-100 text-red-700 text-sm p-2 rounded">
+        <div className="text-sm rounded-xl p-3"
+          style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
           {error}
         </div>
       )}
+
+      {/* Paso 1 */}
+      <StepLabel number="1">Buscar tracking</StepLabel>
 
       <input
         ref={trackingRef}
@@ -499,6 +534,12 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         </p>
       )}
 
+      {/* Paso 2 */}
+      {ordenes.length > 0 && (
+        <StepLabel number="2">Seleccionar ítem</StepLabel>
+      )}
+
+      {/* Orden cards */}
       {ordenes.map((orden) => {
         const habilitados = orden.items.filter(esPendiente);
         const sinWarehouse = orden.items.filter(esEsperandoWarehouse);
@@ -508,192 +549,219 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         );
 
         return (
-          <div key={orden.id} className="ui-card flex flex-col gap-3">
+          <div
+            key={orden.id}
+            className="rounded-2xl overflow-hidden"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}
+          >
             {/* Order header */}
-            <div className="flex flex-col gap-0.5">
-              <p className="font-medium text-sm">{orden.cliente_nombre}</p>
-              <p className="text-xs text-neutral-500">
+            <div className="px-4 py-3 flex flex-col gap-0.5"
+              style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
+              <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{orden.cliente_nombre}</p>
+              <p className="text-xs font-mono" style={{ color: "var(--text-3)" }}>
                 {orden.numero_orden} · {orden.tracking_number}
               </p>
               {orden.ubicacion_sugerida && orden.ubicacion_sugerida_coincide_zona && (
-                <p className="text-xs text-blue-500">
+                <p className="text-xs" style={{ color: "var(--text-2)" }}>
                   Ubicación sugerida: {orden.ubicacion_sugerida.codigo}
                 </p>
               )}
               {orden.ubicacion_sugerida && !orden.ubicacion_sugerida_coincide_zona && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
+                <p className="text-xs" style={{ color: "var(--warning)" }}>
                   Ubicación previa en zona {orden.ubicacion_sugerida.zona}: {orden.ubicacion_sugerida.codigo} — revisar antes de asignar
                 </p>
               )}
               {orden.zona_recomendada && (
-                <p className={`text-xs font-medium ${orden.zona_recomendada === "local" ? "text-blue-500" : "text-amber-500"}`}>
+                <p className="text-xs font-medium"
+                  style={{ color: orden.zona_recomendada === "local" ? "var(--text-2)" : "var(--warning)" }}>
                   {orden.zona_recomendada === "local"
                     ? "Local — Santa Cruz"
                     : `Terminal — ${orden.cliente_ciudad || "otro departamento"}`}
                 </p>
               )}
-              <p className="text-xs text-neutral-400">
+              <div className="flex flex-wrap gap-1.5 mt-0.5">
                 {habilitados.length > 0 && (
-                  <span>{habilitados.length} pendiente{habilitados.length !== 1 ? "s" : ""}</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "var(--surface-3)", color: "var(--text-2)" }}>
+                    {habilitados.length} pendiente{habilitados.length !== 1 ? "s" : ""}
+                  </span>
                 )}
                 {sinWarehouse.length > 0 && (
-                  <span className="ml-2 text-amber-500">
-                    · {sinWarehouse.length} esperando warehouse
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>
+                    {sinWarehouse.length} sin warehouse
                   </span>
                 )}
                 {recibidos.length > 0 && (
-                  <span className="ml-2">
-                    · {recibidos.length} recibido{recibidos.length !== 1 ? "s" : ""}
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: "var(--success-soft)", color: "var(--success)" }}>
+                    {recibidos.length} recibido{recibidos.length !== 1 ? "s" : ""}
                   </span>
                 )}
-              </p>
+              </div>
             </div>
 
-            {/* Toggle modo lote — solo si hay 2+ ítems pendientes */}
-            {habilitados.length >= 2 && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = !modoLote;
-                    setModoLote(next);
-                    setSelectedItemIds(new Set());
-                    setModoAplicacion("individual");
-                    if (!next) {
-                      setSelectedItemId(null);
-                      setFormTouched(false);
-                    }
-                    setSelectedOrden(next ? orden : null);
-                  }}
-                  className={`text-xs px-2 py-1 rounded border transition-colors ${
-                    modoLote
-                      ? "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                      : "border-neutral-200 text-neutral-500 hover:border-blue-300 hover:bg-blue-50"
-                  }`}
-                >
-                  {modoLote ? "Modo lote activo — cancelar" : "Recibir varios ítems juntos"}
-                </button>
-              </div>
-            )}
-
             {/* Items */}
-            <div className="flex flex-col gap-1">
-              {orden.items.map((item) => {
-                const habilitado = esPendiente(item);
-                const esperando = esEsperandoWarehouse(item);
+            <div className="px-4 py-3 flex flex-col gap-2">
 
-                if (modoLote && selectedOrden?.id === orden.id) {
-                  const isChecked = selectedItemIds.has(item.id);
-                  let rowClass =
-                    "text-left text-sm px-3 py-2 rounded border transition-colors flex items-start gap-2 ";
-                  if (!habilitado) {
-                    rowClass += "border-transparent bg-neutral-100 text-neutral-400 cursor-default opacity-60";
-                  } else if (isChecked) {
-                    rowClass += "border-blue-400 bg-blue-50 text-blue-800 cursor-pointer";
-                  } else {
-                    rowClass += "border-neutral-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer";
+              {/* Toggle modo lote */}
+              {habilitados.length >= 2 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !modoLote;
+                      setModoLote(next);
+                      setSelectedItemIds(new Set());
+                      setModoAplicacion("individual");
+                      if (!next) {
+                        setSelectedItemId(null);
+                        setFormTouched(false);
+                      }
+                      setSelectedOrden(next ? orden : null);
+                    }}
+                    className="text-xs px-2 py-1 rounded border transition-colors"
+                    style={modoLote
+                      ? { borderColor: "var(--border-strong)", background: "var(--surface-2)", color: "var(--text)" }
+                      : { borderColor: "var(--border)", color: "var(--text-3)" }
+                    }
+                  >
+                    {modoLote ? "Modo lote activo — cancelar" : "Recibir varios ítems juntos"}
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1">
+                {orden.items.map((item) => {
+                  const habilitado = esPendiente(item);
+                  const esperando = esEsperandoWarehouse(item);
+
+                  if (modoLote && selectedOrden?.id === orden.id) {
+                    const isChecked = selectedItemIds.has(item.id);
+                    const rowStyle = !habilitado
+                      ? { borderColor: "transparent", background: "var(--surface-3)", color: "var(--text-3)", opacity: 0.6, cursor: "default" }
+                      : isChecked
+                        ? { borderColor: "var(--border-strong)", background: "var(--surface-2)", color: "var(--text)", cursor: "pointer" }
+                        : { borderColor: "var(--border)", color: "var(--text-2)", cursor: "pointer" };
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        disabled={!habilitado}
+                        onClick={() => {
+                          if (!habilitado) return;
+                          setSelectedItemIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(item.id)) next.delete(item.id);
+                            else next.add(item.id);
+                            return next;
+                          });
+                          setFormTouched(false);
+                        }}
+                        className="text-left text-sm px-3 py-2 rounded-lg border transition-colors flex items-start gap-2"
+                        style={rowStyle}
+                      >
+                        <input
+                          type="checkbox"
+                          readOnly
+                          checked={isChecked}
+                          className="mt-0.5 flex-shrink-0 pointer-events-none"
+                        />
+                        <span className="flex flex-col min-w-0">
+                          <span className="truncate">
+                            {item.descripcion}
+                            {item.cantidad > 1 && (
+                              <span className="ml-1.5 text-xs font-normal opacity-70">×{item.cantidad}</span>
+                            )}
+                            {item.item_match && (
+                              <span className="ml-2 text-xs font-medium" style={{ color: "var(--text-3)" }}>
+                                · tracking coincide
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-xs" style={{ color: "var(--text-3)" }}>
+                            {esperando ? "Esperando warehouse" : "Pendiente"}
+                          </span>
+                        </span>
+                      </button>
+                    );
                   }
+
+                  const isSelected = item.id === selectedItemId;
+                  const isRecibido = item.estado === "recibido_bolivia" || item.estado === "entregado";
+                  const rowStyle = isSelected
+                    ? { borderColor: "var(--border-strong)", background: "var(--surface-2)", color: "var(--text)" }
+                    : habilitado
+                      ? { borderColor: "var(--border)", color: "var(--text-2)", cursor: "pointer" }
+                      : esperando
+                        ? { borderColor: "var(--warning-soft)", background: "var(--warning-soft)", color: "var(--warning)", cursor: "default" }
+                        : { borderColor: "transparent", background: "var(--surface-3)", color: "var(--text-3)", cursor: "default" };
+
                   return (
                     <button
                       key={item.id}
                       type="button"
+                      onClick={() => habilitado && seleccionarItem(orden, item.id)}
                       disabled={!habilitado}
-                      onClick={() => {
-                        if (!habilitado) return;
-                        setSelectedItemIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(item.id)) next.delete(item.id);
-                          else next.add(item.id);
-                          return next;
-                        });
-                        setFormTouched(false);
-                      }}
-                      className={rowClass}
+                      className="text-left text-sm w-full px-3 py-2 rounded-lg border transition-colors"
+                      style={rowStyle}
                     >
-                      <input
-                        type="checkbox"
-                        readOnly
-                        checked={isChecked}
-                        className="mt-0.5 flex-shrink-0 pointer-events-none"
-                      />
-                      <span className="flex flex-col min-w-0">
-                        <span className="truncate">
-                          {item.descripcion}
-                          {item.cantidad > 1 && (
-                            <span className="ml-1.5 text-xs font-normal opacity-70">×{item.cantidad}</span>
-                          )}
-                          {item.item_match && (
-                            <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400">
-                              · tracking coincide
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-xs text-neutral-400">
-                          {esperando ? "Esperando warehouse" : "Pendiente"}
-                        </span>
-                      </span>
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <span className="truncate font-medium">
+                            {item.descripcion}
+                            {item.cantidad > 1 && (
+                              <span className="ml-1.5 text-xs font-normal opacity-70">×{item.cantidad}</span>
+                            )}
+                            {item.item_match && (
+                              <span className="ml-2 text-xs font-medium" style={{ color: "var(--text-3)" }}>· tracking coincide</span>
+                            )}
+                          </span>
+                          <span className="text-xs opacity-60">
+                            {isRecibido
+                              ? item.estado === "entregado" ? "Entregado" : "Recibido en Bolivia"
+                              : esperando
+                                ? "Esperando warehouse"
+                                : "Pendiente"}
+                          </span>
+                        </div>
+                        {habilitado && !isSelected && (
+                          <span className="flex-shrink-0 text-[10px] font-medium whitespace-nowrap" style={{ color: "var(--text-3)" }}>
+                            Seleccionar →
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+                            style={{ background: "var(--text)", color: "var(--surface)" }}>
+                            ✓
+                          </span>
+                        )}
+                        {isRecibido && (
+                          <span className="flex-shrink-0 text-sm" style={{ color: "var(--success)" }}>✓</span>
+                        )}
+                      </div>
                     </button>
                   );
-                }
-
-                const isSelected = item.id === selectedItemId;
-                let rowClass =
-                  "text-left text-sm px-3 py-2 rounded border transition-colors ";
-                if (isSelected) {
-                  rowClass += "border-blue-400 bg-blue-50 text-blue-800";
-                } else if (habilitado) {
-                  rowClass += "border-neutral-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer";
-                } else if (esperando) {
-                  rowClass += "border-amber-200 bg-amber-50 text-amber-700 cursor-default";
-                } else {
-                  rowClass += "border-transparent bg-neutral-100 text-neutral-400 cursor-default";
-                }
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => habilitado && seleccionarItem(orden, item.id)}
-                    disabled={!habilitado}
-                    className={rowClass}
-                  >
-                    <span className="block truncate">
-                      {item.descripcion}
-                      {item.cantidad > 1 && (
-                        <span className="ml-1.5 text-xs font-normal opacity-70">×{item.cantidad}</span>
-                      )}
-                      {item.item_match && (
-                        <span className="ml-2 text-xs font-medium text-blue-600 dark:text-blue-400">
-                          · tracking coincide
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-xs">
-                      {item.estado === "recibido_bolivia"
-                        ? "Recibido en Bolivia"
-                        : item.estado === "entregado"
-                          ? "Entregado"
-                          : esperando
-                            ? "Esperando confirmación warehouse"
-                            : "Pendiente — clic para seleccionar"}
-                    </span>
-                  </button>
-                );
-              })}
+                })}
+              </div>
             </div>
           </div>
         );
       })}
 
-      {/* Reception form — unitario o lote */}
+      {/* Paso 3 + Reception form */}
       {((selectedItemId && selectedItem) || (modoLote && selectedItemIds.size > 0 && selectedOrden)) && (
-        <div className="ui-card flex flex-col gap-4">
+        <>
+        <StepLabel number="3">Registrar recepción</StepLabel>
+        <div className="rounded-2xl p-4 flex flex-col gap-4"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
+          {/* Form header */}
           {modoLote ? (
             <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium">
+              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
                 Recibiendo{" "}
-                <span className="text-blue-700">{selectedItemIds.size} ítem{selectedItemIds.size !== 1 ? "s" : ""}</span>
-                {selectedOrden && <span className="text-neutral-500"> — {selectedOrden.cliente_nombre}</span>}
+                <span style={{ color: "var(--text-2)" }}>{selectedItemIds.size} ítem{selectedItemIds.size !== 1 ? "s" : ""}</span>
+                {selectedOrden && <span className="font-normal" style={{ color: "var(--text-3)" }}> — {selectedOrden.cliente_nombre}</span>}
               </p>
 
               {/* Selector modo aplicación */}
@@ -701,11 +769,11 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                 <button
                   type="button"
                   onClick={() => setModoAplicacion("individual")}
-                  className={`flex-1 text-xs px-3 py-2 rounded border transition-colors text-left ${
-                    modoAplicacion === "individual"
-                      ? "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                      : "border-neutral-200 text-neutral-500 hover:border-neutral-300 dark:border-neutral-700"
-                  }`}
+                  className="flex-1 text-xs px-3 py-2 rounded-lg border transition-colors text-left"
+                  style={modoAplicacion === "individual"
+                    ? { borderColor: "var(--border-strong)", background: "var(--surface-2)", color: "var(--text)" }
+                    : { borderColor: "var(--border)", color: "var(--text-3)" }
+                  }
                 >
                   <span className="block font-medium">Valores individuales</span>
                   <span className="block text-xs opacity-70">Los valores ingresados se registran completos en cada ítem.</span>
@@ -713,11 +781,11 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                 <button
                   type="button"
                   onClick={() => setModoAplicacion("consolidado")}
-                  className={`flex-1 text-xs px-3 py-2 rounded border transition-colors text-left ${
-                    modoAplicacion === "consolidado"
-                      ? "border-blue-400 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                      : "border-neutral-200 text-neutral-500 hover:border-neutral-300 dark:border-neutral-700"
-                  }`}
+                  className="flex-1 text-xs px-3 py-2 rounded-lg border transition-colors text-left"
+                  style={modoAplicacion === "consolidado"
+                    ? { borderColor: "var(--border-strong)", background: "var(--surface-2)", color: "var(--text)" }
+                    : { borderColor: "var(--border)", color: "var(--text-3)" }
+                  }
                 >
                   <span className="block font-medium">Valores consolidados</span>
                   <span className="block text-xs opacity-70">Ingresa el total del lote. El sistema divide entre los ítems.</span>
@@ -725,357 +793,297 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               </div>
 
               {modoAplicacion === "individual" ? (
-                <p className="text-xs text-neutral-500 bg-neutral-50 dark:bg-neutral-900 px-2 py-1.5 rounded">
+                <p className="text-xs px-3 py-2 rounded-lg"
+                  style={{ color: "var(--text-3)", background: "var(--surface-2)" }}>
                   Los valores ingresados se registrarán completos en cada ítem.
                 </p>
               ) : (
-                <p className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2 py-1.5 rounded border border-blue-200 dark:border-blue-800">
+                <p className="text-xs px-3 py-2 rounded-lg"
+                  style={{ color: "var(--text-2)", background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                   Ingresa el total del lote. El sistema dividirá los valores entre los {selectedItemIds.size} ítems seleccionados.
                 </p>
               )}
             </div>
           ) : (
-            <p className="text-sm font-medium">
+            <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
               Recibiendo:{" "}
-              <span className="text-blue-700">{selectedItem.descripcion}</span>
+              <span className="font-normal" style={{ color: "var(--text-3)" }}>{selectedItem.descripcion}</span>
             </p>
           )}
 
-          {/* Categoria */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-500">
-              Categoría (opcional)
-            </label>
-            <select
-              value={categoriaId}
-              onChange={(e) => seleccionarCategoria(e.target.value)}
-              className="ui-input"
-            >
-              <option value="">Sin categoría</option>
-              {categorias.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.nombre}
-                </option>
-              ))}
-            </select>
-            {categoriaId && (
-              <p className="text-xs text-neutral-400">
-                Referencia categoría:{" "}
-                {categoriaSeleccionada?.precio_referencia_usd != null
-                  ? `USD ${Number(categoriaSeleccionada.precio_referencia_usd).toFixed(2)} por ${categoriaSeleccionada.tipo_calculo === "kg" ? "kg" : "unidad"}`
-                  : "sin precio configurado"}
-              </p>
-            )}
-          </div>
+          {/* ── Layout 2 columnas en desktop ───────────────────────────── */}
+          <div className="md:grid md:grid-cols-2 md:gap-x-6 flex flex-col gap-4 md:gap-y-4">
 
-          {/* Tipo calculo */}
-          <div className="flex gap-4 text-sm">
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                checked={tipoCalculo === "kg"}
-                onChange={() => setTipoCalculo("kg")}
-              />{" "}
-              Por kg
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                checked={tipoCalculo === "unidad"}
-                onChange={() => setTipoCalculo("unidad")}
-              />{" "}
-              Por unidad
-            </label>
-          </div>
+            {/* Columna izquierda: Categoría + Medida + Financiero + Preview */}
+            <div className="flex flex-col gap-4">
 
-          {tipoCalculo === "kg" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-neutral-500">
-                  {modoLote && modoAplicacion === "consolidado"
-                    ? `Peso interno TOTAL lote (kg)`
-                    : "Peso interno (kg)"}
-                </label>
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={pesoInterno}
-                  onChange={(e) => setPesoInterno(e.target.value)}
-                  className="ui-input ui-input-sm"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-neutral-500">
-                  {modoLote && modoAplicacion === "consolidado"
-                    ? `Peso cliente TOTAL lote (kg)`
-                    : "Peso cliente (kg)"}
-                </label>
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={pesoCliente}
-                  onChange={(e) => setPesoCliente(e.target.value)}
-                  className="ui-input ui-input-sm"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-            </div>
-          )}
-
-          {tipoCalculo === "unidad" && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-500">
-                {modoLote && modoAplicacion === "consolidado"
-                  ? `Unidades TOTAL lote`
-                  : "Unidades"}
-              </label>
-              <input
-                type="number"
-                placeholder="1"
-                value={unidades}
-                onChange={(e) => setUnidades(e.target.value)}
-                className="ui-input ui-input-sm"
-                min="1"
-                step="1"
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-500">
-                Costo interno (USD)
-              </label>
-              <input
-                type="number"
-                placeholder="0.00"
-                value={costoInternoUsd}
-                onChange={(e) => setCostoInternoUsd(e.target.value)}
-                className="ui-input ui-input-sm"
-                min="0"
-                step="0.01"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-500">
-                {tipoCalculo === "kg" ? "Tarifa cliente por kg (USD)" : "Tarifa cliente por unidad (USD)"}
-              </label>
-              <input
-                type="number"
-                placeholder="0.00"
-                value={tarifaClienteUsd}
-                onChange={(e) => setTarifaClienteUsd(e.target.value)}
-                className="ui-input ui-input-sm"
-                min="0"
-                step="0.01"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-500">T/C interno</label>
-              <input
-                type="number"
-                placeholder="6.96"
-                value={tipoCambioInterno}
-                onChange={(e) => setTipoCambioInterno(e.target.value)}
-                className="ui-input ui-input-sm"
-                min="0"
-                step="0.01"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-neutral-500">T/C cliente</label>
-              <input
-                type="number"
-                placeholder="6.96"
-                value={tipoCambioCliente}
-                onChange={(e) => setTipoCambioCliente(e.target.value)}
-                className="ui-input ui-input-sm"
-                min="0"
-                step="0.01"
-              />
-            </div>
-          </div>
-
-          {/* Live preview */}
-          {(costoInternoBs || cobroClienteBs) && (() => {
-            const nItems = modoLote ? selectedItemIds.size : 1;
-            const esConsolidado = modoLote && modoAplicacion === "consolidado" && nItems > 1;
-            // In consolidado: costoInternoBs/cobroClienteBs are totals; per-item = total / N
-            // In individual: costoInternoBs/cobroClienteBs are per-item; total = per-item * N
-            const cobroTotal = esConsolidado
-              ? Number(cobroClienteBs)
-              : Number(cobroClienteBs) * nItems;
-            const cobro1Item = esConsolidado
-              ? (Number(cobroClienteBs) / nItems)
-              : Number(cobroClienteBs);
-            const costoTotal = esConsolidado
-              ? Number(costoInternoBs)
-              : Number(costoInternoBs) * nItems;
-            const costo1Item = esConsolidado
-              ? (Number(costoInternoBs) / nItems)
-              : Number(costoInternoBs);
-
-            // peso/unidades por ítem in consolidado
-            const pI = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "kg" && pesoInterno
-              ? (Number(pesoInterno) / nItems).toFixed(3)
-              : null;
-            const pC = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "kg" && pesoCliente
-              ? (Number(pesoCliente) / nItems).toFixed(3)
-              : null;
-            const uItem = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "unidad" && unidades
-              ? Math.round(Number(unidades) / nItems)
-              : null;
-
-            return (
-              <div className="bg-neutral-50 dark:bg-neutral-900 rounded p-3 text-sm flex flex-col gap-1">
-                {esConsolidado && (tipoCalculo === "kg" ? pI : uItem !== null) && (
-                  <p className="text-neutral-500 dark:text-neutral-400 text-xs">
-                    {tipoCalculo === "kg"
-                      ? <>Peso por ítem: <span className="font-medium">{pI} kg interno / {pC} kg cliente</span></>
-                      : <>Unidades por ítem: <span className="font-medium">{uItem}</span></>
-                    }
-                  </p>
-                )}
-                {cobroClienteBs && (
-                  <>
-                    <p className="text-neutral-600 dark:text-neutral-400">
-                      {esConsolidado ? "Cobro total lote" : "Cobro cliente por ítem"}:{" "}
-                      <span className="font-medium">Bs {cobroTotal.toFixed(2)}</span>
-                    </p>
-                    {esConsolidado && (
-                      <p className="text-neutral-500 dark:text-neutral-400 text-xs">
-                        Por ítem:{" "}
-                        <span className="font-medium">Bs {cobro1Item.toFixed(2)}</span>
-                      </p>
-                    )}
-                  </>
-                )}
-                {costoInternoBs && (
-                  <>
-                    <p className="text-neutral-600 dark:text-neutral-400">
-                      {esConsolidado ? "Costo interno total lote" : "Costo interno por ítem"}:{" "}
-                      <span className="font-medium">Bs {costoTotal.toFixed(2)}</span>
-                    </p>
-                    {esConsolidado && (
-                      <p className="text-neutral-500 dark:text-neutral-400 text-xs">
-                        Por ítem:{" "}
-                        <span className="font-medium">Bs {costo1Item.toFixed(2)}</span>
-                      </p>
-                    )}
-                  </>
-                )}
-                {!esConsolidado && modoLote && nItems > 1 && cobroClienteBs && (
-                  <p className="text-neutral-500 dark:text-neutral-400 text-xs border-t border-neutral-200 dark:border-neutral-700 pt-1 mt-0.5">
-                    Total lote ({nItems} ítems):{" "}
-                    <span className="font-semibold text-neutral-700 dark:text-neutral-200">
-                      Bs {cobroTotal.toFixed(2)} cobro
-                    </span>
-                    {costoInternoBs && (
-                      <span className="text-neutral-400">
-                        {" / "}Bs {costoTotal.toFixed(2)} costo
-                      </span>
-                    )}
-                  </p>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Ubicacion: grilla visual */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-neutral-500">
-              Ubicación
-              {zonaRecomendada && (
-                <span className={`ml-1 font-medium ${zonaRecomendada === "local" ? "text-blue-400" : "text-amber-400"}`}>
-                  — Zona {zonaRecomendada === "local" ? "local" : "terminal"}
-                </span>
-              )}
-              {sugeridaCodigo && (
-                <span className="ml-1 text-blue-400">
-                  (sugerida: {sugeridaCodigo})
-                </span>
-              )}
-            </label>
-            <div className="overflow-x-auto">
-              <div className="flex flex-col gap-1 min-w-max">
-                <div className="flex gap-1 ml-7">
-                  {filas.map((f) => (
-                    <div key={f} className="w-14 text-center text-xs text-neutral-400 font-medium">
-                      {f}
-                    </div>
+              {/* Categoría */}
+              <div className="flex flex-col gap-1.5">
+                <SectionLabel>Categoría</SectionLabel>
+                <select
+                  value={categoriaId}
+                  onChange={(e) => seleccionarCategoria(e.target.value)}
+                  className="ui-input"
+                >
+                  <option value="">Sin categoría</option>
+                  {categorias.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nombre}
+                    </option>
                   ))}
-                </div>
-                {estantes.map((est) => (
-                  <div key={est} className="flex items-center gap-1">
-                    <div className="w-6 text-xs text-neutral-400 font-medium text-right">{est}</div>
-                    {filas.map((fil) => {
-                      const codigo = `${est}-${fil}`;
-                      const existe = ubicacionesParaGrilla.some((u) => u.codigo === codigo);
-                      const isSelected = selectedUbicacionCodigo === codigo;
-                      const isSugerida = sugeridaCodigo === codigo;
-                      if (!existe) {
-                        return <div key={fil} className="w-14 h-8 rounded bg-neutral-100 dark:bg-neutral-800" />;
-                      }
-                      let cellClass = "w-14 h-8 rounded text-xs font-medium transition-colors flex items-center justify-center ";
-                      if (isSelected) {
-                        cellClass += "bg-blue-600 text-white border border-blue-600";
-                      } else if (isSugerida) {
-                        cellClass += "border-2 border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 cursor-pointer";
-                      } else {
-                        cellClass += "border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 bg-white dark:bg-neutral-900 hover:border-blue-300 hover:bg-blue-50 cursor-pointer";
-                      }
-                      return (
-                        <button
-                          key={fil}
-                          type="button"
-                          onClick={() => setSelectedUbicacionCodigo(codigo)}
-                          className={cellClass}
-                        >
-                          {codigo}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
+                </select>
+                {categoriaId && (
+                  <p className="text-xs" style={{ color: "var(--text-3)" }}>
+                    Referencia:{" "}
+                    {categoriaSeleccionada?.precio_referencia_usd != null
+                      ? `USD ${Number(categoriaSeleccionada.precio_referencia_usd).toFixed(2)} por ${categoriaSeleccionada.tipo_calculo === "kg" ? "kg" : "unidad"} — prellenado en costo interno`
+                      : "sin precio configurado"}
+                  </p>
+                )}
               </div>
-            </div>
-            <p className="text-sm">
-              Ubicación seleccionada:{" "}
-              {selectedUbicacionCodigo ? (
-                <span className="font-medium text-blue-700">{selectedUbicacionCodigo}</span>
-              ) : (
-                <span className="text-neutral-400">—</span>
-              )}
-            </p>
-          </div>
 
-          {/* Notas */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-500">
-              Notas (opcional)
-            </label>
-            <input
-              type="text"
-              placeholder="Observaciones..."
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              className="ui-input"
-            />
-          </div>
+              {/* Medida */}
+              <div className="flex flex-col gap-1.5">
+                <SectionLabel>Medida</SectionLabel>
+                <div className="flex gap-4 text-sm">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" checked={tipoCalculo === "kg"} onChange={() => setTipoCalculo("kg")} />
+                    Por kg
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" checked={tipoCalculo === "unidad"} onChange={() => setTipoCalculo("unidad")} />
+                    Por unidad
+                  </label>
+                </div>
 
-          {/* Validation errors (shown after first submit attempt) */}
+                {tipoCalculo === "kg" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="ui-label">
+                        {modoLote && modoAplicacion === "consolidado" ? "Peso interno TOTAL (kg)" : "Peso interno (kg)"}
+                      </label>
+                      <input type="number" placeholder="0.00" value={pesoInterno}
+                        onChange={(e) => setPesoInterno(e.target.value)}
+                        className="ui-input ui-input-sm" min="0" step="0.01" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="ui-label">
+                        {modoLote && modoAplicacion === "consolidado" ? "Peso cliente TOTAL (kg)" : "Peso cliente (kg)"}
+                      </label>
+                      <input type="number" placeholder="0.00" value={pesoCliente}
+                        onChange={(e) => setPesoCliente(e.target.value)}
+                        className="ui-input ui-input-sm" min="0" step="0.01" />
+                    </div>
+                  </div>
+                )}
+
+                {tipoCalculo === "unidad" && (
+                  <div className="flex flex-col gap-1">
+                    <label className="ui-label">
+                      {modoLote && modoAplicacion === "consolidado" ? "Unidades TOTAL lote" : "Unidades"}
+                    </label>
+                    <input type="number" placeholder="1" value={unidades}
+                      onChange={(e) => setUnidades(e.target.value)}
+                      className="ui-input ui-input-sm" min="1" step="1" />
+                  </div>
+                )}
+              </div>
+
+              {/* Financiero */}
+              <div className="flex flex-col gap-1.5">
+                <SectionLabel>Financiero</SectionLabel>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="ui-label">Costo interno (USD)</label>
+                    <input type="number" placeholder="0.00" value={costoInternoUsd}
+                      onChange={(e) => setCostoInternoUsd(e.target.value)}
+                      className="ui-input ui-input-sm" min="0" step="0.01" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="ui-label">
+                      {tipoCalculo === "kg" ? "Tarifa cliente/kg (USD)" : "Tarifa cliente/unidad (USD)"}
+                    </label>
+                    <input type="number" placeholder="0.00" value={tarifaClienteUsd}
+                      onChange={(e) => setTarifaClienteUsd(e.target.value)}
+                      className="ui-input ui-input-sm" min="0" step="0.01" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="ui-label">T/C interno</label>
+                    <input type="number" placeholder="6.96" value={tipoCambioInterno}
+                      onChange={(e) => setTipoCambioInterno(e.target.value)}
+                      className="ui-input ui-input-sm" min="0" step="0.01" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="ui-label">T/C cliente</label>
+                    <input type="number" placeholder="6.96" value={tipoCambioCliente}
+                      onChange={(e) => setTipoCambioCliente(e.target.value)}
+                      className="ui-input ui-input-sm" min="0" step="0.01" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Live preview */}
+              {(costoInternoBs || cobroClienteBs) && (() => {
+                const nItems = modoLote ? selectedItemIds.size : 1;
+                const esConsolidado = modoLote && modoAplicacion === "consolidado" && nItems > 1;
+                const cobroTotal = esConsolidado ? Number(cobroClienteBs) : Number(cobroClienteBs) * nItems;
+                const cobro1Item = esConsolidado ? (Number(cobroClienteBs) / nItems) : Number(cobroClienteBs);
+                const costoTotal = esConsolidado ? Number(costoInternoBs) : Number(costoInternoBs) * nItems;
+                const costo1Item = esConsolidado ? (Number(costoInternoBs) / nItems) : Number(costoInternoBs);
+                const pI = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "kg" && pesoInterno
+                  ? (Number(pesoInterno) / nItems).toFixed(3) : null;
+                const pC = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "kg" && pesoCliente
+                  ? (Number(pesoCliente) / nItems).toFixed(3) : null;
+                const uItem = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "unidad" && unidades
+                  ? Math.round(Number(unidades) / nItems) : null;
+
+                return (
+                  <div className="rounded-xl p-3 text-sm flex flex-col gap-1"
+                    style={{ background: "var(--surface-2)" }}>
+                    {esConsolidado && (tipoCalculo === "kg" ? pI : uItem !== null) && (
+                      <p className="text-xs" style={{ color: "var(--text-3)" }}>
+                        {tipoCalculo === "kg"
+                          ? <>Peso por ítem: <span className="font-medium">{pI} kg interno / {pC} kg cliente</span></>
+                          : <>Unidades por ítem: <span className="font-medium">{uItem}</span></>}
+                      </p>
+                    )}
+                    {cobroClienteBs && (
+                      <>
+                        <p style={{ color: "var(--text-2)" }}>
+                          {esConsolidado ? "Cobro total lote" : "Cobro cliente por ítem"}:{" "}
+                          <span className="font-medium" style={{ color: "var(--text)" }}>Bs {cobroTotal.toFixed(2)}</span>
+                        </p>
+                        {esConsolidado && (
+                          <p className="text-xs" style={{ color: "var(--text-3)" }}>
+                            Por ítem: <span className="font-medium">Bs {cobro1Item.toFixed(2)}</span>
+                          </p>
+                        )}
+                      </>
+                    )}
+                    {costoInternoBs && (
+                      <>
+                        <p style={{ color: "var(--text-2)" }}>
+                          {esConsolidado ? "Costo interno total lote" : "Costo interno por ítem"}:{" "}
+                          <span className="font-medium" style={{ color: "var(--text)" }}>Bs {costoTotal.toFixed(2)}</span>
+                        </p>
+                        {esConsolidado && (
+                          <p className="text-xs" style={{ color: "var(--text-3)" }}>
+                            Por ítem: <span className="font-medium">Bs {costo1Item.toFixed(2)}</span>
+                          </p>
+                        )}
+                      </>
+                    )}
+                    {!esConsolidado && modoLote && nItems > 1 && cobroClienteBs && (
+                      <p className="text-xs pt-1 mt-0.5" style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>
+                        Total lote ({nItems} ítems):{" "}
+                        <span className="font-semibold" style={{ color: "var(--text-2)" }}>
+                          Bs {cobroTotal.toFixed(2)} cobro
+                        </span>
+                        {costoInternoBs && (
+                          <span style={{ color: "var(--text-3)" }}>
+                            {" / "}Bs {costoTotal.toFixed(2)} costo
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+            </div>{/* fin columna izquierda */}
+
+            {/* Columna derecha: Ubicación + Notas */}
+            <div className="flex flex-col gap-4">
+
+              {/* Ubicación */}
+              <div className="flex flex-col gap-1.5">
+                <SectionLabel>
+                  Ubicación
+                  {zonaRecomendada && (
+                    <span className="ml-1 normal-case font-medium"
+                      style={{ color: zonaRecomendada === "local" ? "var(--text-2)" : "var(--warning)" }}>
+                      — {zonaRecomendada === "local" ? "Local" : "Terminal"}
+                    </span>
+                  )}
+                  {sugeridaCodigo && (
+                    <span className="ml-1 normal-case font-normal" style={{ color: "var(--text-3)" }}>
+                      (sugerida: {sugeridaCodigo})
+                    </span>
+                  )}
+                </SectionLabel>
+                <div className="overflow-x-auto">
+                  <div className="flex flex-col gap-1 min-w-max">
+                    <div className="flex gap-1 ml-7">
+                      {filas.map((f) => (
+                        <div key={f} className="w-12 text-center text-xs font-medium" style={{ color: "var(--text-3)" }}>
+                          {f}
+                        </div>
+                      ))}
+                    </div>
+                    {estantes.map((est) => (
+                      <div key={est} className="flex items-center gap-1">
+                        <div className="w-6 text-xs font-medium text-right" style={{ color: "var(--text-3)" }}>{est}</div>
+                        {filas.map((fil) => {
+                          const codigo = `${est}-${fil}`;
+                          const existe = ubicacionesParaGrilla.some((u) => u.codigo === codigo);
+                          const isSelected = selectedUbicacionCodigo === codigo;
+                          const isSugerida = sugeridaCodigo === codigo;
+                          if (!existe) {
+                            return <div key={fil} className="w-12 h-8 rounded-lg" style={{ background: "var(--surface-3)" }} />;
+                          }
+                          const cellStyle = isSelected
+                            ? { background: "var(--text)", color: "var(--surface)", borderColor: "var(--text)", cursor: "pointer" }
+                            : isSugerida
+                              ? { borderWidth: 2, borderStyle: "solid", borderColor: "var(--border-strong)", color: "var(--text-2)", background: "var(--surface-2)", cursor: "pointer" }
+                              : { borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)", color: "var(--text-2)", background: "var(--surface)", cursor: "pointer" };
+                          return (
+                            <button key={fil} type="button" onClick={() => setSelectedUbicacionCodigo(codigo)}
+                              className="w-12 h-8 rounded-lg text-xs font-medium transition-colors flex items-center justify-center"
+                              style={cellStyle}>
+                              {codigo}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-sm" style={{ color: "var(--text-2)" }}>
+                  Seleccionada:{" "}
+                  {selectedUbicacionCodigo ? (
+                    <span className="font-semibold" style={{ color: "var(--text)" }}>{selectedUbicacionCodigo}</span>
+                  ) : (
+                    <span style={{ color: "var(--text-3)" }}>—</span>
+                  )}
+                </p>
+              </div>
+
+              {/* Notas */}
+              <div className="flex flex-col gap-1">
+                <label className="ui-label">Notas (opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Observaciones..."
+                  value={notas}
+                  onChange={(e) => setNotas(e.target.value)}
+                  className="ui-input"
+                />
+              </div>
+
+            </div>{/* fin columna derecha */}
+
+          </div>{/* fin grid 2 columnas */}
+
+          {/* Validation errors — ancho completo */}
           {formTouched && validationErrors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded p-3 text-sm">
-              <p className="text-red-600 font-medium mb-1">
+            <div className="rounded-xl p-3 text-sm"
+              style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)" }}>
+              <p className="font-medium mb-1" style={{ color: "var(--danger)" }}>
                 Completar antes de registrar:
               </p>
-              <ul className="list-disc list-inside text-red-500 space-y-0.5">
+              <ul className="list-disc list-inside space-y-0.5" style={{ color: "var(--danger)" }}>
                 {validationErrors.map((e) => (
                   <li key={e}>{e}</li>
                 ))}
@@ -1105,9 +1113,11 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
             </button>
           )}
         </div>
+        </>
       )}
 
-      <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4">
+      {/* Paquete desconocido */}
+      <div className="pt-4 flex flex-col gap-3" style={{ borderTop: "1px solid var(--border)" }}>
         <button
           type="button"
           onClick={() => {
@@ -1120,22 +1130,28 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               setDescTouched(false);
             }
           }}
-          className="text-sm px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition"
+          className="self-start text-sm px-3 py-2 rounded-lg border transition-colors font-medium"
+          style={showDesconocido
+            ? { background: "var(--warning-soft)", borderColor: "var(--warning)", color: "var(--warning)" }
+            : { borderColor: "var(--warning-soft)", color: "var(--warning)" }
+          }
         >
           {showDesconocido ? "Ocultar formulario desconocido" : "+ Registrar paquete desconocido"}
         </button>
       </div>
 
       {showDesconocido && (
-        <div className="ui-card flex flex-col gap-4 border-amber-200 bg-amber-50/30 dark:bg-amber-950/20">
-          <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+        <div className="rounded-2xl p-4 flex flex-col gap-4"
+          style={{ background: "var(--warning-soft)", border: "1px solid var(--warning-soft)" }}>
+          <p className="text-sm font-semibold" style={{ color: "var(--warning)" }}>
             Paquete desconocido
           </p>
 
           {ultimoDesconocido && (
-            <div className="bg-green-50 border border-green-200 rounded p-3 flex flex-col gap-1">
-              <p className="text-green-700 font-semibold text-sm">Registrado</p>
-              <p className="text-xs text-neutral-600">
+            <div className="rounded-xl p-3 flex flex-col gap-1"
+              style={{ background: "var(--success-soft)", border: "1px solid var(--success)" }}>
+              <p className="font-semibold text-sm" style={{ color: "var(--success)" }}>Registrado</p>
+              <p className="text-xs" style={{ color: "var(--text-2)" }}>
                 {ultimoDesconocido.descripcion}
                 {" · "}{ultimoDesconocido.ubicacion_codigo}
               </p>
@@ -1143,11 +1159,14 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           )}
 
           {descError && (
-            <div className="bg-red-100 text-red-700 text-sm p-2 rounded">{descError}</div>
+            <div className="text-sm rounded-xl p-3"
+              style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
+              {descError}
+            </div>
           )}
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-500">Tracking (opcional)</label>
+            <label className="ui-label">Tracking (opcional)</label>
             <input
               type="text"
               placeholder="Si se conoce o es parcial"
@@ -1158,7 +1177,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-500">
+            <label className="ui-label">
               Descripción física <span className="text-red-400">*</span>
             </label>
             <input
@@ -1171,7 +1190,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-500">Peso kg (opcional)</label>
+            <label className="ui-label">Peso kg (opcional)</label>
             <input
               type="number"
               placeholder="0.00"
@@ -1184,7 +1203,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-neutral-500">
+            <label className="ui-label">
               Zona de depósito <span className="text-red-400">*</span>
             </label>
             <div className="flex gap-1 flex-wrap">
@@ -1197,29 +1216,29 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                     key={cod}
                     type="button"
                     onClick={() => setDescUbicacionCodigo(cod)}
-                    className={`w-12 h-9 rounded text-xs font-medium transition-colors flex items-center justify-center border ${
-                      isSelected
-                        ? "bg-amber-500 text-white border-amber-500"
-                        : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 bg-white dark:bg-neutral-900 hover:border-amber-300 hover:bg-amber-50 cursor-pointer"
-                    }`}
+                    className="w-12 h-9 rounded-lg text-xs font-medium transition-colors flex items-center justify-center border"
+                    style={isSelected
+                      ? { background: "var(--warning)", color: "#fff", borderColor: "var(--warning)" }
+                      : { borderColor: "var(--border)", color: "var(--text-2)", background: "var(--surface)", cursor: "pointer" }
+                    }
                   >
                     {cod}
                   </button>
                 );
               })}
             </div>
-            <p className="text-sm">
+            <p className="text-sm" style={{ color: "var(--text-2)" }}>
               Ubicación seleccionada:{" "}
               {descUbicacionCodigo ? (
-                <span className="font-medium text-amber-700">{descUbicacionCodigo}</span>
+                <span className="font-medium" style={{ color: "var(--warning)" }}>{descUbicacionCodigo}</span>
               ) : (
-                <span className="text-neutral-400">—</span>
+                <span style={{ color: "var(--text-3)" }}>—</span>
               )}
             </p>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-neutral-500">Notas (opcional)</label>
+            <label className="ui-label">Notas (opcional)</label>
             <input
               type="text"
               placeholder="Observaciones..."
@@ -1230,9 +1249,10 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           </div>
 
           {descTouched && descValidationErrors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded p-3 text-sm">
-              <p className="text-red-600 font-medium mb-1">Completar antes de registrar:</p>
-              <ul className="list-disc list-inside text-red-500 space-y-0.5">
+            <div className="rounded-xl p-3 text-sm"
+              style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)" }}>
+              <p className="font-medium mb-1" style={{ color: "var(--danger)" }}>Completar antes de registrar:</p>
+              <ul className="list-disc list-inside space-y-0.5" style={{ color: "var(--danger)" }}>
                 {descValidationErrors.map((e) => (
                   <li key={e}>{e}</li>
                 ))}

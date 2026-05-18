@@ -259,12 +259,12 @@ export default function ComprasTable({ reload }) {
     }
   }
 
-  function getEstadoColor(estado) {
+  function getEstadoStyle(estado) {
     switch (estado) {
-      case "reparto":   return "bg-slate-200 text-slate-700 dark:bg-slate-700/60 dark:text-slate-200";
-      case "entregado": return "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200";
-      case "recibido":  return "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200";
-      default:          return "bg-slate-200 text-slate-600 dark:bg-neutral-700 dark:text-neutral-300";
+      case "reparto":   return { background: "var(--surface-3)", color: "var(--text-2)" };
+      case "entregado": return { background: "var(--accent-soft)", color: "var(--accent-2)" };
+      case "recibido":  return { background: "var(--success-soft)", color: "var(--success)" };
+      default:          return { background: "var(--surface-2)", color: "var(--text-2)" };
     }
   }
 
@@ -278,12 +278,12 @@ export default function ComprasTable({ reload }) {
     }
   }
 
-  function getItemEstadoColor(estado) {
+  function getItemEstadoStyle(estado) {
     switch (estado) {
-      case "warehouse":        return "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-200";
-      case "recibido_bolivia": return "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200";
-      case "entregado":        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200";
-      default:                 return "bg-slate-200 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300";
+      case "warehouse":        return { background: "var(--accent-soft)", color: "var(--accent-2)" };
+      case "recibido_bolivia": return { background: "var(--success-soft)", color: "var(--success)" };
+      case "entregado":        return { background: "var(--success-soft)", color: "var(--success)" };
+      default:                 return { background: "var(--surface-3)", color: "var(--text-2)" };
     }
   }
 
@@ -321,19 +321,17 @@ export default function ComprasTable({ reload }) {
   function renderItemsPanel(compra, borderRadius) {
     const items = itemsMap[compra.id];
     return (
-      <div className={`
-        border border-t-0 border-slate-200 dark:border-neutral-700
-        bg-slate-100 dark:bg-neutral-950/70
-        px-3 pt-2.5 pb-3 flex flex-col gap-1.5
-        ${borderRadius}
-      `}>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-neutral-500 px-0.5 pb-0.5">
+      <div
+        className={`px-3 pt-2.5 pb-3 flex flex-col gap-1.5 ${borderRadius}`}
+        style={{ border: "1px solid var(--border)", borderTop: "none", background: "var(--surface-2)" }}
+      >
+        <p className="text-[10px] font-bold uppercase tracking-wider px-0.5 pb-0.5" style={{ color: "var(--text-3)" }}>
           Ítems · {items ? items.length : "…"}
         </p>
         {!items ? (
-          <p className="text-xs text-slate-400 dark:text-neutral-500 py-1">Cargando...</p>
+          <p className="text-xs py-1" style={{ color: "var(--text-3)" }}>Cargando...</p>
         ) : items.length === 0 ? (
-          <p className="text-xs text-slate-400 dark:text-neutral-500 py-1">Sin ítems.</p>
+          <p className="text-xs py-1" style={{ color: "var(--text-3)" }}>Sin ítems.</p>
         ) : (() => {
           const trackingCount = {};
           items.forEach(it => {
@@ -342,21 +340,22 @@ export default function ComprasTable({ reload }) {
           });
           return items.map((item, idx) => (
             <div key={item.id}
-              className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800
-                rounded-xl px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-3">
+              className="rounded-xl px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-3"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-neutral-600 tabular-nums w-4 flex-shrink-0">
+                  <span className="text-[10px] font-bold tabular-nums w-4 flex-shrink-0" style={{ color: "var(--text-3)" }}>
                     {idx + 1}.
                   </span>
-                  <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100 leading-tight">
+                  <p className="text-sm font-semibold leading-tight" style={{ color: "var(--text)" }}>
                     {item.descripcion}
                   </p>
                   {item.cantidad > 1 && (
-                    <span className="text-xs text-slate-400 dark:text-neutral-500">×{item.cantidad}</span>
+                    <span className="text-xs" style={{ color: "var(--text-3)" }}>×{item.cantidad}</span>
                   )}
                 </div>
-                <span className={`inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide ${getItemEstadoColor(item.estado)}`}>
+                <span className="inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide"
+                  style={getItemEstadoStyle(item.estado)}>
                   {formatEstadoItem(item.estado)}
                 </span>
               </div>
@@ -366,26 +365,25 @@ export default function ComprasTable({ reload }) {
                     <div className="flex items-center gap-1.5">
                       <input type="text" value={itemTrackEdit[item.id]}
                         onChange={e => setItemTrackEdit(prev => ({ ...prev, [item.id]: e.target.value }))}
-                        className="px-2 py-1.5 rounded-lg text-xs w-36 border border-slate-200 dark:border-neutral-700
-                          bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100
-                          focus:outline-none focus:ring-1 focus:ring-cyan-500/30 focus:border-cyan-500"
+                        className="ui-input ui-input-sm w-36"
                       />
                       <button disabled={savingItemId === item.id}
                         onClick={() => guardarTrackingItem(item.id, compra.id)}
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white disabled:opacity-50 transition-colors">
+                        className="ui-button ui-button-sm disabled:opacity-50">
                         {savingItemId === item.id ? "…" : "OK"}
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 text-xs font-mono text-slate-800 dark:text-neutral-200">
+                      <span className="px-2 py-1 rounded-lg text-xs font-mono"
+                        style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
                         {item.tracking_number}
                       </span>
                       {trackingCount[item.tracking_number] > 1 && (
-                        <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">compartido</span>
+                        <span className="text-[10px] font-semibold" style={{ color: "var(--warning)" }}>compartido</span>
                       )}
                       <button onClick={() => setItemTrackEdit(prev => ({ ...prev, [item.id]: item.tracking_number }))}
-                        className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-neutral-300 transition-colors underline">
+                        className="text-xs hover:underline transition-colors" style={{ color: "var(--text-3)" }}>
                         Editar
                       </button>
                     </div>
@@ -395,13 +393,11 @@ export default function ComprasTable({ reload }) {
                     <input type="text" placeholder="Tracking"
                       value={itemTrackEdit[item.id] || ""}
                       onChange={e => setItemTrackEdit(prev => ({ ...prev, [item.id]: e.target.value }))}
-                      className="px-2 py-1.5 rounded-lg text-xs w-32 border border-slate-200 dark:border-neutral-700
-                        bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100
-                        focus:outline-none focus:ring-1 focus:ring-cyan-500/30 focus:border-cyan-500"
+                      className="ui-input ui-input-sm w-32"
                     />
                     <button disabled={savingItemId === item.id}
                       onClick={() => guardarTrackingItem(item.id, compra.id)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white disabled:opacity-50 transition-colors">
+                      className="ui-button ui-button-sm disabled:opacity-50">
                       {savingItemId === item.id ? "…" : "Guardar"}
                     </button>
                   </div>
@@ -419,15 +415,17 @@ export default function ComprasTable({ reload }) {
     const effectiveTracking = compra.single_item_tracking || compra.tracking_number;
     const px = compact ? "px-3" : "px-4";
     const inputW = compact ? "min-w-[120px] max-w-[180px]" : "min-w-[150px] max-w-[220px]";
+    const bandStyle = { background: "var(--surface-2)", borderTop: "1px solid var(--border)" };
 
     const label = (
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-neutral-500 flex-shrink-0">
+      <span className="text-[10px] font-bold uppercase tracking-wider flex-shrink-0" style={{ color: "var(--text-3)" }}>
         Tracking
       </span>
     );
 
     const trackingPill = (value) => (
-      <span className="px-2.5 py-1 rounded-lg bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 font-mono text-xs text-slate-800 dark:text-neutral-200">
+      <span className="px-2.5 py-1 rounded-lg font-mono text-xs"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
         {value}
       </span>
     );
@@ -435,12 +433,12 @@ export default function ComprasTable({ reload }) {
     if (compra.item_count === 1) {
       if (effectiveTracking && trackingEdit[compra.id] === undefined) {
         return (
-          <div className={`${px} py-2.5 bg-slate-100 dark:bg-neutral-800/30 border-t border-slate-200 dark:border-neutral-700`}>
+          <div className={`${px} py-2.5`} style={bandStyle}>
             <div className="flex items-center gap-2.5">
               {label}
               {trackingPill(effectiveTracking)}
               <button onClick={() => setTrackingEdit(prev => ({ ...prev, [compra.id]: effectiveTracking }))}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-neutral-300 transition-colors underline">
+                className="text-xs hover:underline transition-colors" style={{ color: "var(--text-3)" }}>
                 Editar
               </button>
             </div>
@@ -448,16 +446,16 @@ export default function ComprasTable({ reload }) {
         );
       }
       return (
-        <div className={`${px} py-2.5 bg-slate-100 dark:bg-neutral-800/30 border-t border-slate-200 dark:border-neutral-700`}>
+        <div className={`${px} py-2.5`} style={bandStyle}>
           <div className="flex items-center gap-2 flex-wrap">
             {label}
             <input type="text" placeholder="Número de tracking"
               value={trackingEdit[compra.id] || ""}
               onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
-              className={`flex-1 ${inputW} px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition`}
+              className={`flex-1 ${inputW} ui-input ui-input-sm`}
             />
             <button onClick={() => guardarTrackingSingle(compra.id, compra.single_item_id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white transition-colors">
+              className="ui-button ui-button-sm flex-shrink-0">
               Guardar
             </button>
           </div>
@@ -467,7 +465,7 @@ export default function ComprasTable({ reload }) {
 
     if (compra.tracking_number) {
       return (
-        <div className={`${px} py-2.5 bg-slate-100 dark:bg-neutral-800/30 border-t border-slate-200 dark:border-neutral-700`}>
+        <div className={`${px} py-2.5`} style={bandStyle}>
           <div className="flex items-center gap-2.5">
             {label}
             {trackingPill(compra.tracking_number)}
@@ -477,15 +475,15 @@ export default function ComprasTable({ reload }) {
     }
 
     return (
-      <div className={`${px} py-2.5 bg-slate-100 dark:bg-neutral-800/30 border-t border-slate-200 dark:border-neutral-700`}>
+      <div className={`${px} py-2.5`} style={bandStyle}>
         <div className="flex items-center gap-2 flex-wrap">
           {label}
           <input type="text" placeholder="Número de tracking"
-            className={`flex-1 ${inputW} px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition`}
+            className={`flex-1 ${inputW} ui-input ui-input-sm`}
             onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
           />
           <button onClick={() => guardarTracking(compra.id)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white transition-colors">
+            className="ui-button ui-button-sm flex-shrink-0">
             Guardar
           </button>
         </div>
@@ -498,7 +496,7 @@ export default function ComprasTable({ reload }) {
     return (
       <div className="flex flex-col gap-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-36 rounded-2xl bg-slate-100 dark:bg-neutral-800 animate-pulse" />
+          <div key={i} className="h-36 rounded-2xl animate-pulse" style={{ background: "var(--surface-2)" }} />
         ))}
       </div>
     );
@@ -510,10 +508,10 @@ export default function ComprasTable({ reload }) {
 
       {/* Encabezado */}
       <div className="flex justify-between items-center">
-        <h3 className="text-sm font-semibold uppercase tracking-widest text-slate-500 dark:text-neutral-400">
+        <h3 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
           Compras registradas
         </h3>
-        <span className="text-xs text-slate-400 dark:text-neutral-500 tabular-nums">
+        <span className="text-xs tabular-nums" style={{ color: "var(--text-3)" }}>
           {compras.length} {compras.length === 1 ? "registro" : "registros"}
         </span>
       </div>
@@ -529,8 +527,8 @@ export default function ComprasTable({ reload }) {
 
       {/* Empty */}
       {grupos.length === 0 && (
-        <div className="py-16 text-center text-sm text-slate-400 dark:text-neutral-500
-          border border-dashed border-slate-200 dark:border-neutral-800 rounded-2xl">
+        <div className="py-16 text-center text-sm rounded-2xl"
+          style={{ color: "var(--text-3)", border: "1px dashed var(--border)" }}>
           {filtro ? "Sin resultados para la búsqueda." : "No hay compras registradas."}
         </div>
       )}
@@ -549,36 +547,35 @@ export default function ComprasTable({ reload }) {
           <div key={grupo.key}>
 
             {/* ── CARD (única estructura para todos) ── */}
-            <div className={`
-              bg-white dark:bg-neutral-900
-              border border-slate-200 dark:border-neutral-800
-              shadow-md dark:shadow-black/30
-              overflow-hidden transition-shadow hover:shadow-lg
-              ${isSingle && c0expanded ? "rounded-t-2xl" : "rounded-2xl"}
-            `}>
+            <div
+              className={`overflow-hidden transition-all ${isSingle && c0expanded ? "rounded-t-xl" : "rounded-xl"}`}
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
+            >
 
-              {/* ZONA A — ENCABEZADO: cliente + destino + ref SOL + proveedor (si 1 orden) */}
-              <div className="bg-slate-100 dark:bg-neutral-800/70 border-b border-slate-200 dark:border-neutral-800 px-4 pt-3 pb-3 flex items-start gap-3">
+              {/* ZONA A — ENCABEZADO */}
+              <div className="px-4 pt-3 pb-3 flex items-start gap-3"
+                style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
 
                 <div className="flex-1 min-w-0 flex flex-col gap-1">
 
                   {/* Fila 1: cliente + destino + ref SOL + contador */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                    <span className="text-sm font-bold" style={{ color: "var(--text)" }}>
                       {grupo.cliente_nombre}
                     </span>
                     {grupo.destino && (
-                      <span className="text-xs text-slate-500 dark:text-neutral-500">
+                      <span className="text-xs" style={{ color: "var(--text-3)" }}>
                         · {grupo.destino}
                       </span>
                     )}
                     {grupo.codigo_solicitud && (
-                      <span className="text-[10px] font-mono text-slate-400 dark:text-neutral-500 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                        style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-3)" }}>
                         {grupo.codigo_solicitud}
                       </span>
                     )}
                     {!isSingle && (
-                      <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-neutral-500">
+                      <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
                         {grupo.ordenes.length} órdenes
                       </span>
                     )}
@@ -587,17 +584,19 @@ export default function ComprasTable({ reload }) {
                   {/* Fila 2 (solo si 1 orden): proveedor + nº orden + link */}
                   {isSingle && (
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[15px] font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+                      <span className="text-[15px] font-bold leading-tight" style={{ color: "var(--text)" }}>
                         {c0.proveedor}
                       </span>
                       {c0.numero_orden && (
-                        <span className="font-mono text-xs text-slate-500 dark:text-neutral-500 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 px-1.5 py-0.5 rounded-md">
+                        <span className="font-mono text-xs px-1.5 py-0.5 rounded-md"
+                          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-3)" }}>
                           #{c0.numero_orden}
                         </span>
                       )}
                       {c0.url_orden && (
                         <a href={c0.url_orden} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 hover:underline transition-colors">
+                          className="text-xs hover:underline transition-colors"
+                          style={{ color: "var(--accent)" }}>
                           Ver orden
                         </a>
                       )}
@@ -614,13 +613,17 @@ export default function ComprasTable({ reload }) {
                     </Badge>
                     <select value={c0.estado || "reparto"}
                       onChange={e => cambiarEstado(c0.id, e.target.value)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border-none outline-none cursor-pointer hover:opacity-80 transition-opacity ${getEstadoColor(c0.estado || "reparto")}`}>
+                      className="px-2.5 py-1 rounded-full text-xs font-semibold border-none outline-none cursor-pointer hover:opacity-80 transition-opacity"
+                      style={getEstadoStyle(c0.estado || "reparto")}>
                       <option value="reparto">En Reparto</option>
                       <option value="entregado">En Warehouse</option>
                       <option value="recibido">En Bolivia</option>
                     </select>
                     <button onClick={() => abrirEditar(c0)} title="Editar orden"
-                      className="p-1.5 rounded-lg text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-700/60 transition-colors">
+                      className="p-1.5 rounded-lg transition-colors"
+                      style={{ color: "var(--text-3)" }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "var(--surface)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; e.currentTarget.style.background = "transparent"; }}>
                       <Pencil size={13} />
                     </button>
                   </div>
@@ -633,24 +636,24 @@ export default function ComprasTable({ reload }) {
                 <>
                   {/* Cuerpo: descripción + fechas */}
                   {c0hasBody && (
-                    <div className="px-4 py-3 bg-white dark:bg-neutral-900 flex flex-col gap-1.5">
+                    <div className="px-4 py-3 flex flex-col gap-1.5" style={{ background: "var(--surface)" }}>
                       {c0.descripcion_producto && (
-                        <p className="text-xs text-slate-500 dark:text-neutral-400 leading-relaxed">
+                        <p className="text-xs leading-relaxed" style={{ color: "var(--text-3)" }}>
                           {c0.descripcion_producto}
                         </p>
                       )}
                       {(c0est || c0prov) && (
                         <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
                           {c0est && (
-                            <span className="text-slate-400 dark:text-neutral-500">
+                            <span style={{ color: "var(--text-3)" }}>
                               Fecha compra{" "}
-                              <span className="font-medium tabular-nums text-slate-700 dark:text-neutral-300">{c0est}</span>
+                              <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{c0est}</span>
                             </span>
                           )}
                           {c0prov && (
-                            <span className="text-slate-400 dark:text-neutral-500">
+                            <span style={{ color: "var(--text-3)" }}>
                               Entrega estimada prov.{" "}
-                              <span className="font-medium tabular-nums text-slate-700 dark:text-neutral-300">{c0prov}</span>
+                              <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{c0prov}</span>
                             </span>
                           )}
                         </div>
@@ -662,12 +665,14 @@ export default function ComprasTable({ reload }) {
                   {!c0hasMulti
                     ? renderTrackingBand(c0, false)
                     : (
-                      <div className="px-4 py-2.5 bg-slate-100 dark:bg-neutral-800/50 border-t border-slate-200 dark:border-neutral-800 flex items-center justify-between gap-3">
-                        <span className="text-xs text-slate-400 dark:text-neutral-500">
+                      <div className="px-4 py-2.5 flex items-center justify-between gap-3"
+                        style={{ background: "var(--surface-2)", borderTop: "1px solid var(--border)" }}>
+                        <span className="text-xs" style={{ color: "var(--text-3)" }}>
                           Tracking individual por ítem
                         </span>
                         <button onClick={() => toggleItems(c0.id)}
-                          className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${c0expanded ? "text-slate-700 dark:text-neutral-200" : "text-slate-500 dark:text-neutral-400 hover:text-slate-800 dark:hover:text-neutral-100"}`}>
+                          className="flex items-center gap-1.5 text-xs font-semibold transition-colors"
+                          style={{ color: c0expanded ? "var(--text)" : "var(--text-3)" }}>
                           {c0expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                           {c0expanded ? "Ocultar ítems" : `Ver ${c0.item_count} ítems`}
                         </button>
@@ -691,23 +696,27 @@ export default function ComprasTable({ reload }) {
                       <div key={compra.id}>
 
                         {/* Mini-card de orden */}
-                        <div className={`border border-slate-200 dark:border-neutral-700 overflow-hidden ${isExp ? "rounded-t-xl" : "rounded-xl"}`}>
+                        <div className={`overflow-hidden ${isExp ? "rounded-t-xl" : "rounded-xl"}`}
+                          style={{ border: "1px solid var(--border)" }}>
 
                           {/* Mini-header */}
-                          <div className="bg-slate-100 dark:bg-neutral-800/40 border-b border-slate-200 dark:border-neutral-700 px-3 py-2.5 flex items-start gap-2">
+                          <div className="px-3 py-2.5 flex items-start gap-2"
+                            style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                                <span className="text-sm font-bold" style={{ color: "var(--text)" }}>
                                   {compra.proveedor}
                                 </span>
                                 {compra.numero_orden && (
-                                  <span className="font-mono text-xs text-slate-500 dark:text-neutral-500 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 px-1.5 py-0.5 rounded-md">
+                                  <span className="font-mono text-xs px-1.5 py-0.5 rounded-md"
+                                    style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-3)" }}>
                                     #{compra.numero_orden}
                                   </span>
                                 )}
                                 {compra.url_orden && (
                                   <a href={compra.url_orden} target="_blank" rel="noopener noreferrer"
-                                    className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 hover:underline transition-colors">
+                                    className="text-xs hover:underline transition-colors"
+                                    style={{ color: "var(--accent)" }}>
                                     Ver orden
                                   </a>
                                 )}
@@ -719,13 +728,17 @@ export default function ComprasTable({ reload }) {
                               </Badge>
                               <select value={compra.estado || "reparto"}
                                 onChange={e => cambiarEstado(compra.id, e.target.value)}
-                                className={`px-2 py-0.5 rounded-full text-xs font-semibold border-none outline-none cursor-pointer hover:opacity-80 transition-opacity ${getEstadoColor(compra.estado || "reparto")}`}>
+                                className="px-2 py-0.5 rounded-full text-xs font-semibold border-none outline-none cursor-pointer hover:opacity-80 transition-opacity"
+                                style={getEstadoStyle(compra.estado || "reparto")}>
                                 <option value="reparto">En Reparto</option>
                                 <option value="entregado">En Warehouse</option>
                                 <option value="recibido">En Bolivia</option>
                               </select>
                               <button onClick={() => abrirEditar(compra)} title="Editar"
-                                className="p-1 rounded-lg text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-700/60 transition-colors">
+                                className="p-1 rounded-lg transition-colors"
+                                style={{ color: "var(--text-3)" }}
+                                onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "var(--surface)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; e.currentTarget.style.background = "transparent"; }}>
                                 <Pencil size={12} />
                               </button>
                             </div>
@@ -733,24 +746,24 @@ export default function ComprasTable({ reload }) {
 
                           {/* Mini-body */}
                           {hasBody && (
-                            <div className="px-3 py-2 bg-white dark:bg-neutral-900 flex flex-col gap-1">
+                            <div className="px-3 py-2 flex flex-col gap-1" style={{ background: "var(--surface)" }}>
                               {compra.descripcion_producto && (
-                                <p className="text-xs text-slate-500 dark:text-neutral-400 leading-relaxed">
+                                <p className="text-xs leading-relaxed" style={{ color: "var(--text-3)" }}>
                                   {compra.descripcion_producto}
                                 </p>
                               )}
                               {(fEst || fProv) && (
                                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
                                   {fEst && (
-                                    <span className="text-slate-400 dark:text-neutral-500">
+                                    <span style={{ color: "var(--text-3)" }}>
                                       Fecha compra{" "}
-                                      <span className="font-medium tabular-nums text-slate-700 dark:text-neutral-300">{fEst}</span>
+                                      <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{fEst}</span>
                                     </span>
                                   )}
                                   {fProv && (
-                                    <span className="text-slate-400 dark:text-neutral-500">
+                                    <span style={{ color: "var(--text-3)" }}>
                                       Entrega estimada prov.{" "}
-                                      <span className="font-medium tabular-nums text-slate-700 dark:text-neutral-300">{fProv}</span>
+                                      <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{fProv}</span>
                                     </span>
                                   )}
                                 </div>
@@ -762,10 +775,12 @@ export default function ComprasTable({ reload }) {
                           {!hasMulti
                             ? renderTrackingBand(compra, true)
                             : (
-                              <div className="px-3 py-2 bg-slate-100 dark:bg-neutral-800/30 border-t border-slate-200 dark:border-neutral-700 flex items-center justify-between gap-2">
-                                <span className="text-xs text-slate-400 dark:text-neutral-500">Tracking por ítem</span>
+                              <div className="px-3 py-2 flex items-center justify-between gap-2"
+                                style={{ background: "var(--surface-2)", borderTop: "1px solid var(--border)" }}>
+                                <span className="text-xs" style={{ color: "var(--text-3)" }}>Tracking por ítem</span>
                                 <button onClick={() => toggleItems(compra.id)}
-                                  className={`flex items-center gap-1 text-xs font-semibold transition-colors ${isExp ? "text-slate-700 dark:text-neutral-200" : "text-slate-500 dark:text-neutral-400 hover:text-slate-800 dark:hover:text-neutral-100"}`}>
+                                  className="flex items-center gap-1 text-xs font-semibold transition-colors"
+                                  style={{ color: isExp ? "var(--text)" : "var(--text-3)" }}>
                                   {isExp ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                                   {isExp ? "Ocultar" : `Ver ${compra.item_count} ítems`}
                                 </button>
@@ -796,12 +811,17 @@ export default function ComprasTable({ reload }) {
       {/* ── Modal de edición ── */}
       {editingId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-neutral-700 max-h-[88vh] overflow-hidden flex flex-col">
+          <div className="rounded-2xl w-full max-w-md max-h-[88vh] overflow-hidden flex flex-col"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
 
-            <div className="px-5 py-4 bg-slate-100 dark:bg-neutral-800/70 border-b border-slate-200 dark:border-neutral-800 flex items-center justify-between flex-shrink-0">
-              <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">Editar orden</h3>
+            <div className="px-5 py-4 flex items-center justify-between flex-shrink-0"
+              style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
+              <h3 className="text-sm font-bold" style={{ color: "var(--text)" }}>Editar orden</h3>
               <button onClick={() => setEditingId(null)}
-                className="p-1.5 rounded-lg text-sm leading-none text-slate-400 dark:text-neutral-500 hover:text-slate-700 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-700 transition-colors">
+                className="p-1.5 rounded-lg text-sm leading-none transition-colors"
+                style={{ color: "var(--text-3)" }}
+                onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "var(--surface-3)"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; e.currentTarget.style.background = "transparent"; }}>
                 ✕
               </button>
             </div>
@@ -816,12 +836,12 @@ export default function ComprasTable({ reload }) {
                   { label: "Descripción producto",  key: "descripcion_producto", type: "text",  ph: "" },
                 ].map(({ label, key, type, ph }) => (
                   <div key={key}>
-                    <label className="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1.5 uppercase tracking-wide">
+                    <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
                       {label}
                     </label>
                     <input type={type} placeholder={ph} value={editForm[key] || ""}
                       onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800 text-sm text-neutral-900 dark:text-neutral-100 focus:outline-none focus:bg-white dark:focus:bg-neutral-900 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition"
+                      className="ui-input w-full"
                     />
                   </div>
                 ))}
@@ -832,24 +852,24 @@ export default function ComprasTable({ reload }) {
                     { label: "Entrega est. prov.", key: "fecha_entrega_proveedor" },
                   ].map(({ label, key }) => (
                     <div key={key}>
-                      <label className="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1.5 uppercase tracking-wide">
+                      <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
                         {label}
                       </label>
                       <input type="date" value={editForm[key] || ""}
                         onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800 text-sm text-neutral-900 dark:text-neutral-100 focus:outline-none focus:bg-white dark:focus:bg-neutral-900 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition"
+                        className="ui-input w-full"
                       />
                     </div>
                   ))}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1.5 uppercase tracking-wide">
+                  <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
                     Comprado por
                   </label>
                   <select value={editForm.comprado_por || "cliente"}
                     onChange={e => setEditForm(f => ({ ...f, comprado_por: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800 text-sm text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition">
+                    className="ui-select w-full">
                     <option value="cliente">Cliente</option>
                     <option value="empresa">Empresa</option>
                   </select>
@@ -858,24 +878,24 @@ export default function ComprasTable({ reload }) {
               </div>
 
               {editError && (
-                <p className="text-xs text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 px-3 py-2 rounded-xl">
+                <p className="text-xs px-3 py-2 rounded-xl" style={{ color: "var(--danger)", background: "var(--danger-soft)", border: "1px solid var(--danger)" }}>
                   {editError}
                 </p>
               )}
 
               <div className="flex justify-end">
                 <button onClick={guardarEdicion} disabled={savingEdit}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:bg-neutral-700 dark:hover:bg-neutral-100 disabled:opacity-50 transition-colors">
+                  className="ui-button disabled:opacity-50">
                   {savingEdit ? "Guardando..." : "Guardar cambios"}
                 </button>
               </div>
 
-              <div className="border-t border-slate-200 dark:border-neutral-800 pt-4 flex flex-col gap-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
+              <div className="pt-4 flex flex-col gap-3" style={{ borderTop: "1px solid var(--border)" }}>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
                   Ítems de la compra
                 </p>
                 {loadingItems ? (
-                  <p className="text-xs text-slate-400">Cargando ítems...</p>
+                  <p className="text-xs" style={{ color: "var(--text-3)" }}>Cargando ítems...</p>
                 ) : (
                   <>
                     <div className="flex flex-col gap-1.5">
@@ -888,36 +908,39 @@ export default function ComprasTable({ reload }) {
                             <input disabled={bloqueado} value={item.descripcion}
                               onChange={e => updateEditItemDescripcion(idx, e.target.value)}
                               placeholder="Descripción"
-                              className="px-2 py-1.5 rounded-lg border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800 text-xs text-neutral-900 dark:text-neutral-100 disabled:bg-slate-100 dark:disabled:bg-neutral-900 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-cyan-500/30 focus:bg-white"
+                              className="ui-input ui-input-sm disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                             <input type="text" inputMode="numeric" pattern="[0-9]*"
                               disabled={bloqueado} value={item.cantidad}
                               onChange={e => updateEditItemCantidad(idx, e.target.value)}
                               placeholder="Cant."
-                              className="px-1.5 py-1.5 rounded-lg border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800 text-xs text-center text-neutral-900 dark:text-neutral-100 disabled:bg-slate-100 dark:disabled:bg-neutral-900 disabled:cursor-not-allowed focus:outline-none"
+                              className="ui-input ui-input-sm text-center disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                             {bloqueado ? (
-                              <span className="text-slate-300 dark:text-neutral-600 text-xs text-center">🔒</span>
+                              <span className="text-xs text-center" style={{ color: "var(--border-strong)" }}>🔒</span>
                             ) : (
                               <button type="button" onClick={() => marcarEliminarItem(item, idx)}
-                                className="text-slate-400 hover:text-red-500 transition-colors text-xs text-center">✕</button>
+                                className="text-xs text-center transition-colors"
+                                style={{ color: "var(--text-3)" }}
+                                onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; }}>✕</button>
                             )}
                           </div>
                         );
                       })}
                     </div>
                     <button type="button" onClick={agregarEditItem}
-                      className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline text-left">
+                      className="text-xs text-left hover:underline" style={{ color: "var(--text-3)" }}>
                       + Agregar ítem
                     </button>
                     {itemsError && (
-                      <p className="text-xs text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/40 px-3 py-2 rounded-xl">
+                      <p className="text-xs px-3 py-2 rounded-xl" style={{ color: "var(--danger)", background: "var(--danger-soft)", border: "1px solid var(--danger)" }}>
                         {itemsError}
                       </p>
                     )}
                     <div className="flex justify-end">
                       <button onClick={guardarItems} disabled={savingItems}
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 hover:opacity-80 disabled:opacity-50 transition">
+                        className="ui-button ui-button-sm disabled:opacity-50">
                         {savingItems ? "Guardando..." : "Guardar ítems"}
                       </button>
                     </div>
