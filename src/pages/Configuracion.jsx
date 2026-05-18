@@ -14,7 +14,7 @@ function CampoTexto({ value, onChange, placeholder, className = "" }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-sm bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full ${className}`}
+      className={`ui-input ui-input-sm ${className}`}
     />
   );
 }
@@ -28,7 +28,7 @@ function CampoNumero({ value, onChange, placeholder, className = "" }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-sm bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-blue-400 w-full ${className}`}
+      className={`ui-input ui-input-sm ${className}`}
     />
   );
 }
@@ -84,7 +84,7 @@ function FilaCategoria({ cat, onSaved }) {
   }
 
   return (
-    <tr className="border-b border-neutral-200 dark:border-neutral-700">
+    <tr style={{ borderBottom: "1px solid var(--border)" }}>
       <td className="py-2 px-3">
         <CampoTexto value={form.nombre} onChange={(v) => set("nombre", v)} />
       </td>
@@ -92,7 +92,8 @@ function FilaCategoria({ cat, onSaved }) {
         <select
           value={form.tipo_calculo}
           onChange={(e) => set("tipo_calculo", e.target.value)}
-          className="border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-sm bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="ui-select ui-input-sm"
+          style={{ width: "auto" }}
         >
           {TIPO_CALCULO_OPTS.map((o) => (
             <option key={o} value={o}>{o}</option>
@@ -107,7 +108,8 @@ function FilaCategoria({ cat, onSaved }) {
           type="checkbox"
           checked={form.activa}
           onChange={(e) => set("activa", e.target.checked)}
-          className="accent-blue-500 w-4 h-4"
+          className="w-4 h-4"
+          style={{ accentColor: "var(--accent)" }}
         />
       </td>
       <td className="py-2 px-3">
@@ -115,19 +117,19 @@ function FilaCategoria({ cat, onSaved }) {
           type="number"
           value={form.orden}
           onChange={(e) => { set("orden", e.target.value); }}
-          className="border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-sm bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-blue-400 w-16"
+          className="ui-input ui-input-sm w-16"
         />
       </td>
       <td className="py-2 px-3 whitespace-nowrap">
         <button
           onClick={guardar}
           disabled={!dirty || saving}
-          className="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="ui-button ui-button-sm disabled:opacity-40"
         >
           {saving ? "Guardando…" : "Guardar"}
         </button>
         {msg && (
-          <span className={`ml-2 text-xs ${msg.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+          <span className="ml-2 text-xs" style={{ color: msg.ok ? "var(--success)" : "var(--danger)" }}>
             {msg.text}
           </span>
         )}
@@ -182,7 +184,7 @@ function FilaNueva({ onCreated }) {
   }
 
   return (
-    <tr className="border-b border-dashed border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30">
+    <tr style={{ borderBottom: "1px dashed var(--border)", background: "var(--surface-2)" }}>
       <td className="py-2 px-3">
         <CampoTexto
           value={form.nombre}
@@ -195,7 +197,8 @@ function FilaNueva({ onCreated }) {
         <select
           value={form.tipo_calculo}
           onChange={(e) => set("tipo_calculo", e.target.value)}
-          className="border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-sm bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          className="ui-select ui-input-sm"
+          style={{ width: "auto" }}
         >
           {TIPO_CALCULO_OPTS.map((o) => (
             <option key={o} value={o}>{o}</option>
@@ -210,7 +213,8 @@ function FilaNueva({ onCreated }) {
           type="checkbox"
           checked={form.activa}
           onChange={(e) => set("activa", e.target.checked)}
-          className="accent-blue-500 w-4 h-4"
+          className="w-4 h-4"
+          style={{ accentColor: "var(--accent)" }}
         />
       </td>
       <td className="py-2 px-3">
@@ -218,19 +222,19 @@ function FilaNueva({ onCreated }) {
           type="number"
           value={form.orden}
           onChange={(e) => set("orden", e.target.value)}
-          className="border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-sm bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:ring-1 focus:ring-blue-400 w-16"
+          className="ui-input ui-input-sm w-16"
         />
       </td>
       <td className="py-2 px-3 whitespace-nowrap">
         <button
           onClick={crear}
           disabled={saving}
-          className="px-3 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="ui-button-success ui-button-sm disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {saving ? "Creando…" : "Crear"}
         </button>
         {msg && (
-          <span className={`ml-2 text-xs ${msg.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+          <span className="ml-2 text-xs" style={{ color: msg.ok ? "var(--success)" : "var(--danger)" }}>
             {msg.text}
           </span>
         )}
@@ -270,44 +274,45 @@ export default function Configuracion() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">Configuración</h1>
-        <p className="text-sm text-neutral-500 mt-1">Parámetros del sistema operativo.</p>
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-1">
+        <p className="ui-section-title">Sistema</p>
+        <h1 className="ui-page-title">Configuración</h1>
+        <p className="text-sm mt-0.5" style={{ color: "var(--text-3)" }}>Parámetros del sistema operativo.</p>
       </div>
 
-      <section className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-700 p-6">
+      <section className="ui-section-card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-neutral-700 dark:text-neutral-200">
+          <h2 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
             Categorías operativas
           </h2>
           <button
             onClick={cargar}
-            className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition"
+            className="text-xs transition"
+            style={{ color: "var(--text-3)" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; }}
           >
             Recargar
           </button>
         </div>
 
         {cargando && (
-          <p className="text-sm text-neutral-400">Cargando…</p>
+          <p className="text-sm" style={{ color: "var(--text-3)" }}>Cargando…</p>
         )}
 
         {error && (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>
         )}
 
         {!cargando && !error && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-                  <th className="pb-2 px-3 font-medium">Nombre</th>
-                  <th className="pb-2 px-3 font-medium">Tipo cálculo</th>
-                  <th className="pb-2 px-3 font-medium">Ref. USD</th>
-                  <th className="pb-2 px-3 font-medium text-center">Activa</th>
-                  <th className="pb-2 px-3 font-medium">Orden</th>
-                  <th className="pb-2 px-3 font-medium"></th>
+                <tr>
+                  {["Nombre", "Tipo cálculo", "Ref. USD", "Activa", "Orden", ""].map((h, i) => (
+                    <th key={i} className="ui-th">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>

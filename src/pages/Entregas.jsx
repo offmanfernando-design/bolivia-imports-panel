@@ -9,10 +9,10 @@ function formatFecha(iso) {
 }
 
 const ZONA_LABEL = { local: "Local", terminal: "Terminal", desconocidos: "Desc." }
-const ZONA_BADGE = {
-  local:        "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  terminal:     "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  desconocidos: "bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400",
+const ZONA_STYLE = {
+  local:        { background: "var(--surface-2)", color: "var(--text-2)" },
+  terminal:     { background: "var(--surface-3)", color: "var(--text-2)" },
+  desconocidos: { background: "var(--surface-2)", color: "var(--text-3)" },
 }
 
 // ─── Canvas de firma ──────────────────────────────────────────────────────────
@@ -63,9 +63,8 @@ function FirmaCanvas({ canvasRef, onHasFirma }) {
       ref={canvasRef}
       width={560}
       height={180}
-      className="w-full rounded-lg border border-neutral-300 dark:border-neutral-600
-        bg-white dark:bg-neutral-900 touch-none cursor-crosshair"
-      style={{ touchAction: "none" }}
+      className="w-full rounded-lg touch-none cursor-crosshair"
+      style={{ touchAction: "none", border: "1px solid var(--border)", background: "var(--surface)" }}
       onMouseDown={startDraw}  onMouseMove={draw}  onMouseUp={endDraw}  onMouseLeave={endDraw}
       onTouchStart={startDraw} onTouchMove={draw}  onTouchEnd={endDraw}
       onPointerDown={startDraw} onPointerMove={draw} onPointerUp={endDraw} onPointerLeave={endDraw}
@@ -78,23 +77,26 @@ function ModalFirma({ url, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-white dark:bg-neutral-950
-        border border-neutral-200 dark:border-neutral-800
-        rounded-2xl shadow-2xl p-4 max-w-sm w-full mx-4 flex flex-col gap-3">
+      <div className="relative z-10 rounded-2xl shadow-2xl p-4 max-w-sm w-full mx-4 flex flex-col gap-3"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
         <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
             Firma digital
           </p>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition text-lg leading-none">
+            className="transition text-lg leading-none"
+            style={{ color: "var(--text-3)" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; }}>
             ✕
           </button>
         </div>
         <img
           src={url}
           alt="Firma digital"
-          className="w-full rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white"
+          className="w-full rounded-lg"
+          style={{ border: "1px solid var(--border)", background: "var(--surface)" }}
         />
       </div>
     </div>
@@ -156,62 +158,57 @@ function ModalEntrega({ row, onClose, onEntregado }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full sm:max-w-lg
-        bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800
-        rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto
-        p-6 flex flex-col gap-5">
+      <div className="relative z-10 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto p-6 flex flex-col gap-5"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
 
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wider font-medium text-neutral-400 dark:text-neutral-500">
+            <p className="text-xs uppercase tracking-wider font-medium" style={{ color: "var(--text-3)" }}>
               Confirmar entrega
             </p>
-            <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-0.5">
+            <h3 className="text-base font-semibold mt-0.5" style={{ color: "var(--text)" }}>
               {row.cliente_nombre}
             </h3>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5 leading-snug">
+            <p className="text-sm mt-0.5 leading-snug" style={{ color: "var(--text-3)" }}>
               {row.item_descripcion}
             </p>
           </div>
           <button onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200
-              transition text-lg leading-none flex-shrink-0 mt-0.5">✕</button>
+            className="transition text-lg leading-none flex-shrink-0 mt-0.5"
+            style={{ color: "var(--text-3)" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; }}>✕</button>
         </div>
 
-        <div className="rounded-lg bg-neutral-50 dark:bg-neutral-900
-          border border-neutral-200 dark:border-neutral-800
-          px-4 py-3 grid grid-cols-2 gap-3 text-sm">
+        <div className="rounded-lg px-4 py-3 grid grid-cols-2 gap-3 text-sm"
+          style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
           <div>
-            <p className="text-xs text-neutral-400 mb-0.5">Cliente</p>
-            <p className="font-medium text-neutral-800 dark:text-neutral-100">{row.cliente_nombre || "—"}</p>
+            <p className="text-xs mb-0.5" style={{ color: "var(--text-3)" }}>Cliente</p>
+            <p className="font-medium" style={{ color: "var(--text)" }}>{row.cliente_nombre || "—"}</p>
           </div>
           <div>
-            <p className="text-xs text-neutral-400 mb-0.5">Teléfono</p>
-            <p className="font-medium text-neutral-800 dark:text-neutral-100">{row.cliente_telefono || "—"}</p>
+            <p className="text-xs mb-0.5" style={{ color: "var(--text-3)" }}>Teléfono</p>
+            <p className="font-medium" style={{ color: "var(--text)" }}>{row.cliente_telefono || "—"}</p>
           </div>
           <div className="col-span-2">
-            <p className="text-xs text-neutral-400 mb-0.5">Ítem</p>
-            <p className="text-neutral-700 dark:text-neutral-300 leading-snug">{row.item_descripcion || "—"}</p>
+            <p className="text-xs mb-0.5" style={{ color: "var(--text-3)" }}>Ítem</p>
+            <p className="leading-snug" style={{ color: "var(--text-2)" }}>{row.item_descripcion || "—"}</p>
           </div>
         </div>
 
         {done ? (
-          <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40
-            border border-emerald-200 dark:border-emerald-800
-            px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400 font-medium">
+          <div className="rounded-lg px-4 py-3 text-sm font-medium"
+            style={{ background: "var(--success-soft)", border: "1px solid var(--success)", color: "var(--success)" }}>
             Entrega registrada correctamente.
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                Recibido por <span className="text-red-500">*</span>
+              <label className="text-xs font-medium" style={{ color: "var(--text-3)" }}>
+                Recibido por <span style={{ color: "var(--danger)" }}>*</span>
               </label>
               <input
-                className="w-full px-3 py-2.5 rounded-lg border border-neutral-200
-                  dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900
-                  text-sm text-neutral-800 dark:text-neutral-200
-                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40 transition"
+                className="ui-input"
                 placeholder="Nombre completo"
                 value={entregadoA}
                 onChange={e => setEntregadoA(e.target.value)}
@@ -219,14 +216,11 @@ function ModalEntrega({ row, onClose, onEntregado }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+              <label className="text-xs font-medium" style={{ color: "var(--text-3)" }}>
                 Observación (opcional)
               </label>
               <input
-                className="w-full px-3 py-2.5 rounded-lg border border-neutral-200
-                  dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900
-                  text-sm text-neutral-800 dark:text-neutral-200
-                  focus:outline-none focus:ring-2 focus:ring-neutral-300/40 transition"
+                className="ui-input"
                 placeholder="Ej: Recibió con documento"
                 value={observacion}
                 onChange={e => setObservacion(e.target.value)}
@@ -235,38 +229,35 @@ function ModalEntrega({ row, onClose, onEntregado }) {
 
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                <label className="text-xs font-medium" style={{ color: "var(--text-3)" }}>
                   Firma digital
-                  <span className="ml-1.5 text-neutral-400 font-normal">(recomendada)</span>
+                  <span className="ml-1.5 font-normal" style={{ color: "var(--text-3)" }}>(recomendada)</span>
                 </label>
                 {hasFirma && (
                   <button type="button" onClick={limpiarFirma}
-                    className="text-xs text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition">
+                    className="text-xs transition"
+                    style={{ color: "var(--text-3)" }}
+                    onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; }}>
                     Limpiar firma
                   </button>
                 )}
               </div>
               <FirmaCanvas canvasRef={canvasRef} onHasFirma={setHasFirma} />
               {!hasFirma && (
-                <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                <p className="text-xs" style={{ color: "var(--text-3)" }}>
                   Firme en el recuadro con el dedo, lápiz o cursor.
                 </p>
               )}
             </div>
 
-            {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
+            {error && <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>}
 
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={onClose}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-neutral-200
-                  dark:border-neutral-700 text-sm font-medium
-                  text-neutral-600 dark:text-neutral-400
-                  hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">
+              <button type="button" onClick={onClose} className="ui-button-ghost flex-1">
                 Cancelar
               </button>
-              <button type="submit" disabled={saving}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700
-                  text-sm font-semibold text-white disabled:opacity-50 transition">
+              <button type="submit" disabled={saving} className="ui-button-success flex-1">
                 {saving ? "Guardando..." : "Confirmar entrega"}
               </button>
             </div>
@@ -334,12 +325,10 @@ function TabPendientes() {
           placeholder="Buscar por cliente, ítem, tracking, REC, ubicación..."
           value={q}
           onChange={e => handleSearch(e.target.value)}
-          className="w-full md:max-w-md px-4 py-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700
-            bg-white dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200
-            placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300/40 transition"
+          className="ui-input md:max-w-md"
         />
         {!loading && (
-          <span className="text-xs text-neutral-400 whitespace-nowrap flex-shrink-0">
+          <span className="text-xs whitespace-nowrap flex-shrink-0" style={{ color: "var(--text-3)" }}>
             {filtered.length} ítem{filtered.length !== 1 ? "s" : ""}
           </span>
         )}
@@ -348,22 +337,22 @@ function TabPendientes() {
       {loading && (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-16 rounded-xl bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
+            <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: "var(--surface-2)" }} />
           ))}
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-200 dark:border-red-800
-          bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+        <div className="rounded-lg px-4 py-3 text-sm"
+          style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
           {error}
         </div>
       )}
 
       {!loading && !error && filtered.length === 0 && (
-        <div className="rounded-lg border border-neutral-200 dark:border-neutral-700
-          bg-white dark:bg-neutral-800 px-6 py-12 text-center">
-          <p className="text-sm text-neutral-400 dark:text-neutral-500">
+        <div className="rounded-lg px-6 py-12 text-center"
+          style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+          <p className="text-sm" style={{ color: "var(--text-3)" }}>
             {q.trim() ? "Sin resultados para la búsqueda." : "No hay ítems pendientes de entrega."}
           </p>
         </div>
@@ -372,56 +361,49 @@ function TabPendientes() {
       {!loading && !error && filtered.length > 0 && (
         <>
           {/* Tabla desktop */}
-          <div className="hidden md:block rounded-xl border border-neutral-200 dark:border-neutral-700
-            bg-white dark:bg-neutral-800 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="hidden md:block ui-table overflow-x-auto">
+            <table className="w-full text-sm" style={{ minWidth: "680px" }}>
               <thead>
-                <tr className="border-b border-neutral-100 dark:border-neutral-700
-                  text-xs uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-                  <th className="px-4 py-3 text-left font-medium">Cliente</th>
-                  <th className="px-4 py-3 text-left font-medium">Ítem</th>
-                  <th className="px-4 py-3 text-left font-medium">REC</th>
-                  <th className="px-4 py-3 text-left font-medium">Ubicación</th>
-                  <th className="px-4 py-3 text-left font-medium">Zona</th>
-                  <th className="px-4 py-3 text-left font-medium">Recibido</th>
-                  <th className="px-4 py-3 text-left font-medium">Acción</th>
+                <tr>
+                  {["Cliente", "Ítem", "REC", "Ubicación", "Zona", "Recibido", "Acción"].map(h => (
+                    <th key={h} className="ui-th">{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700">
+              <tbody>
                 {filtered.map(row => (
-                  <tr key={row.item_id}
-                    className="hover:bg-neutral-50 dark:hover:bg-neutral-700/40 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-neutral-800 dark:text-neutral-100 whitespace-nowrap">
+                  <tr key={row.item_id} className="ui-row">
+                    <td className="ui-td">
+                      <p className="font-medium whitespace-nowrap" style={{ color: "var(--text)" }}>
                         {row.cliente_nombre}
                       </p>
-                      <p className="text-xs text-neutral-400 mt-0.5">{row.cliente_telefono || "—"}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>{row.cliente_telefono || "—"}</p>
                     </td>
-                    <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300 max-w-[220px] truncate"
-                      title={row.item_descripcion}>
+                    <td className="ui-td max-w-[220px] truncate" title={row.item_descripcion}
+                      style={{ color: "var(--text-2)" }}>
                       {row.item_descripcion}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-500 whitespace-nowrap">
+                    <td className="ui-td whitespace-nowrap"
+                      style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", color: "var(--text-3)" }}>
                       {row.codigo_recepcion || "—"}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold
-                      text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
+                    <td className="ui-td whitespace-nowrap"
+                      style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", fontWeight: 600, color: "var(--text-2)" }}>
                       {row.ubicacion_codigo || "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="ui-td">
                       {row.zona ? (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ZONA_BADGE[row.zona] ?? ZONA_BADGE.desconocidos}`}>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}>
                           {ZONA_LABEL[row.zona] ?? row.zona}
                         </span>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-neutral-400 whitespace-nowrap">
+                    <td className="ui-td whitespace-nowrap text-xs" style={{ color: "var(--text-3)" }}>
                       {formatFecha(row.recibido_at)}
                     </td>
-                    <td className="px-4 py-3">
-                      <button onClick={() => setModalRow(row)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium
-                          bg-emerald-600 hover:bg-emerald-700 text-white transition">
+                    <td className="ui-td">
+                      <button onClick={() => setModalRow(row)} className="ui-button-success ui-button-sm">
                         Entregar
                       </button>
                     </td>
@@ -435,34 +417,32 @@ function TabPendientes() {
           <div className="md:hidden space-y-2">
             {filtered.map(row => (
               <div key={row.item_id}
-                className="rounded-xl border border-neutral-200 dark:border-neutral-700
-                  bg-white dark:bg-neutral-800 px-4 pt-4 pb-3 space-y-3">
+                className="rounded-xl px-4 pt-4 pb-3 space-y-3"
+                style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
                 <div>
-                  <p className="font-semibold text-[15px] leading-snug
-                    text-neutral-800 dark:text-neutral-100">{row.cliente_nombre}</p>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-0.5 leading-snug">
+                  <p className="font-semibold text-[15px] leading-snug" style={{ color: "var(--text)" }}>{row.cliente_nombre}</p>
+                  <p className="text-sm mt-0.5 leading-snug" style={{ color: "var(--text-2)" }}>
                     {row.item_descripcion}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   {row.ubicacion_codigo && (
-                    <span className="font-mono text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                    <span className="font-mono text-xs font-semibold" style={{ color: "var(--text-2)" }}>
                       {row.ubicacion_codigo}
                     </span>
                   )}
                   {row.zona && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ZONA_BADGE[row.zona] ?? ZONA_BADGE.desconocidos}`}>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}>
                       {ZONA_LABEL[row.zona] ?? row.zona}
                     </span>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-3 pt-0.5">
-                  <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                  <p className="text-xs" style={{ color: "var(--text-3)" }}>
                     {formatFecha(row.recibido_at)}
                   </p>
-                  <button onClick={() => setModalRow(row)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium
-                      bg-emerald-600 hover:bg-emerald-700 text-white transition">
+                  <button onClick={() => setModalRow(row)} className="ui-button-success ui-button-sm">
                     Entregar
                   </button>
                 </div>
@@ -538,20 +518,14 @@ function TabHistorial() {
           placeholder="Buscar cliente, ítem, entregado a, tracking..."
           value={q}
           onChange={e => setQ(e.target.value)}
-          className="flex-1 sm:max-w-md px-4 py-2.5 rounded-lg border border-neutral-200 dark:border-neutral-700
-            bg-white dark:bg-neutral-800 text-sm text-neutral-800 dark:text-neutral-200
-            placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-300/40 transition"
+          className="ui-input flex-1 sm:max-w-md"
         />
         <div className="flex gap-1">
           {Object.entries(PERIODO_LABELS).map(([key, label]) => (
             <button
               key={key}
               onClick={() => handlePeriodo(key)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium transition whitespace-nowrap
-                ${periodo === key
-                  ? "bg-neutral-800 dark:bg-neutral-100 text-white dark:text-neutral-900"
-                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                }`}
+              className={periodo === key ? "ui-button ui-button-sm" : "ui-button-ghost ui-button-sm"}
             >
               {label}
             </button>
@@ -560,7 +534,7 @@ function TabHistorial() {
       </div>
 
       {!loading && (
-        <p className="text-xs text-neutral-400">
+        <p className="text-xs" style={{ color: "var(--text-3)" }}>
           {filtered.length} entrega{filtered.length !== 1 ? "s" : ""}
           {q.trim() ? " encontradas" : ` — ${PERIODO_LABELS[periodo]}`}
         </p>
@@ -569,22 +543,22 @@ function TabHistorial() {
       {loading && (
         <div className="space-y-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-16 rounded-xl bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
+            <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background: "var(--surface-2)" }} />
           ))}
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-200 dark:border-red-800
-          bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+        <div className="rounded-lg px-4 py-3 text-sm"
+          style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
           {error}
         </div>
       )}
 
       {!loading && !error && filtered.length === 0 && (
-        <div className="rounded-lg border border-neutral-200 dark:border-neutral-700
-          bg-white dark:bg-neutral-800 px-6 py-12 text-center">
-          <p className="text-sm text-neutral-400 dark:text-neutral-500">
+        <div className="rounded-lg px-6 py-12 text-center"
+          style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+          <p className="text-sm" style={{ color: "var(--text-3)" }}>
             {q.trim() ? "Sin resultados para la búsqueda." : "Sin entregas en este período."}
           </p>
         </div>
@@ -593,68 +567,58 @@ function TabHistorial() {
       {!loading && !error && filtered.length > 0 && (
         <>
           {/* Tabla desktop */}
-          <div className="hidden md:block rounded-xl border border-neutral-200 dark:border-neutral-700
-            bg-white dark:bg-neutral-800 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="hidden md:block ui-table overflow-x-auto">
+            <table className="w-full text-sm" style={{ minWidth: "740px" }}>
               <thead>
-                <tr className="border-b border-neutral-100 dark:border-neutral-700
-                  text-xs uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-                  <th className="px-4 py-3 text-left font-medium">Cliente</th>
-                  <th className="px-4 py-3 text-left font-medium">Ítem</th>
-                  <th className="px-4 py-3 text-left font-medium">Entregado a</th>
-                  <th className="px-4 py-3 text-left font-medium">REC / Ubic.</th>
-                  <th className="px-4 py-3 text-left font-medium">Fecha</th>
-                  <th className="px-4 py-3 text-left font-medium">Firma</th>
+                <tr>
+                  {["Cliente", "Ítem", "Entregado a", "REC / Ubic.", "Fecha", "Firma"].map(h => (
+                    <th key={h} className="ui-th">{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700">
+              <tbody>
                 {filtered.map(row => (
-                  <tr key={row.entrega_id}
-                    className="hover:bg-neutral-50 dark:hover:bg-neutral-700/40 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-neutral-800 dark:text-neutral-100 whitespace-nowrap">
+                  <tr key={row.entrega_id} className="ui-row">
+                    <td className="ui-td">
+                      <p className="font-medium whitespace-nowrap" style={{ color: "var(--text)" }}>
                         {row.cliente_nombre || "—"}
                       </p>
-                      <p className="text-xs text-neutral-400 mt-0.5">{row.cliente_telefono || "—"}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>{row.cliente_telefono || "—"}</p>
                     </td>
-                    <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300 max-w-[200px] truncate"
-                      title={row.item_descripcion}>
+                    <td className="ui-td max-w-[200px] truncate" title={row.item_descripcion}
+                      style={{ color: "var(--text-2)" }}>
                       {row.item_descripcion || "—"}
                     </td>
-                    <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
+                    <td className="ui-td whitespace-nowrap" style={{ color: "var(--text-2)" }}>
                       <p>{row.entregado_a}</p>
                       {row.observacion && (
-                        <p className="text-xs text-neutral-400 mt-0.5 max-w-[160px] truncate"
-                          title={row.observacion}>
+                        <p className="text-xs mt-0.5 max-w-[160px] truncate" title={row.observacion}
+                          style={{ color: "var(--text-3)" }}>
                           {row.observacion}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="font-mono text-xs text-neutral-500">{row.codigo_recepcion || "—"}</p>
+                    <td className="ui-td">
+                      <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", color: "var(--text-3)" }}>
+                        {row.codigo_recepcion || "—"}
+                      </p>
                       {row.ubicacion_codigo && (
-                        <p className="font-mono text-xs font-semibold text-neutral-700 dark:text-neutral-300 mt-0.5">
+                        <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", fontWeight: 600, color: "var(--text-2)", marginTop: "2px" }}>
                           {row.ubicacion_codigo}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-neutral-400 whitespace-nowrap">
+                    <td className="ui-td whitespace-nowrap text-xs" style={{ color: "var(--text-3)" }}>
                       {formatFecha(row.entregado_at)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="ui-td">
                       {row.firma_url ? (
-                        <button
-                          onClick={() => setFirmaUrl(row.firma_url)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-medium
-                            border border-neutral-200 dark:border-neutral-700
-                            text-neutral-600 dark:text-neutral-400
-                            hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
+                        <button onClick={() => setFirmaUrl(row.firma_url)}
+                          className="ui-button-ghost ui-button-sm">
                           Ver firma
                         </button>
                       ) : (
-                        <span className="text-xs text-neutral-400 dark:text-neutral-500">
-                          Sin firma
-                        </span>
+                        <span className="text-xs" style={{ color: "var(--text-3)" }}>Sin firma</span>
                       )}
                     </td>
                   </tr>
@@ -667,47 +631,45 @@ function TabHistorial() {
           <div className="md:hidden space-y-2">
             {filtered.map(row => (
               <div key={row.entrega_id}
-                className="rounded-xl border border-neutral-200 dark:border-neutral-700
-                  bg-white dark:bg-neutral-800 px-4 pt-4 pb-3 space-y-2">
+                className="rounded-xl px-4 pt-4 pb-3 space-y-2"
+                style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold text-[15px] leading-snug
-                      text-neutral-800 dark:text-neutral-100">
+                    <p className="font-semibold text-[15px] leading-snug" style={{ color: "var(--text)" }}>
                       {row.cliente_nombre || "—"}
                     </p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-0.5 leading-snug truncate">
+                    <p className="text-sm mt-0.5 leading-snug truncate" style={{ color: "var(--text-2)" }}>
                       {row.item_descripcion || "—"}
                     </p>
                   </div>
                   {row.firma_url ? (
                     <button
                       onClick={() => setFirmaUrl(row.firma_url)}
-                      className="flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium
-                        border border-neutral-200 dark:border-neutral-700
-                        text-neutral-600 dark:text-neutral-400
-                        hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
+                      className="flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition"
+                      style={{ border: "1px solid var(--border)", color: "var(--text-2)" }}>
                       Ver firma
                     </button>
                   ) : (
-                    <span className="flex-shrink-0 text-xs text-neutral-400 dark:text-neutral-500 pt-0.5">
+                    <span className="flex-shrink-0 text-xs pt-0.5" style={{ color: "var(--text-3)" }}>
                       Sin firma
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-neutral-500">
+                <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-3)" }}>
                   <span>→ {row.entregado_a}</span>
                   {row.ubicacion_codigo && (
-                    <span className="font-mono font-semibold text-neutral-700 dark:text-neutral-300">
+                    <span className="font-mono font-semibold" style={{ color: "var(--text-2)" }}>
                       {row.ubicacion_codigo}
                     </span>
                   )}
                   {row.zona && (
-                    <span className={`px-1.5 py-0.5 rounded-full font-medium ${ZONA_BADGE[row.zona] ?? ZONA_BADGE.desconocidos}`}>
+                    <span className="px-1.5 py-0.5 rounded-full font-medium"
+                      style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}>
                       {ZONA_LABEL[row.zona] ?? row.zona}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                <p className="text-xs" style={{ color: "var(--text-3)" }}>
                   {formatFecha(row.entregado_at)}
                 </p>
               </div>
@@ -726,20 +688,19 @@ export default function Entregas() {
   const [tab, setTab] = useState("pendientes")
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6">
 
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-semibold text-neutral-800 dark:text-neutral-100">
-          Entregas
-        </h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
+      <div className="flex flex-col gap-1">
+        <p className="ui-section-title">Finanzas</p>
+        <h1 className="ui-page-title">Entregas</h1>
+        <p className="text-sm mt-0.5" style={{ color: "var(--text-3)" }}>
           Entrega local de ítems recibidos en Bolivia
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-neutral-200 dark:border-neutral-700 pb-0">
+      <div className="ui-tabs">
         {[
           { key: "pendientes", label: "Pendientes" },
           { key: "historial",  label: "Historial"  },
@@ -747,11 +708,7 @@ export default function Entregas() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition
-              ${tab === key
-                ? "text-neutral-900 dark:text-neutral-100 border-b-2 border-neutral-800 dark:border-neutral-200"
-                : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
-              }`}
+            className={`ui-tab ${tab === key ? "ui-tab-active" : ""}`}
           >
             {label}
           </button>

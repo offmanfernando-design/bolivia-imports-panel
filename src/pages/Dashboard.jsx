@@ -73,110 +73,90 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-12">
-        <div className="h-8 w-40 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse" />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="flex flex-col gap-8">
+        <div className="h-8 w-40 rounded-lg animate-pulse" style={{ background: "var(--surface-3)" }} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-24 rounded-xl bg-neutral-200 dark:bg-neutral-800 animate-pulse"
-            />
+            <div key={i} className="h-[92px] rounded-2xl animate-pulse" style={{ background: "var(--surface-2)" }} />
           ))}
         </div>
-
-        <div className="h-64 rounded-xl bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
+        <div className="h-64 rounded-2xl animate-pulse" style={{ background: "var(--surface-2)" }} />
       </div>
     );
   }
 
   return (
-    <div className="space-y-12">
-      <div className="flex flex-col gap-1">
-        <p className="text-xs text-neutral-400 uppercase tracking-widest">
-          Overview
-        </p>
+    <div className="flex flex-col gap-8">
 
-        <h2 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-          Dashboard
-        </h2>
+      {/* CABECERA */}
+      <div className="flex flex-col gap-1">
+        <p className="ui-section-title">Overview</p>
+        <h2 className="ui-page-title">Dashboard</h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* STATS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
           title="Paquetes en almacén"
-          value={stats?.en_almacen ?? "-"}
-          icon={<Package size={20} />}
+          value={stats?.en_almacen ?? "—"}
+          icon={<Package size={19} />}
           accent="cyan"
         />
-
         <StatCard
           title="Entregas hoy"
-          value={stats?.entregas_hoy ?? "-"}
-          icon={<Truck size={20} />}
+          value={stats?.entregas_hoy ?? "—"}
+          icon={<Truck size={19} />}
           accent="emerald"
         />
-
         <StatCard
           title="Cobros pendientes"
-          value={stats?.pendiente_cobro ?? "-"}
-          icon={<DollarSign size={20} />}
+          value={stats?.pendiente_cobro ?? "—"}
+          icon={<DollarSign size={19} />}
           accent="amber"
         />
       </div>
 
-      <div
-        className="
-        bg-white dark:bg-neutral-950
-        border border-neutral-200 dark:border-neutral-800
-        rounded-xl
-        p-6
-        flex flex-col gap-6
-        shadow-sm dark:shadow-black/20
-        "
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold tracking-widest uppercase text-neutral-500 dark:text-neutral-400">
-            Paquetes recientes
-          </h3>
+      {/* TABLA */}
+      <div className="rounded-2xl overflow-hidden"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
+
+        {/* Header tabla */}
+        <div className="px-6 py-4 flex items-center justify-between gap-4"
+          style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text)" }}>
+              Paquetes recientes
+            </h3>
+          </div>
+          {!loading && data.length > 0 && (
+            <span className="text-[11px] font-medium tabular-nums px-2 py-0.5 rounded-full"
+              style={{ background: "var(--surface-3)", color: "var(--text-3)" }}>
+              {filteredData.length} {filteredData.length === 1 ? "paquete" : "paquetes"}
+            </span>
+          )}
         </div>
 
-        <input
-          type="text"
-          placeholder="Buscar tracking, cliente o teléfono..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="
-            w-full
-            px-4 py-2.5
-            rounded-lg
-            border border-neutral-200 dark:border-neutral-800
-            bg-white dark:bg-neutral-900
-            text-sm
-            text-neutral-900 dark:text-neutral-100
-            placeholder-neutral-400
-            focus:outline-none
-            focus:ring-2 focus:ring-neutral-300/40
-            transition
-          "
-        />
+        {/* Búsqueda */}
+        <div className="px-6 py-3.5 flex items-center gap-3"
+          style={{ borderBottom: "1px solid var(--border)" }}>
+          <input
+            type="text"
+            placeholder="Buscar tracking, cliente o teléfono..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="ui-input max-w-sm"
+          />
+          {searchLoading && (
+            <span className="text-xs flex-shrink-0" style={{ color: "var(--text-3)" }}>Buscando...</span>
+          )}
+        </div>
 
-        {searchLoading && (
-          <p className="text-xs text-neutral-400">Buscando...</p>
-        )}
-
+        {/* Estado vacío */}
         {isEmpty ? (
-          <div
-            className="
-            flex flex-col items-center justify-center
-            py-16
-            text-neutral-400
-            text-sm
-            border border-dashed border-neutral-200 dark:border-neutral-800
-            rounded-lg
-          "
-          >
-            No se encontraron paquetes
+          <div className="px-6 py-16 text-center">
+            <p className="text-sm" style={{ color: "var(--text-3)" }}>
+              {search.length >= 2 ? "Sin resultados para la búsqueda." : "No se encontraron paquetes."}
+            </p>
           </div>
         ) : (
           <Table
@@ -185,11 +165,13 @@ export default function Dashboard() {
             onRowClick={handleRowClick}
           />
         )}
+
       </div>
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <PackageDrawer pkg={selectedPackage} />
       </Drawer>
+
     </div>
   );
 }

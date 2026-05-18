@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FileText, Download, Clock } from "lucide-react"
+import { FileText, Download } from "lucide-react"
 import { API_URL } from "../config/api"
 
 function exportarCSV(nombreArchivo, columnas, filas) {
@@ -204,42 +204,52 @@ export default function Reportes() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-8">
 
-      <div>
+      <div className="flex flex-col gap-1">
         <p className="ui-section-title">Sistema</p>
         <h2 className="ui-page-title">Reportes</h2>
-        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-          Exportaciones operativas del sistema
+        <p className="mt-0.5 text-sm" style={{ color: "var(--text-3)" }}>
+          Exportaciones operativas del sistema en formato CSV
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {REPORTES.map((r) => (
-          <div key={r.id} className="ui-section-card flex flex-col gap-4">
-
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <FileText
-                  size={15}
-                  className="text-neutral-400 dark:text-neutral-500 flex-shrink-0 mt-0.5"
-                />
-                <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 truncate">
+          <div
+            key={r.id}
+            className="relative flex flex-col gap-4 p-5 rounded-xl border transition-all duration-200"
+            style={{
+              background:   "var(--surface)",
+              border:       `1px solid var(--border)`,
+              boxShadow:    r.disponible ? "var(--shadow-sm)" : "none",
+              opacity:      r.disponible ? 1 : 0.55,
+            }}
+          >
+            {/* Icon + title */}
+            <div className="flex items-start gap-3">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "var(--surface-2)", color: "var(--text-2)" }}
+              >
+                <FileText size={16} />
+              </div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <h3 className="text-sm font-semibold leading-tight" style={{ color: "var(--text)" }}>
                   {r.titulo}
                 </h3>
               </div>
-              {r.disponible ? (
-                <span className="inline-flex items-center flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                  Disponible
-                </span>
-              ) : (
-                <span className="inline-flex items-center flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400">
-                  Próximamente
+              {!r.disponible && (
+                <span
+                  className="text-[9px] uppercase tracking-widest font-semibold flex-shrink-0 pt-1"
+                  style={{ color: "var(--text-3)" }}
+                >
+                  Próximo
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed flex-1">
+            <p className="text-xs leading-relaxed flex-1" style={{ color: "var(--text-3)" }}>
               {r.descripcion}
             </p>
 
@@ -247,20 +257,23 @@ export default function Reportes() {
               <button
                 onClick={() => handleExportar(r)}
                 disabled={!!loading}
-                className="ui-button-ghost flex items-center gap-2 justify-center w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ui-button-ghost flex items-center gap-2 justify-center w-full text-xs"
+                style={{ height: "32px" }}
               >
-                <Download size={13} />
-                {loading === r.id ? "Exportando..." : "Exportar CSV"}
+                {loading === r.id ? (
+                  <>
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-t-transparent animate-spin"
+                      style={{ borderColor: "var(--border-strong)", borderTopColor: "transparent" }} />
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    <Download size={13} />
+                    Exportar CSV
+                  </>
+                )}
               </button>
-            ) : (
-              <button
-                disabled
-                className="ui-button-ghost flex items-center gap-2 justify-center w-full opacity-40 cursor-not-allowed"
-              >
-                <Clock size={13} />
-                Próximamente
-              </button>
-            )}
+            ) : null}
 
           </div>
         ))}

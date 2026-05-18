@@ -21,10 +21,10 @@ function formatFecha(iso) {
 }
 
 const ZONA_LABEL = { local: "Local", terminal: "Terminal", desconocidos: "Desc." }
-const ZONA_COLOR = {
-  local:        "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-  terminal:     "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-  desconocidos: "bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400",
+const ZONA_STYLE = {
+  local:        { background: "var(--surface-3)", color: "var(--text-2)" },
+  terminal:     { background: "var(--accent-soft)", color: "var(--accent)" },
+  desconocidos: { background: "var(--surface-2)", color: "var(--text-3)" },
 }
 
 function esSantaCruz(departamento) {
@@ -152,22 +152,22 @@ function ModalCobro({ row, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full sm:max-w-md bg-white dark:bg-neutral-950
-        border border-neutral-200 dark:border-neutral-800
-        rounded-t-2xl sm:rounded-2xl shadow-2xl
-        p-6 flex flex-col gap-5
-      ">
+      <div className="relative z-10 w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl p-6 flex flex-col gap-5"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="ui-section-title">Registrar cobro</p>
-            <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100 mt-0.5">
+            <h3 className="text-base font-semibold mt-0.5" style={{ color: "var(--text)" }}>
               {row.item_descripcion}
             </h3>
-            <p className="text-xs text-neutral-400 mt-0.5">{row.cliente_nombre}</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>{row.cliente_nombre}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition text-lg leading-none flex-shrink-0 mt-0.5"
+            className="transition text-lg leading-none flex-shrink-0 mt-0.5"
+            style={{ color: "var(--text-3)" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--text)" }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)" }}
           >
             ✕
           </button>
@@ -311,7 +311,7 @@ export default function Cobros() {
           <h2 className="ui-page-title">Cobros</h2>
         </div>
         {!loading && (
-          <div className="flex gap-3 text-xs text-neutral-400">
+          <div className="flex gap-3 text-xs" style={{ color: "var(--text-3)" }}>
             <span>{pending.length} pendiente{pending.length !== 1 ? "s" : ""}</span>
             <span>{paid.length} cobrado{paid.length !== 1 ? "s" : ""}</span>
           </div>
@@ -338,52 +338,48 @@ export default function Cobros() {
       {error && <p className="text-xs text-red-500">{error}</p>}
 
       {!loading && rows.length === 0 && !error && (
-        <p className="text-sm text-neutral-400">Sin ítems cobrables.</p>
+        <p className="text-sm" style={{ color: "var(--text-3)" }}>Sin ítems cobrables.</p>
       )}
 
       {rows.length > 0 && (
         <div className="ui-table overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full" style={{ minWidth: "860px" }}>
             <thead>
-              <tr className="border-b border-neutral-200 dark:border-neutral-800 text-xs text-neutral-400 uppercase tracking-wide">
-                <th className="text-left px-4 py-3 font-medium">Cliente</th>
-                <th className="text-left px-4 py-3 font-medium">Tracking</th>
-                <th className="text-left px-4 py-3 font-medium">Ítem</th>
-                <th className="text-left px-4 py-3 font-medium">Ubicación</th>
-                <th className="text-left px-4 py-3 font-medium">Cobro Bs</th>
-                <th className="text-left px-4 py-3 font-medium">Estado</th>
-                <th className="text-left px-4 py-3 font-medium">Pago</th>
-                <th className="text-left px-4 py-3 font-medium">Acciones</th>
+              <tr>
+                {["Cliente", "Tracking", "Ítem", "Ubicación", "Cobro Bs", "Estado", "Pago", "Acciones"].map(h => (
+                  <th key={h} className="ui-th text-left">{h}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            <tbody>
               {rows.map(row => (
                 <tr key={row.recepcion_id} className="ui-row">
 
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <p className="font-medium text-neutral-900 dark:text-neutral-100">{row.cliente_nombre}</p>
-                    <p className="text-xs text-neutral-400">{row.cliente_telefono || "—"}</p>
+                  <td className="ui-td whitespace-nowrap">
+                    <p className="font-medium" style={{ color: "var(--text)" }}>{row.cliente_nombre}</p>
+                    <p className="text-xs" style={{ color: "var(--text-3)" }}>{row.cliente_telefono || "—"}</p>
                     {row.departamento_destino && (
-                      <p className="text-xs text-neutral-400">{row.departamento_destino}</p>
+                      <p className="text-xs" style={{ color: "var(--text-3)" }}>{row.departamento_destino}</p>
                     )}
                   </td>
 
-                  <td className="px-4 py-3 font-mono text-xs text-neutral-500 whitespace-nowrap">
+                  <td className="ui-td whitespace-nowrap" style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11.5px", color: "var(--text-3)" }}>
                     {row.tracking_number || "—"}
                   </td>
 
-                  <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300 max-w-[180px] truncate" title={row.item_descripcion}>
+                  <td className="ui-td max-w-[180px] truncate" title={row.item_descripcion} style={{ color: "var(--text-2)" }}>
                     {row.item_descripcion}
                   </td>
 
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="ui-td whitespace-nowrap">
                     {row.ubicacion_codigo ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                        <span className="font-mono text-xs font-semibold" style={{ color: "var(--text-2)" }}>
                           {row.ubicacion_codigo}
                         </span>
                         {row.zona && (
-                          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${ZONA_COLOR[row.zona] ?? ZONA_COLOR.desconocidos}`}>
+                          <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                            style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}>
                             {ZONA_LABEL[row.zona] ?? row.zona}
                           </span>
                         )}
@@ -391,27 +387,27 @@ export default function Cobros() {
                     ) : "—"}
                   </td>
 
-                  <td className="px-4 py-3 whitespace-nowrap font-medium text-neutral-700 dark:text-neutral-300">
+                  <td className="ui-td whitespace-nowrap font-semibold" style={{ color: "var(--text)" }}>
                     {formatBs(row.cobro_cliente_bs)}
                   </td>
 
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="ui-td whitespace-nowrap">
                     {row.payment_status === "paid"
                       ? <Badge type="success">Cobrado</Badge>
                       : <Badge type="pendiente">Pendiente</Badge>
                     }
                   </td>
 
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="ui-td whitespace-nowrap">
                     {row.payment_status === "paid" ? (
                       <div>
-                        <p className="text-xs text-neutral-500">{formatBs(row.payment_amount)}</p>
-                        <p className="text-xs text-neutral-400">{row.payment_method} · {formatFecha(row.paid_at)}</p>
+                        <p className="text-xs" style={{ color: "var(--text-2)" }}>{formatBs(row.payment_amount)}</p>
+                        <p className="text-xs" style={{ color: "var(--text-3)" }}>{row.payment_method} · {formatFecha(row.paid_at)}</p>
                       </div>
-                    ) : "—"}
+                    ) : <span style={{ color: "var(--text-3)" }}>—</span>}
                   </td>
 
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="ui-td whitespace-nowrap">
                     {row.payment_status === "pending" ? (
                       <div className="flex flex-col gap-1.5">
                         <button
@@ -429,7 +425,7 @@ export default function Cobros() {
                         </button>
                       </div>
                     ) : (
-                      <span className="text-xs text-neutral-400">—</span>
+                      <span className="text-xs" style={{ color: "var(--text-3)" }}>—</span>
                     )}
                   </td>
 

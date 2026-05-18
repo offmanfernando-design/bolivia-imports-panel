@@ -43,16 +43,18 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
   }
 
   return (
-    <div className="border border-neutral-200 dark:border-neutral-700 rounded-xl p-4 flex flex-col gap-3">
+    <div className="rounded-xl p-4 flex flex-col gap-3"
+      style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
           Orden / página {idx + 1}
         </p>
         {total > 1 && (
           <button
             type="button"
             onClick={() => onRemove(idx)}
-            className="text-xs text-red-400 hover:text-red-600 dark:hover:text-red-400 transition"
+            className="text-xs transition"
+            style={{ color: "var(--danger)" }}
           >
             Eliminar
           </button>
@@ -133,7 +135,7 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
       />
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-neutral-500 dark:text-neutral-400">
+        <label className="text-xs" style={{ color: "var(--text-3)" }}>
           Fecha entrega proveedor (opcional)
         </label>
         <input
@@ -260,7 +262,7 @@ export default function Compras() {
 
         {/* Datos del cliente */}
         <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
             Cliente
           </p>
           <input
@@ -294,7 +296,7 @@ export default function Compras() {
 
         {/* Bloques de orden */}
         <div className="flex flex-col gap-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
             Órdenes / páginas
           </p>
           {ordenes.map((orden, idx) => (
