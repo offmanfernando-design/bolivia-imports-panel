@@ -307,28 +307,46 @@ export default function Ubicaciones() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="h-6 w-36 rounded animate-pulse" style={{ background: "var(--surface-2)" }} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-40 rounded-lg animate-pulse" style={{ background: "var(--surface-2)" }} />
-          ))}
+      <div className="module-shell">
+        <div className="module-header">
+          <p className="ui-section-title">Operación</p>
+          <h2 className="ui-page-title">Ubicaciones</h2>
+        </div>
+        <div className="module-body">
+          <div className="panel flex-1">
+            <div className="scroll-area p-5 flex flex-col gap-4">
+              <div className="h-[38px] w-full max-w-sm rounded-lg animate-pulse" style={{ background: "var(--surface-2)" }} />
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="h-40 rounded-lg animate-pulse" style={{ background: "var(--surface-2)" }} />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="module-shell">
 
-      {/* Buscador */}
-      <input
-        type="text"
-        placeholder="Buscar por cliente, tracking, producto, orden, REC, código..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="ui-input max-w-sm"
-      />
+      {/* Panel único con buscador arriba */}
+      <div className="module-body">
+        <div className="panel flex-1">
+
+          {/* Buscador fijo arriba */}
+          <div className="panel-header">
+            <input
+              type="text"
+              placeholder="Buscar por cliente, tracking, producto, orden, REC, código..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="ui-input"
+            />
+          </div>
+
+          <div className="scroll-area p-5 flex flex-col gap-8">
 
       {/* Local — Santa Cruz */}
       {Object.keys(estantesLocal).length > 0 && (
@@ -428,6 +446,10 @@ export default function Ubicaciones() {
           Sin ubicaciones para &ldquo;{search}&rdquo;
         </div>
       )}
+
+          </div>{/* scroll-area */}
+        </div>{/* panel */}
+      </div>{/* module-body */}
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <UbicacionDrawer codigo={selected} />

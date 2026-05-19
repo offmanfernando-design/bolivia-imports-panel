@@ -252,79 +252,122 @@ export default function Compras() {
   }
 
   return (
-    <div className="space-y-12">
-      <div>
+    <div className="module-shell">
+
+      {/* Cabecera del módulo */}
+      <div className="module-header">
         <p className="ui-section-title">Compras</p>
-        <h2 className="ui-page-title">Registrar solicitud de compra</h2>
+        <h2 className="ui-page-title">Solicitudes de compra</h2>
       </div>
 
-      <div className="ui-card flex flex-col gap-6">
+      {/* Split de dos columnas */}
+      <div className="module-body">
+        <div className="split-pane">
 
-        {/* Datos del cliente */}
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
-            Cliente
-          </p>
-          <input
-            name="nombre"
-            placeholder="Nombre cliente"
-            value={cliente.nombre}
-            onChange={updateCliente}
-            className="ui-input"
-          />
-          <input
-            name="telefono"
-            placeholder="Teléfono"
-            value={cliente.telefono}
-            onChange={updateCliente}
-            className="ui-input"
-          />
-          <input
-            name="ciudad"
-            placeholder="Ciudad"
-            value={cliente.ciudad}
-            onChange={updateCliente}
-            className="ui-input"
-          />
-          <input
-            placeholder="Nota solicitud (opcional)"
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            className="ui-input"
-          />
+          {/* Panel izquierdo — formulario */}
+          <div className="panel lg:w-[360px] lg:flex-shrink-0">
+
+            <div className="panel-header">
+              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+                Nueva solicitud
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
+                Completa cliente y órdenes
+              </p>
+            </div>
+
+            <div className="panel-body flex flex-col gap-5">
+
+              {/* Datos del cliente */}
+              <div className="flex flex-col gap-2.5">
+                <p
+                  className="font-semibold uppercase"
+                  style={{ fontFamily: "'Geist Mono', monospace", fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-3)" }}
+                >
+                  Cliente
+                </p>
+                <input
+                  name="nombre"
+                  placeholder="Nombre cliente"
+                  value={cliente.nombre}
+                  onChange={updateCliente}
+                  className="ui-input"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    name="telefono"
+                    placeholder="Teléfono"
+                    value={cliente.telefono}
+                    onChange={updateCliente}
+                    className="ui-input"
+                  />
+                  <input
+                    name="ciudad"
+                    placeholder="Ciudad"
+                    value={cliente.ciudad}
+                    onChange={updateCliente}
+                    className="ui-input"
+                  />
+                </div>
+                <input
+                  placeholder="Nota solicitud (opcional)"
+                  value={nota}
+                  onChange={(e) => setNota(e.target.value)}
+                  className="ui-input"
+                />
+              </div>
+
+              {/* Separador */}
+              <div style={{ height: "1px", background: "var(--border)" }} />
+
+              {/* Bloques de orden */}
+              <div className="flex flex-col gap-3">
+                <p
+                  className="font-semibold uppercase"
+                  style={{ fontFamily: "'Geist Mono', monospace", fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-3)" }}
+                >
+                  Órdenes / páginas
+                </p>
+                {ordenes.map((orden, idx) => (
+                  <OrdenBlock
+                    key={idx}
+                    orden={orden}
+                    idx={idx}
+                    total={ordenes.length}
+                    onChange={updateOrden}
+                    onRemove={eliminarOrden}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={agregarOrden}
+                className="ui-button-ghost text-sm"
+              >
+                + Agregar otra página / proveedor
+              </button>
+
+            </div>
+
+            <div className="panel-footer">
+              <button onClick={guardar} className="ui-button w-full justify-center">
+                Guardar solicitud
+              </button>
+            </div>
+
+          </div>
+
+          {/* Panel derecho — tabla de compras */}
+          <div className="panel flex-1 min-w-0">
+            <div className="scroll-area p-5">
+              <ComprasTable reload={reload} />
+            </div>
+          </div>
+
         </div>
-
-        {/* Bloques de orden */}
-        <div className="flex flex-col gap-4">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
-            Órdenes / páginas
-          </p>
-          {ordenes.map((orden, idx) => (
-            <OrdenBlock
-              key={idx}
-              orden={orden}
-              idx={idx}
-              total={ordenes.length}
-              onChange={updateOrden}
-              onRemove={eliminarOrden}
-            />
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={agregarOrden}
-          className="ui-button-ghost text-sm"
-        >
-          + Agregar otra página / proveedor
-        </button>
-
-        <button onClick={guardar} className="ui-button">
-          Guardar solicitud
-        </button>
       </div>
 
-      <ComprasTable reload={reload} />
     </div>
   );
 }

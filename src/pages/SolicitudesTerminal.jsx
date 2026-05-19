@@ -500,16 +500,22 @@ export default function SolicitudesTerminal() {
   const countEnviado   = rows.filter(r => r.estado === "enviado").length
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="module-shell">
 
       {/* HEADER */}
-      <div className="flex flex-col gap-1">
-        <p className="ui-section-title">Finanzas</p>
+      <div className="module-header">
+        <p className="ui-section-title">Operación</p>
         <h1 className="ui-page-title">Solicitudes Terminal</h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--text-3)" }}>
           Datos enviados desde el formulario de coordinación de envío
         </p>
       </div>
+
+      <div className="module-body">
+      <div className="panel flex-1">
+
+      {/* Panel header: tabs + filtros + búsqueda */}
+      <div className="panel-header flex flex-col gap-3">
 
       {/* TABS */}
       <div className="flex items-center gap-2">
@@ -564,6 +570,10 @@ export default function SolicitudesTerminal() {
         onChange={e => handleSearch(e.target.value)}
         className="ui-input md:max-w-md"
       />
+
+      </div>{/* panel-header */}
+
+      <div className="scroll-area p-5 flex flex-col gap-4">
 
       {/* LOADING */}
       {loading && (
@@ -820,6 +830,10 @@ export default function SolicitudesTerminal() {
           </div>
         </>
       )}
+
+      </div>{/* scroll-area */}
+      </div>{/* panel */}
+      </div>{/* module-body */}
 
       {/* MODALES */}
       {modalRow && (

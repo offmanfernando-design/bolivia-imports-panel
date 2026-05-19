@@ -274,12 +274,15 @@ export default function Configuracion() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-1">
+    <div className="module-shell">
+      <div className="module-header">
         <p className="ui-section-title">Sistema</p>
         <h1 className="ui-page-title">Configuración</h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--text-3)" }}>Parámetros del sistema operativo.</p>
       </div>
+
+      <div className="module-body">
+      <div className="scroll-area pb-6 flex flex-col gap-8">
 
       <section className="ui-section-card">
         <div className="flex items-center justify-between mb-4">
@@ -325,6 +328,8 @@ export default function Configuracion() {
           </div>
         )}
       </section>
+      </div>{/* scroll-area */}
+      </div>{/* module-body */}
     </div>
   );
 }

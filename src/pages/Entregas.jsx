@@ -688,35 +688,45 @@ export default function Entregas() {
   const [tab, setTab] = useState("pendientes")
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="module-shell">
 
       {/* Header */}
-      <div className="flex flex-col gap-1">
-        <p className="ui-section-title">Finanzas</p>
+      <div className="module-header">
+        <p className="ui-section-title">Operación</p>
         <h1 className="ui-page-title">Entregas</h1>
         <p className="text-sm mt-0.5" style={{ color: "var(--text-3)" }}>
           Entrega local de ítems recibidos en Bolivia
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="ui-tabs">
-        {[
-          { key: "pendientes", label: "Pendientes" },
-          { key: "historial",  label: "Historial"  },
-        ].map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`ui-tab ${tab === key ? "ui-tab-active" : ""}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <div className="module-body">
+        <div className="panel flex-1">
 
-      {/* Contenido */}
-      {tab === "pendientes" ? <TabPendientes /> : <TabHistorial />}
+          {/* Tabs */}
+          <div className="panel-header" style={{ padding: "0", paddingLeft: "4px" }}>
+            <div className="ui-tabs">
+              {[
+                { key: "pendientes", label: "Pendientes" },
+                { key: "historial",  label: "Historial"  },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={`ui-tab ${tab === key ? "ui-tab-active" : ""}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Contenido */}
+          <div className="scroll-area p-5">
+            {tab === "pendientes" ? <TabPendientes /> : <TabHistorial />}
+          </div>
+
+        </div>
+      </div>
 
     </div>
   )

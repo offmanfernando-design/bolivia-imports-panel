@@ -23,10 +23,10 @@ export default function Operativo() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="module-shell">
 
       {/* Cabecera */}
-      <div className="flex flex-col gap-1">
+      <div className="module-header">
         <p className="text-xs uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
           Operaciones
         </p>
@@ -38,35 +38,41 @@ export default function Operativo() {
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-0 overflow-x-auto scrollbar-none"
-        style={{ borderBottom: "1px solid var(--border)" }}>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className="whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors"
-            style={activeTab === tab.id
-              ? { color: "var(--text)", fontWeight: 600, borderBottom: "2px solid var(--accent)", marginBottom: "-1px" }
-              : { color: "var(--text-3)", borderBottom: "2px solid transparent" }
-            }
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Panel único con tabs + contenido */}
+      <div className="module-body">
+        <div className="panel flex-1">
 
-      {/* Contenido del tab activo */}
-      <div>
-        {activeTab === "transito" && (
-          <OperativoTable onOpenPackage={openPackage} />
-        )}
-        {activeTab === "carga" && (
-          <RecepcionCarga onRecepcionRegistrada={() => setInventarioReloadKey(k => k + 1)} />
-        )}
-        {activeTab === "inventario" && (
-          <InventarioBolivia reloadKey={inventarioReloadKey} />
-        )}
+          {/* Tabs */}
+          <div className="panel-header flex gap-0 overflow-x-auto" style={{ paddingBottom: "0" }}>
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors"
+                style={activeTab === tab.id
+                  ? { color: "var(--text)", fontWeight: 600, borderBottom: "2px solid var(--accent)" }
+                  : { color: "var(--text-3)", borderBottom: "2px solid transparent" }
+                }
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Contenido del tab activo */}
+          <div className="scroll-area p-5">
+            {activeTab === "transito" && (
+              <OperativoTable onOpenPackage={openPackage} />
+            )}
+            {activeTab === "carga" && (
+              <RecepcionCarga onRecepcionRegistrada={() => setInventarioReloadKey(k => k + 1)} />
+            )}
+            {activeTab === "inventario" && (
+              <InventarioBolivia reloadKey={inventarioReloadKey} />
+            )}
+          </div>
+
+        </div>
       </div>
 
       {/* Drawer — global, no depende del tab */}

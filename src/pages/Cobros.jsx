@@ -303,138 +303,169 @@ export default function Cobros() {
   const paid    = rows.filter(r => r.payment_status === "paid")
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="module-shell">
 
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="ui-section-title">Finanzas</p>
-          <h2 className="ui-page-title">Cobros</h2>
-        </div>
-        {!loading && (
-          <div className="flex gap-3 text-xs" style={{ color: "var(--text-3)" }}>
-            <span>{pending.length} pendiente{pending.length !== 1 ? "s" : ""}</span>
-            <span>{paid.length} cobrado{paid.length !== 1 ? "s" : ""}</span>
+      {/* Header */}
+      <div className="module-header">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="ui-section-title">Finanzas</p>
+            <h2 className="ui-page-title">Cobros</h2>
           </div>
-        )}
+          {!loading && (
+            <div className="flex gap-3 text-xs" style={{ color: "var(--text-3)" }}>
+              <span>{pending.length} pendiente{pending.length !== 1 ? "s" : ""}</span>
+              <span>{paid.length} cobrado{paid.length !== 1 ? "s" : ""}</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex gap-2">
-        <input
-          className="ui-input max-w-md"
-          placeholder="Cliente, tracking, REC, descripción..."
-          value={q}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-        />
-        <button
-          className="ui-button whitespace-nowrap"
-          onClick={() => { clearTimeout(debounceRef.current); fetchItems(q) }}
-          disabled={loading}
-        >
-          {loading ? "..." : "Buscar"}
-        </button>
-      </div>
+      <div className="module-body">
+        <div className="panel flex-1">
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+          {/* Búsqueda fija arriba */}
+          <div className="panel-header">
+            <div className="flex gap-2">
+              <input
+                className="ui-input flex-1 max-w-md"
+                placeholder="Cliente, tracking, REC, descripción..."
+                value={q}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+              />
+              <button
+                className="ui-button whitespace-nowrap"
+                onClick={() => { clearTimeout(debounceRef.current); fetchItems(q) }}
+                disabled={loading}
+              >
+                {loading ? "..." : "Buscar"}
+              </button>
+            </div>
+          </div>{/* panel-header */}
+
+          <div className="scroll-area p-5 flex flex-col gap-4">
+
+          {error && <p className="text-xs text-red-500">{error}</p>}
 
       {!loading && rows.length === 0 && !error && (
         <p className="text-sm" style={{ color: "var(--text-3)" }}>Sin ítems cobrables.</p>
       )}
 
       {rows.length > 0 && (
-        <div className="ui-table overflow-x-auto">
-          <table className="w-full" style={{ minWidth: "860px" }}>
-            <thead>
-              <tr>
-                {["Cliente", "Tracking", "Ítem", "Ubicación", "Cobro Bs", "Estado", "Pago", "Acciones"].map(h => (
-                  <th key={h} className="ui-th text-left">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr key={row.recepcion_id} className="ui-row">
-
-                  <td className="ui-td whitespace-nowrap">
-                    <p className="font-medium" style={{ color: "var(--text)" }}>{row.cliente_nombre}</p>
-                    <p className="text-xs" style={{ color: "var(--text-3)" }}>{row.cliente_telefono || "—"}</p>
-                    {row.departamento_destino && (
-                      <p className="text-xs" style={{ color: "var(--text-3)" }}>{row.departamento_destino}</p>
-                    )}
-                  </td>
-
-                  <td className="ui-td whitespace-nowrap" style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11.5px", color: "var(--text-3)" }}>
-                    {row.tracking_number || "—"}
-                  </td>
-
-                  <td className="ui-td max-w-[180px] truncate" title={row.item_descripcion} style={{ color: "var(--text-2)" }}>
-                    {row.item_descripcion}
-                  </td>
-
-                  <td className="ui-td whitespace-nowrap">
-                    {row.ubicacion_codigo ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-semibold" style={{ color: "var(--text-2)" }}>
-                          {row.ubicacion_codigo}
-                        </span>
-                        {row.zona && (
-                          <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                            style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}>
-                            {ZONA_LABEL[row.zona] ?? row.zona}
-                          </span>
-                        )}
-                      </div>
-                    ) : "—"}
-                  </td>
-
-                  <td className="ui-td whitespace-nowrap font-semibold" style={{ color: "var(--text)" }}>
+        <div className="flex flex-col gap-2.5">
+          {rows.map(row => (
+            <div
+              key={row.recepcion_id}
+              className="rounded-xl overflow-hidden"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
+            >
+              {/* Header: cliente + estado + monto */}
+              <div
+                className="flex items-start justify-between gap-3 px-4 py-3"
+                style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold leading-tight" style={{ color: "var(--text)" }}>
+                    {row.cliente_nombre}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
+                    {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {row.payment_status === "paid"
+                    ? <Badge type="success">Cobrado</Badge>
+                    : <Badge type="pendiente">Pendiente</Badge>
+                  }
+                  <span className="text-sm font-semibold tabular-nums" style={{ color: "var(--text)" }}>
                     {formatBs(row.cobro_cliente_bs)}
-                  </td>
+                  </span>
+                </div>
+              </div>
 
-                  <td className="ui-td whitespace-nowrap">
-                    {row.payment_status === "paid"
-                      ? <Badge type="success">Cobrado</Badge>
-                      : <Badge type="pendiente">Pendiente</Badge>
-                    }
-                  </td>
+              {/* Body: ítem + tracking + ubicación + pago */}
+              <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-2">
+                <div className="flex-1 min-w-[160px]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}>
+                    Ítem
+                  </p>
+                  <p className="text-xs leading-snug" style={{ color: "var(--text-2)" }}>
+                    {row.item_descripcion || "—"}
+                  </p>
+                </div>
 
-                  <td className="ui-td whitespace-nowrap">
-                    {row.payment_status === "paid" ? (
-                      <div>
-                        <p className="text-xs" style={{ color: "var(--text-2)" }}>{formatBs(row.payment_amount)}</p>
-                        <p className="text-xs" style={{ color: "var(--text-3)" }}>{row.payment_method} · {formatFecha(row.paid_at)}</p>
-                      </div>
-                    ) : <span style={{ color: "var(--text-3)" }}>—</span>}
-                  </td>
+                <div className="w-32 flex-shrink-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}>
+                    Tracking
+                  </p>
+                  <p className="text-xs font-mono" style={{ color: "var(--text-3)" }}>
+                    {row.tracking_number || "—"}
+                  </p>
+                </div>
 
-                  <td className="ui-td whitespace-nowrap">
-                    {row.payment_status === "pending" ? (
-                      <div className="flex flex-col gap-1.5">
-                        <button
-                          className="ui-button text-xs"
-                          onClick={() => abrirWhatsApp(row)}
-                          disabled={enviando === row.recepcion_id}
-                        >
-                          {enviando === row.recepcion_id ? "..." : "Cobrar por WhatsApp"}
-                        </button>
-                        <button
-                          className="ui-button-ghost text-xs"
-                          onClick={() => setCobrando(row)}
-                        >
-                          Registrar cobro
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs" style={{ color: "var(--text-3)" }}>—</span>
-                    )}
-                  </td>
+                <div className="w-28 flex-shrink-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}>
+                    Ubicación
+                  </p>
+                  {row.ubicacion_codigo ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-mono font-semibold" style={{ color: "var(--text-2)" }}>
+                        {row.ubicacion_codigo}
+                      </span>
+                      {row.zona && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                          style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}>
+                          {ZONA_LABEL[row.zona] ?? row.zona}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs" style={{ color: "var(--text-3)" }}>—</p>
+                  )}
+                </div>
 
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                {row.payment_status === "paid" && (
+                  <div className="w-44 flex-shrink-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}>
+                      Pago registrado
+                    </p>
+                    <p className="text-xs" style={{ color: "var(--text-2)" }}>
+                      {formatBs(row.payment_amount)} · {row.payment_method} · {formatFecha(row.paid_at)}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer: acciones (solo pendientes) */}
+              {row.payment_status === "pending" && (
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5"
+                  style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
+                >
+                  <button
+                    className="ui-button ui-button-sm"
+                    onClick={() => abrirWhatsApp(row)}
+                    disabled={enviando === row.recepcion_id}
+                  >
+                    {enviando === row.recepcion_id ? "..." : "Cobrar por WhatsApp"}
+                  </button>
+                  <button
+                    className="ui-button-ghost ui-button-sm"
+                    onClick={() => setCobrando(row)}
+                  >
+                    Registrar cobro
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
+
+          </div>{/* scroll-area */}
+        </div>{/* panel */}
+      </div>{/* module-body */}
 
       {cobrando && (
         <ModalCobro

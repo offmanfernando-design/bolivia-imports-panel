@@ -204,9 +204,9 @@ export default function Reportes() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="module-shell">
 
-      <div className="flex flex-col gap-1">
+      <div className="module-header">
         <p className="ui-section-title">Sistema</p>
         <h2 className="ui-page-title">Reportes</h2>
         <p className="mt-0.5 text-sm" style={{ color: "var(--text-3)" }}>
@@ -214,6 +214,8 @@ export default function Reportes() {
         </p>
       </div>
 
+      <div className="module-body">
+      <div className="scroll-area pb-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {REPORTES.map((r) => (
           <div
@@ -278,6 +280,8 @@ export default function Reportes() {
           </div>
         ))}
       </div>
+      </div>{/* scroll-area */}
+      </div>{/* module-body */}
 
     </div>
   )
