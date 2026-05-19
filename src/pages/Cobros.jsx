@@ -312,10 +312,24 @@ export default function Cobros() {
             <p className="ui-section-title">Finanzas</p>
             <h2 className="ui-page-title">Cobros</h2>
           </div>
-          {!loading && (
-            <div className="flex gap-3 text-xs" style={{ color: "var(--text-3)" }}>
-              <span>{pending.length} pendiente{pending.length !== 1 ? "s" : ""}</span>
-              <span>{paid.length} cobrado{paid.length !== 1 ? "s" : ""}</span>
+          {!loading && rows.length > 0 && (
+            <div className="flex items-center gap-2">
+              {pending.length > 0 && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded font-medium tabular-nums"
+                  style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
+                >
+                  {pending.length} pendiente{pending.length !== 1 ? "s" : ""}
+                </span>
+              )}
+              {paid.length > 0 && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded font-medium tabular-nums"
+                  style={{ background: "var(--success-soft)", color: "var(--success)" }}
+                >
+                  {paid.length} cobrado{paid.length !== 1 ? "s" : ""}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -324,7 +338,7 @@ export default function Cobros() {
       <div className="module-body">
         <div className="panel flex-1">
 
-          {/* Búsqueda fija arriba */}
+          {/* Búsqueda */}
           <div className="panel-header">
             <div className="flex gap-2">
               <input
@@ -342,126 +356,201 @@ export default function Cobros() {
                 {loading ? "..." : "Buscar"}
               </button>
             </div>
-          </div>{/* panel-header */}
+          </div>
 
-          <div className="scroll-area p-5 flex flex-col gap-4">
+          <div className="scroll-area p-5 flex flex-col gap-5">
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+            {/* Error */}
+            {error && (
+              <p className="text-xs" style={{ color: "var(--danger)" }}>{error}</p>
+            )}
 
-      {!loading && rows.length === 0 && !error && (
-        <p className="text-sm" style={{ color: "var(--text-3)" }}>Sin ítems cobrables.</p>
-      )}
-
-      {rows.length > 0 && (
-        <div className="flex flex-col gap-2.5">
-          {rows.map(row => (
-            <div
-              key={row.recepcion_id}
-              className="rounded-xl overflow-hidden"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
-            >
-              {/* Header: cliente + estado + monto */}
-              <div
-                className="flex items-start justify-between gap-3 px-4 py-3"
-                style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold leading-tight" style={{ color: "var(--text)" }}>
-                    {row.cliente_nombre}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-                    {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {row.payment_status === "paid"
-                    ? <Badge type="success">Cobrado</Badge>
-                    : <Badge type="pendiente">Pendiente</Badge>
-                  }
-                  <span className="text-sm font-semibold tabular-nums" style={{ color: "var(--text)" }}>
-                    {formatBs(row.cobro_cliente_bs)}
-                  </span>
-                </div>
+            {/* Skeleton carga inicial */}
+            {loading && rows.length === 0 && (
+              <div className="flex flex-col gap-2">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-[88px] rounded-xl animate-pulse"
+                    style={{ background: "var(--surface-2)" }}
+                  />
+                ))}
               </div>
+            )}
 
-              {/* Body: ítem + tracking + ubicación + pago */}
-              <div className="px-4 py-3 flex flex-wrap gap-x-6 gap-y-2">
-                <div className="flex-1 min-w-[160px]">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}>
-                    Ítem
-                  </p>
-                  <p className="text-xs leading-snug" style={{ color: "var(--text-2)" }}>
-                    {row.item_descripcion || "—"}
-                  </p>
-                </div>
+            {/* Empty */}
+            {!loading && !error && rows.length === 0 && (
+              <div
+                className="flex items-center justify-center py-16 rounded-xl text-sm"
+                style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}
+              >
+                Sin ítems cobrables.
+              </div>
+            )}
 
-                <div className="w-32 flex-shrink-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}>
-                    Tracking
-                  </p>
-                  <p className="text-xs font-mono" style={{ color: "var(--text-3)" }}>
-                    {row.tracking_number || "—"}
-                  </p>
-                </div>
+            {/* ── PENDIENTES ─────────────────────────────── */}
+            {pending.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}
+                >
+                  Pendientes — {pending.length}
+                </p>
 
-                <div className="w-28 flex-shrink-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}>
-                    Ubicación
-                  </p>
-                  {row.ubicacion_codigo ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-mono font-semibold" style={{ color: "var(--text-2)" }}>
-                        {row.ubicacion_codigo}
+                {pending.map(row => (
+                  <div
+                    key={row.recepcion_id}
+                    className="rounded-xl overflow-hidden"
+                    style={{
+                      background: "var(--surface)",
+                      border:     "1px solid var(--border)",
+                      boxShadow:  "var(--shadow-sm)",
+                    }}
+                  >
+                    {/* Fila principal: cliente + monto */}
+                    <div className="flex items-start justify-between gap-3 px-4 pt-3 pb-2.5">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold leading-tight truncate" style={{ color: "var(--text)" }}>
+                          {row.cliente_nombre}
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
+                          {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
+                        </p>
+                      </div>
+                      <span
+                        className="text-base font-bold tabular-nums flex-shrink-0 pt-0.5"
+                        style={{
+                          color:       "var(--text)",
+                          fontFamily:  "'Geist Mono', monospace",
+                          letterSpacing: "-0.01em",
+                        }}
+                      >
+                        {formatBs(row.cobro_cliente_bs)}
                       </span>
-                      {row.zona && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
-                          style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}>
-                          {ZONA_LABEL[row.zona] ?? row.zona}
+                    </div>
+
+                    {/* Fila detalle: ítem · tracking · ubicación */}
+                    <div
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2"
+                      style={{ borderTop: "1px solid var(--border)" }}
+                    >
+                      <p className="text-xs flex-1 min-w-[140px] leading-snug" style={{ color: "var(--text-2)" }}>
+                        {row.item_descripcion || "—"}
+                      </p>
+                      {row.tracking_number && (
+                        <span
+                          className="text-[11px] font-mono flex-shrink-0 max-w-[160px] truncate"
+                          style={{ color: "var(--text-3)" }}
+                        >
+                          {row.tracking_number}
                         </span>
                       )}
+                      {row.ubicacion_codigo && (
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span
+                            className="text-[11px] font-mono font-semibold"
+                            style={{ color: "var(--text-2)" }}
+                          >
+                            {row.ubicacion_codigo}
+                          </span>
+                          {row.zona && (
+                            <span
+                              className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                              style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}
+                            >
+                              {ZONA_LABEL[row.zona] ?? row.zona}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-xs" style={{ color: "var(--text-3)" }}>—</p>
-                  )}
-                </div>
 
-                {row.payment_status === "paid" && (
-                  <div className="w-44 flex-shrink-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}>
-                      Pago registrado
-                    </p>
-                    <p className="text-xs" style={{ color: "var(--text-2)" }}>
-                      {formatBs(row.payment_amount)} · {row.payment_method} · {formatFecha(row.paid_at)}
-                    </p>
+                    {/* Footer: acciones */}
+                    <div
+                      className="flex items-center gap-2 px-4 py-2.5"
+                      style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
+                    >
+                      <button
+                        className="ui-button ui-button-sm"
+                        onClick={() => abrirWhatsApp(row)}
+                        disabled={enviando === row.recepcion_id}
+                      >
+                        {enviando === row.recepcion_id ? "..." : "Cobrar por WhatsApp"}
+                      </button>
+                      <button
+                        className="ui-button-ghost ui-button-sm"
+                        onClick={() => setCobrando(row)}
+                      >
+                        Registrar cobro
+                      </button>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
+            )}
 
-              {/* Footer: acciones (solo pendientes) */}
-              {row.payment_status === "pending" && (
-                <div
-                  className="flex items-center gap-2 px-4 py-2.5"
-                  style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
+            {/* ── COBRADOS ───────────────────────────────── */}
+            {paid.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}
                 >
-                  <button
-                    className="ui-button ui-button-sm"
-                    onClick={() => abrirWhatsApp(row)}
-                    disabled={enviando === row.recepcion_id}
+                  Cobrados — {paid.length}
+                </p>
+
+                {paid.map(row => (
+                  <div
+                    key={row.recepcion_id}
+                    className="rounded-lg flex items-start gap-3 px-4 py-3"
+                    style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
                   >
-                    {enviando === row.recepcion_id ? "..." : "Cobrar por WhatsApp"}
-                  </button>
-                  <button
-                    className="ui-button-ghost ui-button-sm"
-                    onClick={() => setCobrando(row)}
-                  >
-                    Registrar cobro
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                    {/* Cliente + ítem */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <p className="text-sm font-medium leading-tight" style={{ color: "var(--text-2)" }}>
+                          {row.cliente_nombre}
+                        </p>
+                        {row.departamento_destino && (
+                          <span className="text-xs flex-shrink-0" style={{ color: "var(--text-3)" }}>
+                            {row.departamento_destino}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-3)" }}>
+                        {[
+                          row.item_descripcion,
+                          row.tracking_number,
+                          row.ubicacion_codigo,
+                        ].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </div>
+
+                    {/* Pago + monto + badge */}
+                    <div className="flex items-center gap-2.5 flex-shrink-0">
+                      {row.paid_at && (
+                        <span className="hidden sm:inline text-xs tabular-nums" style={{ color: "var(--text-3)" }}>
+                          {formatFecha(row.paid_at)}
+                        </span>
+                      )}
+                      {row.payment_method && (
+                        <span className="hidden sm:inline text-xs capitalize" style={{ color: "var(--text-3)" }}>
+                          {row.payment_method}
+                        </span>
+                      )}
+                      <span
+                        className="text-sm font-semibold tabular-nums"
+                        style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}
+                      >
+                        {formatBs(row.cobro_cliente_bs)}
+                      </span>
+                      <Badge type="success">Cobrado</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
           </div>{/* scroll-area */}
         </div>{/* panel */}
