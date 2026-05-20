@@ -1,6 +1,100 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { API_URL } from "../../config/api";
 
+function printEtiquetaAlmacen({ cliente_nombre, ubicacion, cobro_cliente_bs, item_descripcion }) {
+  const precio = cobro_cliente_bs != null ? `${Number(cobro_cliente_bs).toFixed(2)} Bs` : "—"
+  const desc = item_descripcion
+    ? (item_descripcion.length > 42 ? item_descripcion.slice(0, 42).trimEnd() + "…" : item_descripcion)
+    : null
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Etiqueta Almacén</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .etiqueta {
+    border: 2px solid #111;
+    width: 100%;
+    max-width: 260px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .marca {
+    background: #111;
+    color: #fff;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    padding: 7px 12px;
+  }
+  .cuerpo { padding: 18px 20px 22px; }
+  .campo { margin-bottom: 14px; }
+  .campo:last-child { margin-bottom: 0; }
+  .label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #888;
+    margin-bottom: 3px;
+  }
+  .valor { font-size: 20px; font-weight: 700; line-height: 1.2; word-break: break-word; }
+  .valor.ubic {
+    font-size: 34px;
+    letter-spacing: 0.06em;
+    font-family: 'Courier New', monospace;
+  }
+  .valor.precio { font-size: 26px; }
+  .valor.desc { font-size: 12px; font-weight: 400; color: #444; }
+  .sep { border: none; border-top: 1px solid #e0e0e0; margin: 12px 0; }
+  @media print {
+    body { min-height: unset; padding: 0; }
+    .etiqueta { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="etiqueta">
+  <div class="marca">Bolivia Imports — Almacén</div>
+  <div class="cuerpo">
+    <div class="campo">
+      <div class="label">Cliente</div>
+      <div class="valor">${cliente_nombre || "—"}</div>
+    </div>
+    ${desc ? `<hr class="sep"><div class="campo"><div class="label">Ítem</div><div class="valor desc">${desc}</div></div>` : ""}
+    <hr class="sep">
+    <div class="campo">
+      <div class="label">Ubicación</div>
+      <div class="valor ubic">${ubicacion || "—"}</div>
+    </div>
+    <hr class="sep">
+    <div class="campo">
+      <div class="label">Precio</div>
+      <div class="valor precio">${precio}</div>
+    </div>
+  </div>
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+  const win = window.open("", "_blank", "width=400,height=480")
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+}
+
 const esPendiente = (item) =>
   item.warehouse_confirmado === true &&
   item.estado !== "recibido_bolivia" &&
@@ -460,12 +554,15 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
       {/* Success banner */}
       {ultimaRecepcion && (
         <div className="rounded-xl p-4 flex flex-col gap-2"
-          style={{ background: "var(--success-soft)", border: "1px solid var(--success)" }}>
-          <p className="font-semibold text-sm" style={{ color: "var(--success)" }}>
-            {ultimaRecepcion.lote
-              ? `Lote registrado — ${ultimaRecepcion.count} ítems`
-              : "Recepción registrada"}
-          </p>
+          style={{ background: "var(--surface-2)", border: "1px solid var(--border-strong)" }}>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold" style={{ color: "var(--success)" }}>✓</span>
+            <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+              {ultimaRecepcion.lote
+                ? `Lote registrado — ${ultimaRecepcion.count} ítems`
+                : "Recepción registrada"}
+            </p>
+          </div>
           {!ultimaRecepcion.lote && (
             <>
               <p className="text-sm">
@@ -482,21 +579,18 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           )}
           <p className="text-sm">
             <span style={{ color: "var(--text-3)" }}>Ubicación: </span>
-            <span className="font-medium" style={{ color: "var(--text)" }}>{ultimaRecepcion.ubicacion}</span>
+            <span className="font-medium" style={{ color: "var(--text-2)" }}>{ultimaRecepcion.ubicacion}</span>
           </p>
           {!ultimaRecepcion.lote && (
-            <button
-              type="button"
-              onClick={() =>
-                window.open(
-                  `${API_URL}/operativo/etiqueta/recepcion/${ultimaRecepcion.recepcion_id}`,
-                  "_blank"
-                )
-              }
-              className="ui-button mt-1 self-start"
-            >
-              Imprimir etiqueta
-            </button>
+            <div className="flex gap-2 mt-1 flex-wrap">
+              <button
+                type="button"
+                onClick={() => printEtiquetaAlmacen(ultimaRecepcion)}
+                className="ui-button self-start"
+              >
+                Etiqueta almacén
+              </button>
+            </div>
           )}
         </div>
       )}

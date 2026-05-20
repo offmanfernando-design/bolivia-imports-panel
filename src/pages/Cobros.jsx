@@ -240,13 +240,15 @@ function ModalCobro({ row, onClose, onSaved }) {
 }
 
 export default function Cobros() {
-  const [q, setQ]               = useState("")
-  const [rows, setRows]         = useState([])
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState(null)
-  const [cobrando, setCobrando] = useState(null)
-  const [enviando, setEnviando] = useState(null)
-  const debounceRef             = useRef(null)
+  const [q, setQ]                   = useState("")
+  const [rows, setRows]             = useState([])
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState(null)
+  const [cobrando, setCobrando]     = useState(null)
+  const [enviando, setEnviando]     = useState(null)
+  const [recordando, setRecordando] = useState(null)
+  const [tab, setTab]               = useState("pending")
+  const debounceRef                 = useRef(null)
 
   async function fetchItems(query) {
     setLoading(true)
@@ -292,6 +294,8 @@ export default function Cobros() {
       }
       const msg = await generarMensaje(row, itemsCliente)
       window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank")
+      // PATCH /api/cobros/items/:id/enviado disponible pero no se llama automáticamente.
+      // El ítem permanece en Pendientes hasta que se confirme el pago manualmente.
     } catch {
       // silencioso — el mensaje no se pudo generar
     } finally {
@@ -299,8 +303,25 @@ export default function Cobros() {
     }
   }
 
-  const pending = rows.filter(r => r.payment_status === "pending")
-  const paid    = rows.filter(r => r.payment_status === "paid")
+  async function recordarCobro(row) {
+    if (recordando === row.recepcion_id) return
+    setRecordando(row.recepcion_id)
+    try {
+      const tel = normalizarTelefonoWhatsApp(row.cliente_telefono)
+      if (!tel) return
+      const baseMsg = await generarMensaje(row, [row])
+      const prefix = "Hola, te recordamos que tienes un cobro pendiente correspondiente a tu pedido.\n\n"
+      window.open(`https://wa.me/${tel}?text=${encodeURIComponent(prefix + baseMsg)}`, "_blank")
+    } catch {
+      // silencioso
+    } finally {
+      setRecordando(null)
+    }
+  }
+
+  const pending  = rows.filter(r => r.payment_status === "pending")
+  const sent     = rows.filter(r => r.payment_status === "sent")
+  const finished = rows.filter(r => r.payment_status === "paid" || r.payment_status === "confirmed")
 
   return (
     <div className="module-shell">
@@ -322,12 +343,20 @@ export default function Cobros() {
                   {pending.length} pendiente{pending.length !== 1 ? "s" : ""}
                 </span>
               )}
-              {paid.length > 0 && (
+              {sent.length > 0 && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded font-medium tabular-nums"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  {sent.length} enviado{sent.length !== 1 ? "s" : ""}
+                </span>
+              )}
+              {finished.length > 0 && (
                 <span
                   className="text-xs px-2 py-0.5 rounded font-medium tabular-nums"
                   style={{ background: "var(--success-soft)", color: "var(--success)" }}
                 >
-                  {paid.length} cobrado{paid.length !== 1 ? "s" : ""}
+                  {finished.length} confirmado{finished.length !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
@@ -338,8 +367,8 @@ export default function Cobros() {
       <div className="module-body">
         <div className="panel flex-1">
 
-          {/* Búsqueda */}
-          <div className="panel-header">
+          {/* Búsqueda + Tabs */}
+          <div className="panel-header flex flex-col gap-3" style={{ paddingBottom: "0" }}>
             <div className="flex gap-2">
               <input
                 className="ui-input flex-1 max-w-md"
@@ -355,6 +384,46 @@ export default function Cobros() {
               >
                 {loading ? "..." : "Buscar"}
               </button>
+            </div>
+            <div style={{ display: "flex", overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", maxWidth: "100%" }}>
+              {[
+                { key: "pending",  label: "Pendientes",     count: pending.length  },
+                { key: "sent",     label: "Cobro enviado",  count: sent.length     },
+                { key: "finished", label: "Pago confirmado", count: finished.length },
+              ].map(({ key, label, count }) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  style={{
+                    flex:          "0 0 auto",
+                    whiteSpace:    "nowrap",
+                    padding:       "14px 16px",
+                    fontSize:      "13px",
+                    fontWeight:    tab === key ? 600 : 400,
+                    color:         tab === key ? "var(--text)" : "var(--text-3)",
+                    background:    "transparent",
+                    border:        "none",
+                    borderBottom:  tab === key ? "2px solid var(--accent)" : "2px solid transparent",
+                    cursor:        "pointer",
+                    transition:    "color 0.15s",
+                  }}
+                >
+                  {label}
+                  {count > 0 && (
+                    <span style={{
+                      marginLeft:  "6px",
+                      fontSize:    "10px",
+                      fontWeight:  600,
+                      padding:     "1px 5px",
+                      borderRadius:"4px",
+                      background:  tab === key ? "var(--accent-soft)" : "var(--surface-3)",
+                      color:       tab === key ? "var(--accent)" : "var(--text-3)",
+                    }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -378,178 +447,292 @@ export default function Cobros() {
               </div>
             )}
 
-            {/* Empty */}
-            {!loading && !error && rows.length === 0 && (
-              <div
-                className="flex items-center justify-center py-16 rounded-xl text-sm"
-                style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}
-              >
-                Sin ítems cobrables.
-              </div>
-            )}
-
-            {/* ── PENDIENTES ─────────────────────────────── */}
-            {pending.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-widest"
-                  style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}
-                >
-                  Pendientes — {pending.length}
-                </p>
-
-                {pending.map(row => (
+            {/* ── TAB PENDIENTES ─────────────────────────── */}
+            {!loading && tab === "pending" && (
+              <>
+                {pending.length === 0 && (
                   <div
-                    key={row.recepcion_id}
-                    className="rounded-xl overflow-hidden"
-                    style={{
-                      background: "var(--surface)",
-                      border:     "1px solid var(--border)",
-                      boxShadow:  "var(--shadow-sm)",
-                    }}
+                    className="flex items-center justify-center py-16 rounded-xl text-sm"
+                    style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}
                   >
-                    {/* Fila principal: cliente + monto */}
-                    <div className="flex items-start justify-between gap-3 px-4 pt-3 pb-2.5">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold leading-tight truncate" style={{ color: "var(--text)" }}>
-                          {row.cliente_nombre}
-                        </p>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-                          {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
-                        </p>
-                      </div>
-                      <span
-                        className="text-base font-bold tabular-nums flex-shrink-0 pt-0.5"
-                        style={{
-                          color:       "var(--text)",
-                          fontFamily:  "'Geist Mono', monospace",
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        {formatBs(row.cobro_cliente_bs)}
-                      </span>
-                    </div>
+                    {rows.length === 0 ? "Sin ítems cobrables." : "No hay ítems pendientes de cobro."}
+                  </div>
+                )}
 
-                    {/* Fila detalle: ítem · tracking · ubicación */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 }}>
+                  {pending.map(row => (
                     <div
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2"
-                      style={{ borderTop: "1px solid var(--border)" }}
+                      key={row.recepcion_id}
+                      style={{
+                        display:       "flex",
+                        flexDirection: "column",
+                        background:    "var(--surface, #ffffff)",
+                        border:        "1px solid var(--border, #d5dbe2)",
+                        borderRadius:  "12px",
+                        minWidth:      0,
+                        width:         "100%",
+                      }}
                     >
-                      <p className="text-xs flex-1 min-w-[140px] leading-snug" style={{ color: "var(--text-2)" }}>
-                        {row.item_descripcion || "—"}
-                      </p>
-                      {row.tracking_number && (
-                        <span
-                          className="text-[11px] font-mono flex-shrink-0 max-w-[160px] truncate"
-                          style={{ color: "var(--text-3)" }}
-                        >
-                          {row.tracking_number}
+                      {/* ── HEADER: cliente · teléfono/ciudad | monto ── */}
+                      <div style={{
+                        display:        "flex",
+                        justifyContent: "space-between",
+                        alignItems:     "flex-start",
+                        gap:            "12px",
+                        padding:        "16px 18px 14px",
+                      }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: "14px", color: "var(--text)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {row.cliente_nombre}
+                          </p>
+                          <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-3)", lineHeight: 1.4 }}>
+                            {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
+                          </p>
+                        </div>
+                        <span style={{ margin: 0, fontWeight: 700, fontSize: "16px", color: "var(--text)", fontFamily: "'Geist Mono', 'Courier New', monospace", letterSpacing: "-0.01em", flexShrink: 0 }}>
+                          {formatBs(row.cobro_cliente_bs)}
                         </span>
-                      )}
-                      {row.ubicacion_codigo && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <span
-                            className="text-[11px] font-mono font-semibold"
-                            style={{ color: "var(--text-2)" }}
-                          >
-                            {row.ubicacion_codigo}
+                      </div>
+
+                      {/* ── DETALLE: descripción | tracking+ubicación+zona ── */}
+                      <div style={{ borderTop: "1px solid var(--border, #d5dbe2)", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                        <p style={{ margin: 0, fontSize: "12px", color: "var(--text-2)", lineHeight: 1.5, flex: "1 1 220px", minWidth: 0 }}>
+                          {row.item_descripcion || "—"}
+                        </p>
+                        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: "0 1 auto", maxWidth: "100%" }}>
+                          <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", color: "var(--text-3)" }}>
+                            {row.tracking_number || "Sin tracking"}
                           </span>
+                          {row.ubicacion_codigo ? (
+                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
+                              {row.ubicacion_codigo}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: "11px", color: "var(--text-3)" }}>Sin ubicación</span>
+                          )}
                           {row.zona && (
-                            <span
-                              className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                              style={ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos}
-                            >
+                            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", fontWeight: 500, ...(ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos) }}>
                               {ZONA_LABEL[row.zona] ?? row.zona}
                             </span>
                           )}
                         </div>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Footer: acciones */}
-                    <div
-                      className="flex items-center gap-2 px-4 py-2.5"
-                      style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
-                    >
-                      <button
-                        className="ui-button ui-button-sm"
-                        onClick={() => abrirWhatsApp(row)}
-                        disabled={enviando === row.recepcion_id}
-                      >
-                        {enviando === row.recepcion_id ? "..." : "Cobrar por WhatsApp"}
-                      </button>
-                      <button
-                        className="ui-button-ghost ui-button-sm"
-                        onClick={() => setCobrando(row)}
-                      >
-                        Registrar cobro
-                      </button>
+                      {/* ── FOOTER: botón ── */}
+                      <div style={{
+                        borderTop:    "1px solid var(--border, #d5dbe2)",
+                        background:   "var(--surface-2, #e9eef2)",
+                        padding:      "12px 18px",
+                        display:      "flex",
+                        gap:          "8px",
+                        borderRadius: "0 0 12px 12px",
+                      }}>
+                        <button
+                          className="ui-button ui-button-sm"
+                          style={{ flexShrink: 0 }}
+                          onClick={() => abrirWhatsApp(row)}
+                          disabled={enviando === row.recepcion_id}
+                        >
+                          {enviando === row.recepcion_id ? "..." : "Cobrar por WhatsApp"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
 
-            {/* ── COBRADOS ───────────────────────────────── */}
-            {paid.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                <p
-                  className="text-[10px] font-semibold uppercase tracking-widest"
-                  style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}
-                >
-                  Cobrados — {paid.length}
-                </p>
-
-                {paid.map(row => (
+            {/* ── TAB COBRO ENVIADO ──────────────────────── */}
+            {!loading && tab === "sent" && (
+              <>
+                {sent.length === 0 && (
                   <div
-                    key={row.recepcion_id}
-                    className="rounded-lg flex items-start gap-3 px-4 py-3"
-                    style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+                    className="flex items-center justify-center py-16 rounded-xl text-sm"
+                    style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}
                   >
-                    {/* Cliente + ítem */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <p className="text-sm font-medium leading-tight" style={{ color: "var(--text-2)" }}>
-                          {row.cliente_nombre}
+                    Sin cobros enviados todavía.
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 }}>
+                  {sent.map(row => (
+                    <div
+                      key={row.recepcion_id}
+                      style={{
+                        display:       "flex",
+                        flexDirection: "column",
+                        background:    "var(--surface, #ffffff)",
+                        border:        "1px solid var(--border, #d5dbe2)",
+                        borderRadius:  "12px",
+                        minWidth:      0,
+                        width:         "100%",
+                      }}
+                    >
+                      {/* ── HEADER ── */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", padding: "16px 18px 14px" }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ margin: 0, fontWeight: 600, fontSize: "14px", color: "var(--text-2)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {row.cliente_nombre}
+                          </p>
+                          <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-3)", lineHeight: 1.4 }}>
+                            {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
+                          </p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                          <span style={{ margin: 0, fontWeight: 600, fontSize: "14px", color: "var(--text-2)", fontFamily: "'Geist Mono', 'Courier New', monospace" }}>
+                            {formatBs(row.cobro_cliente_bs)}
+                          </span>
+                          <Badge type="info">Enviado</Badge>
+                        </div>
+                      </div>
+
+                      {/* ── DETALLE ── */}
+                      <div style={{ borderTop: "1px solid var(--border, #d5dbe2)", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                        <p style={{ margin: 0, fontSize: "12px", color: "var(--text-3)", lineHeight: 1.5, flex: "1 1 220px", minWidth: 0 }}>
+                          {row.item_descripcion || "—"}
                         </p>
-                        {row.departamento_destino && (
-                          <span className="text-xs flex-shrink-0" style={{ color: "var(--text-3)" }}>
-                            {row.departamento_destino}
+                        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: "0 1 auto", maxWidth: "100%" }}>
+                          <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", color: "var(--text-3)" }}>
+                            {row.tracking_number || "Sin tracking"}
+                          </span>
+                          {row.ubicacion_codigo ? (
+                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
+                              {row.ubicacion_codigo}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: "11px", color: "var(--text-3)" }}>Sin ubicación</span>
+                          )}
+                          {row.zona && (
+                            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", fontWeight: 500, ...(ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos) }}>
+                              {ZONA_LABEL[row.zona] ?? row.zona}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── FOOTER: botones ── */}
+                      <div style={{ borderTop: "1px solid var(--border, #d5dbe2)", background: "var(--surface-2, #e9eef2)", padding: "12px 18px", display: "flex", gap: "8px", justifyContent: "flex-end", borderRadius: "0 0 12px 12px" }}>
+                        <button
+                          className="ui-button-ghost ui-button-sm"
+                          style={{ flexShrink: 0 }}
+                          onClick={() => recordarCobro(row)}
+                          disabled={recordando === row.recepcion_id}
+                        >
+                          {recordando === row.recepcion_id ? "..." : "Recordar cobro"}
+                        </button>
+                        <button
+                          className="ui-button ui-button-sm"
+                          style={{ flexShrink: 0 }}
+                          onClick={() => setCobrando(row)}
+                        >
+                          Confirmar pago
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── TAB PAGO CONFIRMADO ────────────────── */}
+            {!loading && tab === "finished" && (
+              <>
+                {finished.length === 0 && (
+                  <div
+                    className="flex items-center justify-center py-16 rounded-xl text-sm"
+                    style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}
+                  >
+                    Sin pagos confirmados.
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 }}>
+                  {finished.map(row => (
+                    <div
+                      key={row.recepcion_id}
+                      style={{
+                        display:       "flex",
+                        flexDirection: "column",
+                        background:    "var(--surface, #ffffff)",
+                        border:        "1px solid var(--border, #d5dbe2)",
+                        borderRadius:  "12px",
+                        minWidth:      0,
+                        width:         "100%",
+                      }}
+                    >
+                      {/* Header */}
+                      <div style={{
+                        display:        "flex",
+                        justifyContent: "space-between",
+                        alignItems:     "flex-start",
+                        gap:            "12px",
+                        padding:        "16px 18px",
+                      }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ fontWeight: 500, fontSize: "14px", color: "var(--text-2)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {row.cliente_nombre}
+                          </p>
+                          <p style={{ fontSize: "12px", color: "var(--text-3)", marginTop: "4px" }}>
+                            {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
+                          </p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                          <span style={{ fontWeight: 500, fontSize: "13px", color: "var(--text-3)", fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums" }}>
+                            {formatBs(row.cobro_cliente_bs)}
+                          </span>
+                          <Badge type="success">Pagado</Badge>
+                        </div>
+                      </div>
+
+                      {/* Detalle */}
+                      <div style={{ borderTop: "1px solid var(--border, #d5dbe2)", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                        <p style={{ margin: 0, fontSize: "12px", color: "var(--text-3)", lineHeight: 1.5, flex: "1 1 220px", minWidth: 0 }}>
+                          {row.item_descripcion || "—"}
+                        </p>
+                        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: "0 1 auto", maxWidth: "100%" }}>
+                          {row.tracking_number && (
+                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", color: "var(--text-3)" }}>
+                              {row.tracking_number}
+                            </span>
+                          )}
+                          {row.ubicacion_codigo && (
+                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
+                              {row.ubicacion_codigo}
+                            </span>
+                          )}
+                          {row.zona && (
+                            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", fontWeight: 500, ...(ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos) }}>
+                              {ZONA_LABEL[row.zona] ?? row.zona}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer: método + fecha */}
+                      <div style={{
+                        borderTop:    "1px solid var(--border, #d5dbe2)",
+                        background:   "var(--surface-2, #e9eef2)",
+                        padding:      "10px 18px",
+                        display:      "flex",
+                        alignItems:   "center",
+                        gap:          "12px",
+                        borderRadius: "0 0 12px 12px",
+                      }}>
+                        {row.payment_method && (
+                          <span style={{ fontSize: "11px", color: "var(--text-3)", textTransform: "capitalize" }}>
+                            {row.payment_method}
+                          </span>
+                        )}
+                        {row.paid_at && (
+                          <span style={{ fontSize: "11px", color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>
+                            {formatFecha(row.paid_at)}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-3)" }}>
-                        {[
-                          row.item_descripcion,
-                          row.tracking_number,
-                          row.ubicacion_codigo,
-                        ].filter(Boolean).join(" · ") || "—"}
-                      </p>
                     </div>
-
-                    {/* Pago + monto + badge */}
-                    <div className="flex items-center gap-2.5 flex-shrink-0">
-                      {row.paid_at && (
-                        <span className="hidden sm:inline text-xs tabular-nums" style={{ color: "var(--text-3)" }}>
-                          {formatFecha(row.paid_at)}
-                        </span>
-                      )}
-                      {row.payment_method && (
-                        <span className="hidden sm:inline text-xs capitalize" style={{ color: "var(--text-3)" }}>
-                          {row.payment_method}
-                        </span>
-                      )}
-                      <span
-                        className="text-sm font-semibold tabular-nums"
-                        style={{ color: "var(--text-3)", fontFamily: "'Geist Mono', monospace" }}
-                      >
-                        {formatBs(row.cobro_cliente_bs)}
-                      </span>
-                      <Badge type="success">Cobrado</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
 
           </div>{/* scroll-area */}

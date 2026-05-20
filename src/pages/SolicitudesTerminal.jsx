@@ -293,11 +293,11 @@ function ModalCargarGuia({ row, onClose, onSaved }) {
   )
 }
 
-// ─── Etiqueta imprimible ──────────────────────────────────────────────────────
+// ─── Etiqueta imprimible (Terminal) ──────────────────────────────────────────
 function printEtiqueta(row) {
-  const nombre   = (row.recoge_quien === "tercero" ? row.nombre_receptor   : row.cliente_nombre)   || "—"
+  const nombre   = ((row.recoge_quien === "tercero" ? row.nombre_receptor   : row.cliente_nombre)   || "—").toUpperCase()
   const telefono = (row.recoge_quien === "tercero" ? row.telefono_receptor : row.cliente_telefono) || "—"
-  const destino  = row.destino || "—"
+  const destino  = (row.destino || "—").toUpperCase()
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -315,64 +315,56 @@ function printEtiqueta(row) {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px 24px;
+    padding: 24px;
   }
   .etiqueta {
-    border: 2.5px solid #000;
-    border-radius: 4px;
-    padding: 36px 40px;
+    border: 2px solid #111;
     width: 100%;
-    max-width: 340px;
+    max-width: 300px;
     text-align: center;
   }
-  .campo { margin-bottom: 28px; }
+  .cuerpo { padding: 24px 24px 28px; }
+  .campo { margin-bottom: 20px; }
   .campo:last-child { margin-bottom: 0; }
   .label {
-    font-size: 10px;
+    font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #777;
-    margin-bottom: 6px;
+    letter-spacing: 0.14em;
+    color: #888;
+    margin-bottom: 4px;
   }
-  .valor {
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1.2;
-    word-break: break-word;
-  }
-  .valor.sm { font-size: 22px; }
-  hr {
-    border: none;
-    border-top: 1px solid #ddd;
-    margin: 24px 0;
-  }
+  .valor { font-size: 28px; font-weight: 700; line-height: 1.2; word-break: break-word; }
+  .valor.sm { font-size: 22px; font-weight: 600; }
+  .sep { border: none; border-top: 1px solid #e0e0e0; margin: 18px 0; }
   @media print {
     body { min-height: unset; padding: 0; }
-    .etiqueta { max-width: 100%; border-radius: 0; }
+    .etiqueta { max-width: 100%; border: 2px solid #000; }
   }
 </style>
 </head>
 <body>
 <div class="etiqueta">
-  <div class="campo">
-    <div class="label">Para</div>
-    <div class="valor">${nombre}</div>
-  </div>
-  <hr>
-  <div class="campo">
-    <div class="label">Destino</div>
-    <div class="valor sm">${destino}</div>
-  </div>
-  <div class="campo">
-    <div class="label">Teléfono</div>
-    <div class="valor sm">${telefono}</div>
+  <div class="cuerpo">
+    <div class="campo">
+      <div class="label">PARA</div>
+      <div class="valor">${nombre}</div>
+    </div>
+    <hr class="sep">
+    <div class="campo">
+      <div class="label">DESTINO</div>
+      <div class="valor sm">${destino}</div>
+    </div>
+    <div class="campo">
+      <div class="label">TELÉFONO</div>
+      <div class="valor sm">${telefono}</div>
+    </div>
   </div>
 </div>
 <script>window.onload = () => window.print()</script>
 </body>
 </html>`
 
-  const win = window.open("", "_blank", "width=460,height=400")
+  const win = window.open("", "_blank", "width=440,height=440")
   if (!win) return
   win.document.write(html)
   win.document.close()
@@ -452,10 +444,16 @@ export default function SolicitudesTerminal() {
   const debounceRef = useRef(null)
 
   useEffect(() => {
-    fetch(`${API_URL}/receptores/solicitudes-terminal`)
-      .then(r => { if (!r.ok) throw new Error(); return r.json() })
-      .then(json => { setRows(json.data); setLoading(false) })
-      .catch(() => { setError("Error cargando solicitudes"); setLoading(false) })
+    function cargarSolicitudes(silent = false) {
+      if (!silent) setLoading(true)
+      fetch(`${API_URL}/receptores/solicitudes-terminal`)
+        .then(r => { if (!r.ok) throw new Error(); return r.json() })
+        .then(json => { setRows(json.data); setLoading(false) })
+        .catch(() => { if (!silent) { setError("Error cargando solicitudes"); setLoading(false) } })
+    }
+    cargarSolicitudes()
+    const id = setInterval(() => cargarSolicitudes(true), 15000)
+    return () => clearInterval(id)
   }, [])
 
   function handleSearch(val) {
@@ -514,202 +512,145 @@ export default function SolicitudesTerminal() {
       <div className="module-body">
       <div className="panel flex-1">
 
-      {/* Panel header: tabs + filtros + búsqueda */}
-      <div className="panel-header flex flex-col gap-3">
+        {/* Panel header: tabs + filtro fecha + búsqueda */}
+        <div className="panel-header flex flex-col gap-3">
 
-      {/* TABS */}
-      <div className="flex items-center gap-2">
-        {[
-          { key: "pendiente", label: "Pendientes", count: countPendiente },
-          { key: "enviado",   label: "Enviadas",   count: countEnviado   },
-        ].map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className="px-4 py-1.5 rounded-full text-sm font-medium transition"
-            style={tab === t.key
-              ? { background: "var(--text)", color: "var(--surface)" }
-              : { background: "var(--surface-3)", color: "var(--text-3)" }
-            }>
-            {t.label}
-            {!loading && (
-              <span className={`ml-1.5 text-xs ${tab === t.key ? "opacity-70" : "opacity-60"}`}>
-                {t.count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* FILTRO FECHA (solo en Enviadas) */}
-      {tab === "enviado" && (
-        <div className="flex items-center gap-2">
-          {[
-            { key: "mes",   label: "Este mes"       },
-            { key: "30d",   label: "Últimos 30 días" },
-            { key: "todas", label: "Todas"           },
-          ].map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFiltroFecha(f.key)}
-              className="px-3 py-1 rounded-full text-xs font-medium transition"
-              style={filtroFecha === f.key
-                ? { background: "var(--surface-3)", color: "var(--text)" }
-                : { color: "var(--text-3)" }
-              }>
-              {f.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* BÚSQUEDA */}
-      <input
-        placeholder="Buscar por cliente, destino, referencia, receptor o teléfono..."
-        value={q}
-        onChange={e => handleSearch(e.target.value)}
-        className="ui-input md:max-w-md"
-      />
-
-      </div>{/* panel-header */}
-
-      <div className="scroll-area p-5 flex flex-col gap-4">
-
-      {/* LOADING */}
-      {loading && (
-        <div className="space-y-2">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 rounded-xl animate-pulse" style={{ background: "var(--surface-2)" }} />
-          ))}
-        </div>
-      )}
-
-      {/* ERROR */}
-      {error && (
-        <div className="rounded-lg px-4 py-3 text-sm"
-          style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
-          {error}
-        </div>
-      )}
-
-      {/* EMPTY */}
-      {!loading && !error && filtered.length === 0 && (
-        <div className="rounded-lg px-6 py-12 text-center"
-          style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
-          <p className="text-sm" style={{ color: "var(--text-3)" }}>
-            {q.trim()
-              ? "Sin resultados para la búsqueda."
-              : tab === "pendiente"
-                ? "No hay solicitudes pendientes."
-                : "No hay solicitudes enviadas en este período."}
-          </p>
-        </div>
-      )}
-
-      {/* TABLA DESKTOP */}
-      {!loading && !error && filtered.length > 0 && (
-        <>
-          <div className="hidden md:block ui-table overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  {["Fecha", "Cliente", "Recoge", "Receptor / CI", "Destino", "Comprobante", ...(tab === "enviado" ? ["Guía"] : []), "Acción"].map(h => (
-                    <th key={h} className="ui-th text-left">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(row => (
-                  <tr key={row.id} className="ui-row">
-                    <td className="ui-td whitespace-nowrap" style={{ color: "var(--text-3)" }}>
-                      {formatFecha(row.created_at)}
-                    </td>
-                    <td className="ui-td font-medium" style={{ color: "var(--text)" }}>
-                      {row.cliente_nombre || "—"}
-                    </td>
-                    <td className="ui-td">
-                      <Badge type={row.recoge_quien === "cliente" ? "info" : "default"}>
-                        {row.recoge_quien === "cliente" ? "Cliente" : "Tercero"}
-                      </Badge>
-                    </td>
-                    <td className="ui-td" style={{ color: "var(--text-2)" }}>
-                      {row.recoge_quien === "tercero"
-                        ? (row.nombre_receptor || "—")
-                        : (row.referencia      || "—")}
-                    </td>
-                    <td className="ui-td" style={{ color: "var(--text-2)" }}>
-                      {row.destino || "—"}
-                    </td>
-                    <td className="ui-td">
-                      {tab === "enviado" ? (
-                        <Badge type="success">Despachado</Badge>
-                      ) : (
-                        <Badge type={row.tiene_comprobante ? "success" : "pendiente"}>
-                          {row.tiene_comprobante ? "Comprobante" : "Sin comprobante"}
-                        </Badge>
-                      )}
-                    </td>
-                    {tab === "enviado" && (
-                      <td className="ui-td" style={{ color: "var(--text-3)" }}>
-                        {row.numero_guia || "—"}
-                      </td>
-                    )}
-                    <td className="ui-td">
-                      <div className="flex items-center gap-2">
-                        {tab === "pendiente" && (
-                          <button
-                            onClick={() => setModalRow(row)}
-                            className="ui-button-sm">
-                            Confirmar envío
-                          </button>
-                        )}
-                        {tab === "enviado" && (
-                          <button
-                            onClick={() => setModalGuia(row)}
-                            className="ui-button-ghost-sm">
-                            {row.guia_at ? "Actualizar guía" : "Cargar guía"}
-                          </button>
-                        )}
-                        {tab === "enviado" && row.guia_at && (
-                          <button
-                            onClick={() => abrirWhatsappGuia(row)}
-                            className="ui-button-ghost-sm">
-                            Enviar guía
-                          </button>
-                        )}
-                        {tab === "pendiente" && (
-                          <button
-                            onClick={() => printEtiqueta(row)}
-                            className="ui-button-ghost-sm">
-                            Etiqueta
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* TABS */}
+          <div className="flex items-center gap-2">
+            {[
+              { key: "pendiente", label: "Pendientes", count: countPendiente },
+              { key: "enviado",   label: "Enviadas",   count: countEnviado   },
+            ].map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className="px-4 py-1.5 rounded-full text-sm font-medium transition"
+                style={tab === t.key
+                  ? { background: "var(--text)", color: "var(--surface)" }
+                  : { background: "var(--surface-3)", color: "var(--text-3)" }
+                }
+              >
+                {t.label}
+                {!loading && (
+                  <span className={`ml-1.5 text-xs ${tab === t.key ? "opacity-70" : "opacity-60"}`}>
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
-          {/* Mobile — fichas operativas */}
-          <div className="md:hidden space-y-2">
-            {filtered.map(row => {
-              const esTercero  = row.recoge_quien === "tercero"
-              const tieneExtra = row.transportadora || row.observaciones
-              return (
-                <div key={row.id}
-                  className="rounded-xl px-4 pt-4 pb-3 space-y-3"
-                  style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+          {/* FILTRO FECHA — solo en Enviadas */}
+          {tab === "enviado" && (
+            <div className="flex items-center gap-2">
+              {[
+                { key: "mes",   label: "Este mes"        },
+                { key: "30d",   label: "Últimos 30 días" },
+                { key: "todas", label: "Todas"            },
+              ].map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setFiltroFecha(f.key)}
+                  className="px-3 py-1 rounded-full text-xs font-medium transition"
+                  style={filtroFecha === f.key
+                    ? { background: "var(--surface-3)", color: "var(--text)" }
+                    : { color: "var(--text-3)" }
+                  }
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-                  {/* Bloque 1 — cliente + destino + badge */}
+          {/* BÚSQUEDA */}
+          <input
+            placeholder="Buscar por cliente, destino, referencia, receptor o teléfono..."
+            value={q}
+            onChange={e => handleSearch(e.target.value)}
+            className="ui-input md:max-w-md"
+          />
+
+        </div>{/* panel-header */}
+
+        <div className="scroll-area p-5 flex flex-col gap-2.5">
+
+          {/* LOADING */}
+          {loading && (
+            <div className="flex flex-col gap-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-[88px] rounded-xl animate-pulse"
+                  style={{ background: "var(--surface-2)" }} />
+              ))}
+            </div>
+          )}
+
+          {/* ERROR */}
+          {error && (
+            <div className="rounded-lg px-4 py-3 text-sm"
+              style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
+              {error}
+            </div>
+          )}
+
+          {/* EMPTY */}
+          {!loading && !error && filtered.length === 0 && (
+            <div className="flex items-center justify-center py-16 text-sm rounded-xl"
+              style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}>
+              {q.trim()
+                ? "Sin resultados para la búsqueda."
+                : tab === "pendiente"
+                  ? "No hay solicitudes pendientes."
+                  : "No hay solicitudes enviadas en este período."}
+            </div>
+          )}
+
+          {/* LISTA OPERATIVA — unificada, sin tabla */}
+          {!loading && !error && filtered.map(row => {
+            const esTercero = row.recoge_quien === "tercero"
+
+            const recogeInfo = esTercero
+              ? [
+                  row.nombre_receptor  || null,
+                  row.referencia       ? `CI ${row.referencia}` : null,
+                  row.telefono_receptor || null,
+                ].filter(Boolean).join(" · ")
+              : null
+
+            const tieneDetalle = !!(
+              row.transportadora || row.observaciones ||
+              row.numero_guia    || row.guia_at       || row.nota_guia
+            )
+
+            return (
+              <div
+                key={row.id}
+                className="rounded-xl overflow-hidden"
+                style={{
+                  background: "var(--surface)",
+                  border:     "1px solid var(--border)",
+                  boxShadow:  "var(--shadow-sm)",
+                }}
+              >
+                {/* Cabecera: cliente → destino · fecha · entrega */}
+                <div className="px-4 pt-3 pb-2.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-[15px] leading-snug truncate" style={{ color: "var(--text)" }}>
-                        {row.cliente_nombre || "Sin nombre"}
-                      </p>
-                      <p className="text-sm font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
-                        {row.destino}
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <p className="text-sm font-semibold leading-tight" style={{ color: "var(--text)" }}>
+                          {row.cliente_nombre || "Sin nombre"}
+                        </p>
+                        <span className="text-xs select-none" style={{ color: "var(--text-3)" }}>→</span>
+                        <p className="text-sm" style={{ color: "var(--text-2)" }}>
+                          {row.destino || "—"}
+                        </p>
+                      </div>
+                      <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-3)" }}>
+                        {formatFecha(row.created_at)}
+                        {" · "}
+                        {esTercero
+                          ? `Tercero${recogeInfo ? `: ${recogeInfo}` : ""}`
+                          : "Cliente"}
                       </p>
                     </div>
                     <div className="flex-shrink-0 pt-0.5">
@@ -717,121 +658,104 @@ export default function SolicitudesTerminal() {
                         <Badge type="success">Despachado</Badge>
                       ) : (
                         <Badge type={row.tiene_comprobante ? "success" : "pendiente"}>
-                          {row.tiene_comprobante ? "Comprobante" : "Sin comprobante"}
+                          {row.tiene_comprobante ? "Con comprobante" : "Sin comprobante"}
                         </Badge>
                       )}
                     </div>
                   </div>
+                </div>
 
-                  {/* Bloque 2 — entrega */}
-                  <div className="space-y-1 text-sm">
-                    <p>
-                      <span style={{ color: "var(--text-3)" }}>Entrega: </span>
-                      <span style={{ color: "var(--text-2)" }}>
-                        {esTercero ? "Tercero" : "Cliente"}
+                {/* Detalle: guía / transportadora / obs / nota guía */}
+                {tieneDetalle && (
+                  <div
+                    className="px-4 py-2 flex flex-wrap gap-x-4 gap-y-1"
+                    style={{ borderTop: "1px solid var(--border)" }}
+                  >
+                    {row.numero_guia && (
+                      <span className="text-xs">
+                        <span style={{ color: "var(--text-3)" }}>Guía: </span>
+                        <span className="font-mono font-medium" style={{ color: "var(--text-2)" }}>
+                          {row.numero_guia}
+                        </span>
                       </span>
-                    </p>
-                    {esTercero && row.nombre_receptor && (
-                      <p>
-                        <span style={{ color: "var(--text-3)" }}>Receptor: </span>
-                        <span style={{ color: "var(--text-2)" }}>{row.nombre_receptor}</span>
-                      </p>
                     )}
-                    {row.telefono_receptor && (
-                      <p>
-                        <span style={{ color: "var(--text-3)" }}>Tel: </span>
-                        <span style={{ color: "var(--text-2)" }}>{row.telefono_receptor}</span>
-                      </p>
+                    {row.guia_at && (
+                      <span className="text-xs" style={{ color: "var(--text-3)" }}>
+                        cargada {formatFecha(row.guia_at)}
+                      </span>
                     )}
-                    {row.referencia && (
-                      <p>
-                        <span style={{ color: "var(--text-3)" }}>CI: </span>
-                        <span style={{ color: "var(--text-2)" }}>{row.referencia}</span>
-                      </p>
+                    {row.transportadora && (
+                      <span className="text-xs">
+                        <span style={{ color: "var(--text-3)" }}>Trans: </span>
+                        <span style={{ color: "var(--text-2)" }}>{row.transportadora}</span>
+                      </span>
+                    )}
+                    {row.observaciones && (
+                      <span className="text-xs" style={{ color: "var(--text-3)" }}>
+                        {row.observaciones}
+                      </span>
+                    )}
+                    {row.nota_guia && (
+                      <span className="text-xs" style={{ color: "var(--text-3)" }}>
+                        {row.nota_guia}
+                      </span>
                     )}
                   </div>
+                )}
 
-                  {/* Bloque 3 — adicional */}
-                  {tieneExtra && (
-                    <div className="space-y-1 text-sm pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-                      {row.transportadora && (
-                        <p>
-                          <span style={{ color: "var(--text-3)" }}>Transportadora: </span>
-                          <span style={{ color: "var(--text-2)" }}>{row.transportadora}</span>
-                        </p>
-                      )}
-                      {row.observaciones && (
-                        <p>
-                          <span style={{ color: "var(--text-3)" }}>Nota: </span>
-                          <span style={{ color: "var(--text-2)" }}>{row.observaciones}</span>
-                        </p>
-                      )}
-                    </div>
+                {/* Footer: acciones */}
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5"
+                  style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
+                >
+                  {tab === "pendiente" && (
+                    <>
+                      <button
+                        className="ui-button ui-button-sm"
+                        onClick={() => setModalRow(row)}
+                      >
+                        Confirmar envío
+                      </button>
+                      <button
+                        className="ui-button-ghost ui-button-sm"
+                        onClick={() => printEtiqueta(row)}
+                      >
+                        Etiqueta
+                      </button>
+                    </>
                   )}
-
-                  {/* Guía si enviada */}
-                  {row.estado === "enviado" && (row.numero_guia || row.guia_at) && (
-                    <div className="space-y-1 text-sm pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-                      {row.numero_guia && (
-                        <p>
-                          <span style={{ color: "var(--text-3)" }}>Guía: </span>
-                          <span className="font-medium" style={{ color: "var(--text-2)" }}>{row.numero_guia}</span>
-                        </p>
-                      )}
-                      {row.guia_at && (
-                        <p>
-                          <span style={{ color: "var(--text-3)" }}>Cargada: </span>
-                          <span style={{ color: "var(--text-3)" }}>{formatFecha(row.guia_at)}</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Footer: fecha + botones de acción */}
-                  <div className="flex items-center justify-between gap-3 pt-0.5">
-                    <p className="text-xs" style={{ color: "var(--text-3)" }}>
-                      {formatFecha(row.created_at)}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {row.estado === "pendiente" && (
+                  {tab === "enviado" && (
+                    row.guia_at ? (
+                      <>
                         <button
-                          onClick={() => setModalRow(row)}
-                          className="ui-button-sm">
-                          Confirmar envío
-                        </button>
-                      )}
-                      {row.estado === "enviado" && (
-                        <button
-                          onClick={() => setModalGuia(row)}
-                          className="ui-button-ghost-sm">
-                          {row.guia_at ? "Actualizar guía" : "Cargar guía"}
-                        </button>
-                      )}
-                      {row.estado === "enviado" && row.guia_at && (
-                        <button
+                          className="ui-button ui-button-sm"
                           onClick={() => abrirWhatsappGuia(row)}
-                          className="ui-button-ghost-sm">
+                        >
                           Enviar guía
                         </button>
-                      )}
-                      {row.estado === "pendiente" && (
                         <button
-                          onClick={() => printEtiqueta(row)}
-                          className="ui-button-ghost-sm">
-                          Etiqueta
+                          className="ui-button-ghost ui-button-sm"
+                          onClick={() => setModalGuia(row)}
+                        >
+                          Actualizar guía
                         </button>
-                      )}
-                    </div>
-                  </div>
-
+                      </>
+                    ) : (
+                      <button
+                        className="ui-button ui-button-sm"
+                        onClick={() => setModalGuia(row)}
+                      >
+                        Cargar guía
+                      </button>
+                    )
+                  )}
                 </div>
-              )
-            })}
-          </div>
-        </>
-      )}
 
-      </div>{/* scroll-area */}
+              </div>
+            )
+          })}
+
+        </div>{/* scroll-area */}
       </div>{/* panel */}
       </div>{/* module-body */}
 
