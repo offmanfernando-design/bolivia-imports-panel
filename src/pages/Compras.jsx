@@ -254,6 +254,95 @@ function parsearWhatsApp(text) {
     return Object.keys(r).length > 0 ? r : null;
   }
 
+  // ── 2.5. Multi-order: bloques explícitos "Proveedor | Orden | Cantidad" ──
+  function esLineaBloque(l) {
+    if (!l.includes("|")) return false;
+    const partes = l.split("|").map((p) => p.trim());
+    if (partes.length !== 3) return false;
+    if (!/^\d+$/.test(partes[2])) return false;
+    if (parseInt(partes[2], 10) <= 0) return false;
+    if (!partes[0] || partes[0].length > 40 || /^\d/.test(partes[0])) return false;
+    return !!partes[1];
+  }
+
+  const bloqueIdxs = [];
+  for (let i = 0; i < lineas.length; i++) {
+    if (esLineaBloque(lineas[i])) bloqueIdxs.push(i);
+  }
+
+  if (bloqueIdxs.length > 0) {
+    const r2 = {};
+    r2.comprado_por = lineas.some((l) => l.toLowerCase().trim() === "empresa") ? "empresa" : "cliente";
+
+    // Info de cliente: escanear líneas antes del primer bloque
+    for (const l of lineas.slice(0, bloqueIdxs[0])) {
+      const ciudad = detectarCiudad(l);
+      if (ciudad && !r2.ciudad) { r2.ciudad = ciudad; continue; }
+      if (
+        /^(contacto|tel[eé]fono|cel\.?)\b/i.test(l) ||
+        /^\+?[\d\s\-()]{7,15}$/.test(l) ||
+        /\bcontacto\s+\d/i.test(l)
+      ) {
+        const tel = detectarTelefono(l);
+        if (tel && !r2.telefono) { r2.telefono = tel; continue; }
+      }
+      if (!r2.nombre && /^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s]{10,}$/.test(l) && !detectarCiudad(l)) {
+        r2.nombre = l;
+      }
+    }
+
+    // Construir una orden por bloque
+    r2.ordenes = bloqueIdxs.map((startIdx, bi) => {
+      const endIdx       = bi + 1 < bloqueIdxs.length ? bloqueIdxs[bi + 1] : lineas.length;
+      const partes       = lineas[startIdx].split("|").map((p) => p.trim());
+      const pagina       = partes[0];
+      const numero_orden = partes[1];
+
+      const descLines = [];
+      for (const l of lineas.slice(startIdx + 1, endIdx)) {
+        const lt = l.toLowerCase().trim();
+        if (lt === "cliente" || lt === "empresa") continue;
+        const ciudad = detectarCiudad(l);
+        if (ciudad && !r2.ciudad) { r2.ciudad = ciudad; continue; }
+        if (
+          /^(contacto|tel[eé]fono|cel\.?)\b/i.test(l) ||
+          /^\+?[\d\s\-()]{7,15}$/.test(l) ||
+          /\bcontacto\s+\d/i.test(l)
+        ) {
+          const tel = detectarTelefono(l);
+          if (tel && !r2.telefono) { r2.telefono = tel; continue; }
+        }
+        if (!r2.nombre && /^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s]{10,}$/.test(l) && !detectarCiudad(l)) {
+          r2.nombre = l; continue;
+        }
+        descLines.push(l);
+      }
+
+      // Convertir descLines en productos (misma lógica que parser flexible)
+      const esNum  = (line) => /^\d+\s+\S/.test(line);
+      const numCnt = descLines.filter(esNum).length;
+      const productos = [];
+      if (numCnt > 1) {
+        for (const l of descLines) {
+          productos.push({
+            descripcion: esNum(l) ? l.replace(/^\d+\s+/, "").trim() : l,
+            cantidad:    1,
+          });
+        }
+      } else if (numCnt === 1 && descLines.length === 1) {
+        const m = descLines[0].match(/^(\d+)\s+(.+)/);
+        if (m) productos.push({ descripcion: m[2].trim(), cantidad: parseInt(m[1], 10) });
+        else   productos.push({ descripcion: descLines[0], cantidad: 1 });
+      } else if (descLines.length > 0) {
+        productos.push({ descripcion: descLines.join(" / "), cantidad: 1 });
+      }
+
+      return { pagina, numero_orden, productos };
+    });
+
+    return Object.keys(r2).length > 1 ? r2 : null;
+  }
+
   // ── 3. Parser flexible (mensajes reales de grupo) ─────────
   const LABELS_NOMBRE   = ["su nombre completo", "nombre completo", "nombre"];
   const LABELS_CANTIDAD = ["cantidad de items", "cantidad de ítems", "cantidad de productos", "cantidad"];
@@ -424,7 +513,23 @@ export default function Compras() {
     const compradoPor = parsed.comprado_por || "cliente";
     const productos   = parsed.productos || [];
 
-    if (productos.length > 1) {
+    if (parsed.ordenes && parsed.ordenes.length > 0) {
+      // Bloques proveedor/orden explícitos → una Orden/Página por bloque
+      setOrdenes(
+        parsed.ordenes.map((o) => {
+          const prods = o.productos || [];
+          return {
+            ...emptyOrden(),
+            pagina:               o.pagina       || "",
+            numero_orden:         o.numero_orden || "",
+            comprado_por:         compradoPor,
+            tracking_responsible: compradoPor,
+            cantidadItems:        prods.length > 0 ? String(prods.length) : "",
+            items:                prods.map((p) => ({ descripcion: p.descripcion, cantidad: p.cantidad })),
+          };
+        })
+      );
+    } else if (productos.length > 1) {
       // Múltiples productos → una sola orden con todos los productos como items[]
       setOrdenes([{
         ...emptyOrden(),
