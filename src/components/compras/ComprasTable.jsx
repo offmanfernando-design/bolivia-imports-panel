@@ -76,7 +76,7 @@ export default function ComprasTable({ reload }) {
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo guardar el tracking");
-      setCompras(prev => prev.map(c => c.id === id ? { ...c, tracking_number: tracking } : c));
+      setCompras(prev => prev.map(c => c.id === id ? { ...c, tracking_number: tracking, tracking_status: "received" } : c));
     } catch (err) {
       console.error(err);
       alert(err.message || "Error guardando tracking");
@@ -95,7 +95,7 @@ export default function ComprasTable({ reload }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo guardar el tracking");
       setCompras(prev => prev.map(c =>
-        c.id === compraId ? { ...c, single_item_tracking: tracking.trim() } : c
+        c.id === compraId ? { ...c, single_item_tracking: tracking.trim(), tracking_status: "received" } : c
       ));
       setTrackingEdit(prev => { const n = { ...prev }; delete n[compraId]; return n; });
     } catch (err) {
@@ -122,6 +122,9 @@ export default function ComprasTable({ reload }) {
           it.id === itemId ? { ...it, tracking_number: tracking } : it
         ),
       }));
+      setCompras(prev => prev.map(c =>
+        c.id === compraId ? { ...c, tracking_status: "received" } : c
+      ));
       setItemTrackEdit(prev => { const n = { ...prev }; delete n[itemId]; return n; });
     } catch (err) {
       console.error(err);
