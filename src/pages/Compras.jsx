@@ -88,28 +88,32 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
         />
       </div>
 
-      <select
-        value={orden.comprado_por}
-        onChange={(e) => onChange(idx, "comprado_por", e.target.value)}
-        className="ui-input"
-      >
-        <option value="cliente">Comprado por: Cliente</option>
-        <option value="empresa">Comprado por: Empresa</option>
-      </select>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs" style={{ color: "var(--text-3)" }}>
-          Responsable del tracking
-        </label>
-        <select
-          value={orden.tracking_responsible}
-          onChange={(e) => onChange(idx, "tracking_responsible", e.target.value)}
-          className="ui-input"
-        >
-          <option value="cliente">Cliente</option>
-          <option value="empresa">Empresa</option>
-        </select>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs" style={{ color: "var(--text-3)" }}>Comprado por</label>
+        <div className="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => onChange(idx, "comprado_por", "cliente")}
+            style={orden.comprado_por === "cliente"
+              ? { background: "var(--text)", color: "var(--surface)", border: "1px solid var(--text)", borderRadius: "8px", padding: "9px 0", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", transition: "all 0.15s" }
+              : { background: "transparent", color: "var(--text-3)", border: "1px solid var(--border)", borderRadius: "8px", padding: "9px 0", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer", transition: "all 0.15s" }
+            }
+          >
+            Cliente
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(idx, "comprado_por", "empresa")}
+            style={orden.comprado_por === "empresa"
+              ? { background: "var(--text)", color: "var(--surface)", border: "1px solid var(--text)", borderRadius: "8px", padding: "9px 0", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", transition: "all 0.15s" }
+              : { background: "transparent", color: "var(--text-3)", border: "1px solid var(--border)", borderRadius: "8px", padding: "9px 0", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer", transition: "all 0.15s" }
+            }
+          >
+            Empresa
+          </button>
+        </div>
       </div>
+
 
       <input
         type="text"
@@ -146,17 +150,21 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
         </div>
       ))}
 
-      <input
-        type="date"
-        placeholder="Fecha estimada"
-        value={orden.fecha}
-        onChange={(e) => onChange(idx, "fecha", e.target.value)}
-        className="ui-input"
-      />
+      <div className="flex flex-col gap-1">
+        <label className="text-xs" style={{ color: "var(--text-3)" }}>
+          Fecha de compra
+        </label>
+        <input
+          type="date"
+          value={orden.fecha}
+          onChange={(e) => onChange(idx, "fecha", e.target.value)}
+          className="ui-input"
+        />
+      </div>
 
       <div className="flex flex-col gap-1">
         <label className="text-xs" style={{ color: "var(--text-3)" }}>
-          Fecha entrega proveedor (opcional)
+          Fecha de entrega proveedor (opcional)
         </label>
         <input
           type="date"

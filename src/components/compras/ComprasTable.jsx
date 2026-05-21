@@ -582,9 +582,8 @@ export default function ComprasTable({ reload }) {
                       </span>
                     )}
                     {grupo.codigo_solicitud && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
-                        style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-3)" }}>
-                        {grupo.codigo_solicitud}
+                      <span className="text-[10px] font-mono" style={{ color: "var(--text-3)" }}>
+                        · {grupo.codigo_solicitud}
                       </span>
                     )}
                     {!isSingle && (
