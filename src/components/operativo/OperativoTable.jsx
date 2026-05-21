@@ -5,6 +5,7 @@ import { API_URL } from "../../config/api";
 function getEstadoLabel(estado) {
   switch (estado) {
     case "reparto":   return "En Reparto";
+    case "warehouse":
     case "entregado": return "En Warehouse";
     case "recibido":  return "En Bolivia";
     default:          return "En Reparto";
@@ -14,6 +15,7 @@ function getEstadoLabel(estado) {
 function getEstadoBadgeType(estado) {
   switch (estado) {
     case "reparto":   return "warning";
+    case "warehouse":
     case "entregado": return "info";
     case "recibido":  return "success";
     default:          return "default";

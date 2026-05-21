@@ -258,7 +258,11 @@ export default function ComprasTable({ reload }) {
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo actualizar el estado");
-      setCompras(prev => prev.map(c => c.id === id ? { ...c, estado } : c));
+      setCompras(prev => prev.map(c =>
+        c.id === id
+          ? { ...c, estado, tracking_status: estado === "recibido" ? "received" : c.tracking_status }
+          : c
+      ));
     } catch (err) {
       console.error(err);
       alert(err.message || "Error actualizando estado");
@@ -278,6 +282,7 @@ export default function ComprasTable({ reload }) {
   function getEstadoStyle(estado) {
     switch (estado) {
       case "reparto":   return { background: "var(--surface-3)", color: "var(--text-2)" };
+      case "warehouse":
       case "entregado": return { background: "var(--accent-soft)", color: "var(--accent-2)" };
       case "recibido":  return { background: "var(--success-soft)", color: "var(--success)" };
       default:          return { background: "var(--surface-2)", color: "var(--text-2)" };
@@ -631,7 +636,7 @@ export default function ComprasTable({ reload }) {
                       className="px-2.5 py-1 rounded-full text-xs font-semibold border-none outline-none cursor-pointer hover:opacity-80 transition-opacity"
                       style={getEstadoStyle(c0.estado || "reparto")}>
                       <option value="reparto">En Reparto</option>
-                      <option value="entregado">En Warehouse</option>
+                      <option value="warehouse">En Warehouse</option>
                       <option value="recibido">En Bolivia</option>
                     </select>
                     <button onClick={() => abrirEditar(c0)} title="Editar orden"
@@ -767,7 +772,7 @@ export default function ComprasTable({ reload }) {
                                 className="px-2 py-0.5 rounded-full text-xs font-semibold border-none outline-none cursor-pointer hover:opacity-80 transition-opacity"
                                 style={getEstadoStyle(compra.estado || "reparto")}>
                                 <option value="reparto">En Reparto</option>
-                                <option value="entregado">En Warehouse</option>
+                                <option value="warehouse">En Warehouse</option>
                                 <option value="recibido">En Bolivia</option>
                               </select>
                               <button onClick={() => abrirEditar(compra)} title="Editar"
