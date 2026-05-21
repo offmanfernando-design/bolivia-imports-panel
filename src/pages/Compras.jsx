@@ -177,11 +177,45 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
   );
 }
 
+function parsearWhatsApp(text) {
+  const lineas = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lineas.length === 0) return null;
+
+  function splitLinea(linea) {
+    const partes = linea.split("|").map((p) => p.trim());
+    if (partes.length > 1) return partes;
+    return linea.split("/").map((p) => p.trim());
+  }
+
+  const r = {};
+
+  if (lineas[0]) {
+    const p = splitLinea(lineas[0]);
+    if (p[0]) r.nombre = p[0];
+    if (p[1]) r.ciudad = p[1];
+  }
+  if (lineas[1]) r.descripcion = lineas[1].trim();
+  if (lineas[2]) {
+    const p = splitLinea(lineas[2]);
+    if (p[0]) r.pagina = p[0];
+    if (p[1]) r.numero_orden = p[1];
+    if (p[2]) { const n = parseInt(p[2], 10); r.cantidad = isNaN(n) ? 1 : n; }
+  }
+  if (lineas[3]) {
+    r.comprado_por = lineas[3].toLowerCase().includes("empresa") ? "empresa" : "cliente";
+  }
+
+  return Object.keys(r).length > 0 ? r : null;
+}
+
 export default function Compras() {
   const [cliente, setCliente] = useState({ nombre: "", telefono: "", ciudad: "" });
   const [nota, setNota] = useState("");
   const [ordenes, setOrdenes] = useState([emptyOrden()]);
   const [reload, setReload] = useState(0);
+  const [modoForm, setModoForm] = useState("manual");
+  const [waText,   setWaText]   = useState("");
+  const [waMsg,    setWaMsg]    = useState("");
 
   function updateCliente(e) {
     const { name, value } = e.target;
@@ -205,6 +239,39 @@ export default function Compras() {
 
   function eliminarOrden(idx) {
     setOrdenes((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function interpretarWA() {
+    const parsed = parsearWhatsApp(waText);
+    if (!parsed) {
+      setWaMsg("No se pudo interpretar el texto. Revisa el formato.");
+      return;
+    }
+    if (parsed.nombre || parsed.ciudad) {
+      setCliente((prev) => ({
+        ...prev,
+        ...(parsed.nombre ? { nombre: parsed.nombre } : {}),
+        ...(parsed.ciudad ? { ciudad: parsed.ciudad } : {}),
+      }));
+    }
+    const compradoPor = parsed.comprado_por || "cliente";
+    const items = parsed.descripcion
+      ? [{ descripcion: parsed.descripcion, cantidad: parsed.cantidad || 1 }]
+      : [];
+    setOrdenes((prev) => {
+      const updated = [...prev];
+      updated[0] = {
+        ...updated[0],
+        ...(parsed.pagina       ? { pagina:        parsed.pagina }       : {}),
+        ...(parsed.numero_orden ? { numero_orden:   parsed.numero_orden } : {}),
+        comprado_por:        compradoPor,
+        tracking_responsible: compradoPor,
+        ...(items.length > 0 ? { items, cantidadItems: String(items.length) } : {}),
+      };
+      return updated;
+    });
+    setModoForm("manual");
+    setWaMsg("Texto interpretado. Revisa los datos antes de guardar.");
   }
 
   async function guardar() {
@@ -310,77 +377,186 @@ export default function Compras() {
               </p>
             </div>
 
-            <div className="panel-body flex flex-col gap-5">
+            <div className="panel-body flex flex-col gap-0 !p-0">
 
-              {/* Datos del cliente */}
-              <div className="flex flex-col gap-2.5">
-                <p
-                  className="font-semibold uppercase"
-                  style={{ fontFamily: "'Geist Mono', monospace", fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-3)" }}
-                >
-                  Cliente
-                </p>
-                <input
-                  name="nombre"
-                  placeholder="Nombre cliente"
-                  value={cliente.nombre}
-                  onChange={updateCliente}
-                  className="ui-input"
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    name="telefono"
-                    placeholder="Teléfono"
-                    value={cliente.telefono}
-                    onChange={updateCliente}
-                    className="ui-input"
-                  />
-                  <input
-                    name="ciudad"
-                    placeholder="Ciudad"
-                    value={cliente.ciudad}
-                    onChange={updateCliente}
-                    className="ui-input"
-                  />
+              {/* Selector de modo */}
+              <div className="px-5 pt-5 pb-4">
+                <div className="grid grid-cols-2 gap-1 p-1 rounded-xl"
+                  style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                  {[
+                    { key: "manual", label: "Formulario manual" },
+                    { key: "rapida", label: "Carga rápida" },
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setModoForm(key); setWaMsg(""); }}
+                      style={modoForm === key
+                        ? { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "8px 0", fontSize: "12px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", color: "var(--text)", boxShadow: "0 1px 3px rgba(0,0,0,0.12)", transition: "all 0.15s" }
+                        : { background: "transparent", border: "1px solid transparent", borderRadius: "8px", padding: "8px 0", fontSize: "12px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer", color: "var(--text-3)", transition: "all 0.15s" }
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
-                <input
-                  placeholder="Nota solicitud (opcional)"
-                  value={nota}
-                  onChange={(e) => setNota(e.target.value)}
-                  className="ui-input"
-                />
               </div>
 
-              {/* Separador */}
-              <div style={{ height: "1px", background: "var(--border)" }} />
+              {/* Mensaje de estado — visible en cualquier modo */}
+              {waMsg && (
+                <div className="px-5 pb-3">
+                  <p className="text-xs px-3 py-2 rounded-lg"
+                    style={{
+                      color:      waMsg.startsWith("No") ? "var(--danger)"       : "var(--success)",
+                      background: waMsg.startsWith("No") ? "var(--danger-soft,  color-mix(in srgb, var(--danger)  10%, transparent))"
+                                                         : "var(--success-soft, color-mix(in srgb, var(--success) 10%, transparent))",
+                    }}>
+                    {waMsg}
+                  </p>
+                </div>
+              )}
 
-              {/* Bloques de orden */}
-              <div className="flex flex-col gap-3">
-                <p
-                  className="font-semibold uppercase"
-                  style={{ fontFamily: "'Geist Mono', monospace", fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-3)" }}
-                >
-                  Órdenes / páginas
-                </p>
-                {ordenes.map((orden, idx) => (
-                  <OrdenBlock
-                    key={idx}
-                    orden={orden}
-                    idx={idx}
-                    total={ordenes.length}
-                    onChange={updateOrden}
-                    onRemove={eliminarOrden}
+              {/* ── Modo: Formulario manual ── */}
+              {modoForm === "manual" && (
+                <div className="flex flex-col gap-5 px-5 pb-5">
+
+                  {/* Datos del cliente */}
+                  <div className="flex flex-col gap-2.5">
+                    <p
+                      className="font-semibold uppercase"
+                      style={{ fontFamily: "'Geist Mono', monospace", fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-3)" }}
+                    >
+                      Cliente
+                    </p>
+                    <input
+                      name="nombre"
+                      placeholder="Nombre cliente"
+                      value={cliente.nombre}
+                      onChange={updateCliente}
+                      className="ui-input"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        name="telefono"
+                        placeholder="Teléfono"
+                        value={cliente.telefono}
+                        onChange={updateCliente}
+                        className="ui-input"
+                      />
+                      <input
+                        name="ciudad"
+                        placeholder="Ciudad"
+                        value={cliente.ciudad}
+                        onChange={updateCliente}
+                        className="ui-input"
+                      />
+                    </div>
+                    <input
+                      placeholder="Nota solicitud (opcional)"
+                      value={nota}
+                      onChange={(e) => setNota(e.target.value)}
+                      className="ui-input"
+                    />
+                  </div>
+
+                  <div style={{ height: "1px", background: "var(--border)" }} />
+
+                  {/* Bloques de orden */}
+                  <div className="flex flex-col gap-3">
+                    <p
+                      className="font-semibold uppercase"
+                      style={{ fontFamily: "'Geist Mono', monospace", fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-3)" }}
+                    >
+                      Órdenes / páginas
+                    </p>
+                    {ordenes.map((orden, idx) => (
+                      <OrdenBlock
+                        key={idx}
+                        orden={orden}
+                        idx={idx}
+                        total={ordenes.length}
+                        onChange={updateOrden}
+                        onRemove={eliminarOrden}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={agregarOrden}
+                    className="ui-button-ghost text-sm"
+                  >
+                    + Agregar otra página / proveedor
+                  </button>
+
+                </div>
+              )}
+
+              {/* ── Modo: Carga rápida ── */}
+              {modoForm === "rapida" && (
+                <div className="flex flex-col gap-4 px-5 pb-5">
+
+                  <p className="text-xs" style={{ color: "var(--text-3)" }}>
+                    Pega el texto de WhatsApp y presiona <strong style={{ color: "var(--text-2)" }}>Interpretar texto</strong> para autocompletar el formulario.
+                  </p>
+
+                  <textarea
+                    placeholder="Pega aquí el texto copiado de WhatsApp…"
+                    value={waText}
+                    onChange={(e) => { setWaText(e.target.value); setWaMsg(""); }}
+                    className="ui-input font-mono text-xs w-full"
+                    style={{ lineHeight: "1.65", minHeight: "140px", resize: "vertical" }}
                   />
-                ))}
-              </div>
 
-              <button
-                type="button"
-                onClick={agregarOrden}
-                className="ui-button-ghost text-sm"
-              >
-                + Agregar otra página / proveedor
-              </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={interpretarWA}
+                      className="ui-button ui-button-sm justify-center"
+                    >
+                      Interpretar texto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setWaText(""); setWaMsg(""); }}
+                      className="ui-button-ghost text-xs justify-center"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+
+                  {/* Formato y ejemplo — bloques verticales */}
+                  <div className="rounded-xl px-4 py-4 flex flex-col gap-4"
+                    style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-3)" }}>
+                        Formato recomendado
+                      </p>
+                      <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words m-0 p-0"
+                        style={{ color: "var(--text-2)", background: "transparent" }}>
+{`Cliente | Ciudad
+Producto / descripción
+Página | Nº orden | Cantidad
+Cliente o Empresa`}
+                      </pre>
+                    </div>
+                    <div style={{ height: "1px", background: "var(--border)" }} />
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-3)" }}>
+                        Ejemplo
+                      </p>
+                      <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words m-0 p-0"
+                        style={{ color: "var(--text-3)", background: "transparent" }}>
+{`Juan Pérez | Santa Cruz
+Polera Nike negra talla M
+Amazon | 123-4567890 | 2
+Empresa`}
+                      </pre>
+                    </div>
+                  </div>
+
+                </div>
+              )}
 
             </div>
 
