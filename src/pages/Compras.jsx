@@ -178,34 +178,200 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
 }
 
 function parsearWhatsApp(text) {
-  const lineas = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  if (lineas.length === 0) return null;
-
+  // ── Helpers ──────────────────────────────────────────────
   function splitLinea(linea) {
     const partes = linea.split("|").map((p) => p.trim());
     if (partes.length > 1) return partes;
     return linea.split("/").map((p) => p.trim());
   }
 
-  const r = {};
+  const CIUDADES = [
+    ["santa cruz de la sierra", "Santa Cruz"],
+    ["santa cruz",              "Santa Cruz"],
+    ["la paz",                  "La Paz"],
+    ["cochabamba",              "Cochabamba"],
+    ["oruro",                   "Oruro"],
+    ["potosí",                  "Potosí"],
+    ["potosi",                  "Potosí"],
+    ["sucre",                   "Sucre"],
+    ["tarija",                  "Tarija"],
+    ["el beni",                 "Beni"],
+    ["beni",                    "Beni"],
+    ["trinidad",                "Trinidad"],
+    ["pando",                   "Pando"],
+  ];
 
-  if (lineas[0]) {
-    const p = splitLinea(lineas[0]);
-    if (p[0]) r.nombre = p[0];
-    if (p[1]) r.ciudad = p[1];
-  }
-  if (lineas[1]) r.descripcion = lineas[1].trim();
-  if (lineas[2]) {
-    const p = splitLinea(lineas[2]);
-    if (p[0]) r.pagina = p[0];
-    if (p[1]) r.numero_orden = p[1];
-    if (p[2]) { const n = parseInt(p[2], 10); r.cantidad = isNaN(n) ? 1 : n; }
-  }
-  if (lineas[3]) {
-    r.comprado_por = lineas[3].toLowerCase().includes("empresa") ? "empresa" : "cliente";
+  function detectarCiudad(str) {
+    const lower = str.toLowerCase().trim();
+    for (const [key, val] of CIUDADES) {
+      if (lower === key || lower.startsWith(key + " ") || lower.startsWith(key + ",")) return val;
+    }
+    return null;
   }
 
-  return Object.keys(r).length > 0 ? r : null;
+  function detectarTelefono(str) {
+    const m = str.match(/\b(\d{7,8})\b/);
+    return m ? m[1] : null;
+  }
+
+  function detectarCantidad(str) {
+    const m = str.match(/\b(\d+)\s*(?:solo\s+)?(?:ítems?|items?|productos?|artículos?|unidades?)\b/i);
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  // ── 1. Preprocesar líneas ─────────────────────────────────
+  let lineas = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lineas.length === 0) return null;
+
+  // Quitar encabezado WhatsApp: [HH:MM, DD/M/YYYY] nombre grupo: texto
+  lineas = lineas.map((l) => {
+    const m = l.match(/^\[[\d:, /]+\][^[]*?:\s*(.*)/);
+    if (m) return m[1].trim();
+    return l;
+  }).filter(Boolean);
+
+  // Quitar prefijos decorativos: - • * – —
+  lineas = lineas.map((l) => l.replace(/^[-•*–—⁠]\s*/, "").trim()).filter(Boolean);
+
+  if (lineas.length === 0) return null;
+
+  // ── 2. Formato recomendado: primera línea limpia tiene | ──
+  if (lineas[0].includes("|")) {
+    const r = {};
+    const p0 = splitLinea(lineas[0]);
+    if (p0[0]) r.nombre = p0[0];
+    if (p0[1]) r.ciudad = p0[1];
+    const p2 = lineas[2] ? splitLinea(lineas[2]) : [];
+    if (p2[0]) r.pagina       = p2[0];
+    if (p2[1]) r.numero_orden = p2[1];
+    if (lineas[1]) {
+      const cantNum = p2[2] ? parseInt(p2[2], 10) : NaN;
+      r.productos = [{ descripcion: lineas[1].trim(), cantidad: isNaN(cantNum) ? 1 : cantNum }];
+    }
+    if (lineas[3]) {
+      r.comprado_por = lineas[3].toLowerCase().includes("empresa") ? "empresa" : "cliente";
+    }
+    return Object.keys(r).length > 0 ? r : null;
+  }
+
+  // ── 3. Parser flexible (mensajes reales de grupo) ─────────
+  const LABELS_NOMBRE   = ["su nombre completo", "nombre completo", "nombre"];
+  const LABELS_CANTIDAD = ["cantidad de items", "cantidad de ítems", "cantidad de productos", "cantidad"];
+  const LABELS_CIUDAD   = ["departamento", "ciudad", "destino"];
+  const LABELS_TEL      = [
+    "número de telefono", "numero de telefono",
+    "número de teléfono", "numero de teléfono",
+    "número de contacto", "numero de contacto",
+    "teléfono", "telefono", "celular", "cel", "contacto",
+  ];
+  const LABELS_DESC     = [
+    "nombre de los productos lo más detallado posible",
+    "nombre de los productos",
+    "productos", "producto",
+    "descripción", "descripcion",
+  ];
+
+  const r    = {};
+  const desc = [];
+
+  for (const linea of lineas) {
+    // Extraer etiqueta "clave: valor" (clave < 60 chars, contiene al menos una letra)
+    const ci      = linea.indexOf(":");
+    const hasLabel = ci > 2 && ci < 60;
+    const clave   = hasLabel ? linea.slice(0, ci).toLowerCase().trim() : null;
+    const valor   = hasLabel ? linea.slice(ci + 1).trim()              : null;
+    const labelOk = hasLabel && /[a-záéíóúñ]/i.test(clave);
+
+    if (labelOk) {
+      if (LABELS_NOMBRE.includes(clave)) {
+        if (!r.nombre && valor) r.nombre = valor;
+        continue;
+      }
+      if (LABELS_CIUDAD.includes(clave)) {
+        if (!r.ciudad && valor) r.ciudad = detectarCiudad(valor) || valor;
+        continue;
+      }
+      if (LABELS_TEL.includes(clave)) {
+        if (!r.telefono && valor) r.telefono = detectarTelefono(valor) || valor;
+        continue;
+      }
+      if (LABELS_CANTIDAD.includes(clave)) {
+        if (!r.cantidad && valor) {
+          const n = parseInt(valor, 10);
+          if (!isNaN(n)) r.cantidad = n;
+          else { const nc = detectarCantidad(valor); if (nc) r.cantidad = nc; }
+        }
+        continue;
+      }
+      if (LABELS_DESC.includes(clave)) {
+        if (valor) desc.push(valor);
+        continue;
+      }
+      // Etiqueta desconocida — acumular valor como descripción
+      if (valor) desc.push(valor);
+      continue;
+    }
+
+    // Sin etiqueta — detección heurística por contenido
+    const ciudad = detectarCiudad(linea);
+    if (ciudad && !r.ciudad) { r.ciudad = ciudad; continue; }
+
+    if (
+      /^(contacto|tel[eé]fono|cel\.?)\b/i.test(linea) ||
+      /^\+?[\d\s\-()]{7,15}$/.test(linea) ||
+      /\bcontacto\s+\d/i.test(linea)
+    ) {
+      const tel = detectarTelefono(linea);
+      if (tel && !r.telefono) { r.telefono = tel; continue; }
+    }
+
+    // Número solo en su propia línea → cantidad del producto que sigue
+    if (/^\d+$/.test(linea) && linea.length <= 3 && !r.cantidad) {
+      r.cantidad = parseInt(linea, 10); continue;
+    }
+
+    const cant = detectarCantidad(linea);
+    if (cant && !r.cantidad && linea.length < 35) { r.cantidad = cant; continue; }
+
+    // Nombre: solo letras y espacios, mínimo 10 chars, sin ciudad reconocida
+    if (!r.nombre && /^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s]{10,}$/.test(linea) && !detectarCiudad(linea)) {
+      r.nombre = linea; continue;
+    }
+
+    // Resto → descripción
+    desc.push(linea);
+  }
+
+  // ── Convertir líneas de desc en r.productos ─────────────
+  if (desc.length > 0) {
+    const esNumerada = (l) => /^\d+\s+\S/.test(l);
+    const numCount   = desc.filter(esNumerada).length;
+    const productos  = [];
+
+    if (numCount > 1) {
+      // Lista numerada → número es índice, no cantidad; un producto por línea
+      for (const l of desc) {
+        productos.push({
+          descripcion: esNumerada(l) ? l.replace(/^\d+\s+/, "").trim() : l,
+          cantidad:    1,
+        });
+      }
+    } else if (numCount === 1 && desc.length === 1) {
+      // Exactamente una línea en desc y está numerada → el número es la cantidad
+      const m = desc[0].match(/^(\d+)\s+(.+)/);
+      if (m) productos.push({ descripcion: m[2].trim(), cantidad: parseInt(m[1], 10) });
+    } else {
+      // Sin numeración o mixto → un solo producto con descripción combinada
+      productos.push({ descripcion: desc.join(" / "), cantidad: r.cantidad || 1 });
+    }
+
+    if (productos.length > 0) r.productos = productos;
+  }
+
+  // comprado_por: solo "empresa" si hay una línea exclusivamente con esa palabra
+  r.comprado_por = lineas.some((l) => l.toLowerCase().trim() === "empresa") ? "empresa" : "cliente";
+
+  return Object.keys(r).length > 1 ? r : null;
 }
 
 export default function Compras() {
@@ -247,29 +413,46 @@ export default function Compras() {
       setWaMsg("No se pudo interpretar el texto. Revisa el formato.");
       return;
     }
-    if (parsed.nombre || parsed.ciudad) {
+    if (parsed.nombre || parsed.ciudad || parsed.telefono) {
       setCliente((prev) => ({
         ...prev,
-        ...(parsed.nombre ? { nombre: parsed.nombre } : {}),
-        ...(parsed.ciudad ? { ciudad: parsed.ciudad } : {}),
+        ...(parsed.nombre   ? { nombre:   parsed.nombre   } : {}),
+        ...(parsed.ciudad   ? { ciudad:   parsed.ciudad   } : {}),
+        ...(parsed.telefono ? { telefono: parsed.telefono } : {}),
       }));
     }
     const compradoPor = parsed.comprado_por || "cliente";
-    const items = parsed.descripcion
-      ? [{ descripcion: parsed.descripcion, cantidad: parsed.cantidad || 1 }]
-      : [];
-    setOrdenes((prev) => {
-      const updated = [...prev];
-      updated[0] = {
-        ...updated[0],
-        ...(parsed.pagina       ? { pagina:        parsed.pagina }       : {}),
-        ...(parsed.numero_orden ? { numero_orden:   parsed.numero_orden } : {}),
-        comprado_por:        compradoPor,
+    const productos   = parsed.productos || [];
+
+    if (productos.length > 1) {
+      // Múltiples productos → una sola orden con todos los productos como items[]
+      setOrdenes([{
+        ...emptyOrden(),
+        comprado_por:         compradoPor,
         tracking_responsible: compradoPor,
-        ...(items.length > 0 ? { items, cantidadItems: String(items.length) } : {}),
-      };
-      return updated;
-    });
+        cantidadItems:        String(productos.length),
+        items:                productos.map((p) => ({ descripcion: p.descripcion, cantidad: p.cantidad })),
+      }]);
+    } else if (productos.length === 1) {
+      // Un producto → reemplazar todo el array con una sola orden limpia
+      const p = productos[0];
+      setOrdenes([{
+        ...emptyOrden(),
+        ...(parsed.pagina       ? { pagina:       parsed.pagina }       : {}),
+        ...(parsed.numero_orden ? { numero_orden: parsed.numero_orden } : {}),
+        comprado_por:         compradoPor,
+        tracking_responsible: compradoPor,
+        cantidadItems:        "1",
+        items:                [{ descripcion: p.descripcion, cantidad: p.cantidad }],
+      }]);
+    } else {
+      // Sin productos detectados → una sola orden limpia con comprado_por correcto
+      setOrdenes([{
+        ...emptyOrden(),
+        comprado_por:         compradoPor,
+        tracking_responsible: compradoPor,
+      }]);
+    }
     setModoForm("manual");
     setWaMsg("Texto interpretado. Revisa los datos antes de guardar.");
   }
