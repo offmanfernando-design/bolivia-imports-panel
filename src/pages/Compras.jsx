@@ -8,6 +8,7 @@ function emptyOrden() {
     numero_orden: "",
     url_orden: "",
     comprado_por: "cliente",
+    tracking_responsible: "cliente",
     fecha: "",
     fecha_entrega_proveedor: "",
     cantidadItems: "",
@@ -75,12 +76,17 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
         className="ui-input"
       />
 
-      <input
-        placeholder="Link de la orden"
-        value={orden.url_orden}
-        onChange={(e) => onChange(idx, "url_orden", e.target.value)}
-        className="ui-input"
-      />
+      <div className="flex flex-col gap-1">
+        <label className="text-xs" style={{ color: "var(--text-3)" }}>
+          Referencia / link opcional
+        </label>
+        <input
+          placeholder="Link, correo, nota o referencia para ubicar el tracking"
+          value={orden.url_orden}
+          onChange={(e) => onChange(idx, "url_orden", e.target.value)}
+          className="ui-input"
+        />
+      </div>
 
       <select
         value={orden.comprado_por}
@@ -90,6 +96,20 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
         <option value="cliente">Comprado por: Cliente</option>
         <option value="empresa">Comprado por: Empresa</option>
       </select>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs" style={{ color: "var(--text-3)" }}>
+          Responsable del tracking
+        </label>
+        <select
+          value={orden.tracking_responsible}
+          onChange={(e) => onChange(idx, "tracking_responsible", e.target.value)}
+          className="ui-input"
+        >
+          <option value="cliente">Cliente</option>
+          <option value="empresa">Empresa</option>
+        </select>
+      </div>
 
       <input
         type="text"
@@ -162,7 +182,12 @@ export default function Compras() {
 
   function updateOrden(idx, field, value) {
     setOrdenes((prev) =>
-      prev.map((o, i) => (i === idx ? { ...o, [field]: value } : o))
+      prev.map((o, i) => {
+        if (i !== idx) return o;
+        const updated = { ...o, [field]: value };
+        if (field === "comprado_por") updated.tracking_responsible = value;
+        return updated;
+      })
     );
   }
 
@@ -218,6 +243,7 @@ export default function Compras() {
         numero_orden:             o.numero_orden.trim(),
         url_orden:                o.url_orden.trim() || null,
         comprado_por:             o.comprado_por,
+        tracking_responsible:     o.tracking_responsible,
         fecha_entrega_proveedor:  o.fecha_entrega_proveedor || null,
         fecha:                    o.fecha || null,
         items: o.items

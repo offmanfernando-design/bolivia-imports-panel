@@ -197,6 +197,7 @@ export default function ComprasTable({ reload }) {
       descripcion_producto:    compra.descripcion_producto || "",
       comprado_por:            compra.comprado_por || "cliente",
       fecha_entrega_proveedor: compra.fecha_entrega_proveedor ? compra.fecha_entrega_proveedor.split("T")[0] : "",
+      tracking_responsible:    compra.tracking_responsible || compra.comprado_por || "cliente",
     });
     setEditError("");
   }
@@ -218,6 +219,7 @@ export default function ComprasTable({ reload }) {
           descripcion_producto:    editForm.descripcion_producto.trim() || null,
           comprado_por:            editForm.comprado_por,
           fecha_entrega_proveedor: editForm.fecha_entrega_proveedor || null,
+          tracking_responsible:    editForm.tracking_responsible,
         }),
       });
       const json = await res.json();
@@ -233,6 +235,7 @@ export default function ComprasTable({ reload }) {
           descripcion_producto:    json.data.descripcion_producto,
           comprado_por:            json.data.comprado_por,
           fecha_entrega_proveedor: json.data.fecha_entrega_proveedor,
+          tracking_responsible:    json.data.tracking_responsible,
         };
       }));
       setEditingId(null);
@@ -256,6 +259,16 @@ export default function ComprasTable({ reload }) {
     } catch (err) {
       console.error(err);
       alert(err.message || "Error actualizando estado");
+    }
+  }
+
+  const TRACKING_STATUS_LABEL = { pending: "Pendiente", requested: "Solicitado", received: "Recibido" };
+
+  function getTrackingStatusStyle(status) {
+    switch (status) {
+      case "received":  return { background: "var(--success-soft)", color: "var(--success)" };
+      case "requested": return { background: "var(--accent-soft)", color: "var(--accent-2)" };
+      default:          return { background: "var(--surface-2)", color: "var(--text-3)" };
     }
   }
 
@@ -661,6 +674,27 @@ export default function ComprasTable({ reload }) {
                     </div>
                   )}
 
+                  {/* Responsable tracking + estado tracking */}
+                  {(c0.tracking_responsible || c0.tracking_status) && (
+                    <div className="px-4 py-2 flex items-center gap-3 flex-wrap"
+                      style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}>
+                      {c0.tracking_responsible && (
+                        <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
+                          Resp. tracking:{" "}
+                          <span className="font-semibold" style={{ color: "var(--text-2)" }}>
+                            {c0.tracking_responsible === "empresa" ? "Empresa" : "Cliente"}
+                          </span>
+                        </span>
+                      )}
+                      {c0.tracking_status && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                          style={getTrackingStatusStyle(c0.tracking_status)}>
+                          {TRACKING_STATUS_LABEL[c0.tracking_status] || c0.tracking_status}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Banda de tracking o footer de ítems */}
                   {!c0hasMulti
                     ? renderTrackingBand(c0, false)
@@ -771,6 +805,27 @@ export default function ComprasTable({ reload }) {
                             </div>
                           )}
 
+                          {/* Responsable tracking + estado tracking */}
+                          {(compra.tracking_responsible || compra.tracking_status) && (
+                            <div className="px-3 py-1.5 flex items-center gap-3 flex-wrap"
+                              style={{ background: "var(--surface)", borderTop: "1px solid var(--border)" }}>
+                              {compra.tracking_responsible && (
+                                <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
+                                  Resp.:{" "}
+                                  <span className="font-semibold" style={{ color: "var(--text-2)" }}>
+                                    {compra.tracking_responsible === "empresa" ? "Empresa" : "Cliente"}
+                                  </span>
+                                </span>
+                              )}
+                              {compra.tracking_status && (
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                                  style={getTrackingStatusStyle(compra.tracking_status)}>
+                                  {TRACKING_STATUS_LABEL[compra.tracking_status] || compra.tracking_status}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
                           {/* Tracking o expand footer */}
                           {!hasMulti
                             ? renderTrackingBand(compra, true)
@@ -869,6 +924,18 @@ export default function ComprasTable({ reload }) {
                   </label>
                   <select value={editForm.comprado_por || "cliente"}
                     onChange={e => setEditForm(f => ({ ...f, comprado_por: e.target.value }))}
+                    className="ui-select w-full">
+                    <option value="cliente">Cliente</option>
+                    <option value="empresa">Empresa</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--text-3)" }}>
+                    Responsable del tracking
+                  </label>
+                  <select value={editForm.tracking_responsible || "cliente"}
+                    onChange={e => setEditForm(f => ({ ...f, tracking_responsible: e.target.value }))}
                     className="ui-select w-full">
                     <option value="cliente">Cliente</option>
                     <option value="empresa">Empresa</option>
