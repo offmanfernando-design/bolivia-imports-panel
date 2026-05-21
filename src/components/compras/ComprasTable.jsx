@@ -8,6 +8,7 @@ export default function ComprasTable({ reload }) {
   const [trackingEdit,     setTrackingEdit]      = useState({});
   const [loading,          setLoading]           = useState(true);
   const [filtro,           setFiltro]            = useState("");
+  const [filtroTracking,   setFiltroTracking]    = useState("todos");
   const [expandedId,       setExpandedId]        = useState(null);
   const [itemsMap,         setItemsMap]          = useState({});
   const [itemTrackEdit,    setItemTrackEdit]      = useState({});
@@ -308,8 +309,9 @@ export default function ComprasTable({ reload }) {
     }
   }
 
-  /* ── Filtro ─────────────────────────────────────────────────── */
-  const comprasFiltradas = compras.filter(c => {
+  /* ── Filtros ─────────────────────────────────────────────────── */
+  const comprasTexto = compras.filter(c => {
+    if (!filtro) return true;
     const texto = filtro.toLowerCase();
     return (
       c.cliente_nombre?.toLowerCase().includes(texto) ||
@@ -317,6 +319,25 @@ export default function ComprasTable({ reload }) {
       c.proveedor?.toLowerCase().includes(texto) ||
       c.numero_orden?.toLowerCase().includes(texto)
     );
+  });
+
+  const conteos = {
+    todos:             comprasTexto.length,
+    sin_tracking:      comprasTexto.filter(c => c.tracking_status === "pending" || c.tracking_status === "requested").length,
+    pendiente_empresa: comprasTexto.filter(c => (c.tracking_status === "pending" || c.tracking_status === "requested") && c.tracking_responsible === "empresa").length,
+    pendiente_cliente: comprasTexto.filter(c => (c.tracking_status === "pending" || c.tracking_status === "requested") && c.tracking_responsible === "cliente").length,
+    recibidos:         comprasTexto.filter(c => c.tracking_status === "received").length,
+  };
+
+  const comprasFiltradas = comprasTexto.filter(c => {
+    const sinTracking = c.tracking_status === "pending" || c.tracking_status === "requested";
+    switch (filtroTracking) {
+      case "sin_tracking":      return sinTracking;
+      case "pendiente_empresa": return sinTracking && c.tracking_responsible === "empresa";
+      case "pendiente_cliente": return sinTracking && c.tracking_responsible === "cliente";
+      case "recibidos":         return c.tracking_status === "received";
+      default:                  return true;
+    }
   });
 
   /* ── Agrupación por solicitud ───────────────────────────────── */
@@ -545,6 +566,37 @@ export default function ComprasTable({ reload }) {
         onChange={e => setFiltro(e.target.value)}
         className="ui-input max-w-md"
       />
+
+      {/* Filtros rápidos de tracking */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+        {[
+          { key: "todos",             label: "Todos" },
+          { key: "sin_tracking",      label: "Sin tracking" },
+          { key: "pendiente_empresa", label: "Pend. empresa" },
+          { key: "pendiente_cliente", label: "Pend. cliente" },
+          { key: "recibidos",         label: "Recibidos" },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setFiltroTracking(key)}
+            style={{
+              padding: "5px 10px",
+              borderRadius: "20px",
+              fontSize: "11px",
+              fontWeight: filtroTracking === key ? 600 : 500,
+              fontFamily: "inherit",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              border: `1px solid ${filtroTracking === key ? "var(--text)" : "var(--border)"}`,
+              background: filtroTracking === key ? "var(--text)" : "var(--surface-2)",
+              color: filtroTracking === key ? "var(--surface)" : "var(--text-3)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label} ({conteos[key]})
+          </button>
+        ))}
+      </div>
 
       {/* Empty */}
       {grupos.length === 0 && (
