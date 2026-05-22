@@ -373,11 +373,15 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     setError("");
     setLoadingRegistrar(true);
     try {
+      const tarifaParaBackend =
+        monedaTarifaCliente === "bs"
+          ? Number(tarifaClienteUsd) / Number(tipoCambioCliente)
+          : Number(tarifaClienteUsd);
       const payload = {
         item_id: selectedItemId,
         tipo_calculo: tipoCalculo,
         costo_interno_usd: Number(costoInternoUsd),
-        tarifa_cliente_usd: Number(tarifaClienteUsd),
+        tarifa_cliente_usd: tarifaParaBackend,
         tipo_cambio_interno: Number(tipoCambioInterno),
         tipo_cambio_cliente: Number(tipoCambioCliente),
         ubicacion_id: ubicacionId,
@@ -441,12 +445,16 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     setError("");
     setLoadingRegistrar(true);
     try {
+      const tarifaParaBackend =
+        monedaTarifaCliente === "bs"
+          ? Number(tarifaClienteUsd) / Number(tipoCambioCliente)
+          : Number(tarifaClienteUsd);
       const payload = {
         item_ids: [...selectedItemIds],
         tipo_calculo: tipoCalculo,
         modo_lote: modoAplicacion,
         costo_interno_usd: Number(costoInternoUsd),
-        tarifa_cliente_usd: Number(tarifaClienteUsd),
+        tarifa_cliente_usd: tarifaParaBackend,
         tipo_cambio_interno: Number(tipoCambioInterno),
         tipo_cambio_cliente: Number(tipoCambioCliente),
         ubicacion_id: ubicacionId,
