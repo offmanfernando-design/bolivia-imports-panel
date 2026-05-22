@@ -456,7 +456,7 @@ export default function ComprasTable({ reload }) {
   function renderTrackingBand(compra, compact) {
     const effectiveTracking = compra.single_item_tracking || compra.tracking_number;
     const px = compact ? "px-3" : "px-4";
-    const inputW = compact ? "min-w-[120px] max-w-[180px]" : "min-w-[150px] max-w-[220px]";
+    const inputW = compact ? "min-w-0 sm:min-w-[120px] sm:max-w-[180px]" : "min-w-0 sm:min-w-[150px] sm:max-w-[220px]";
     const bandStyle = { background: "var(--surface-2)", borderTop: "1px solid var(--border)" };
 
     const label = (
@@ -489,17 +489,19 @@ export default function ComprasTable({ reload }) {
       }
       return (
         <div className={`${px} py-2.5`} style={bandStyle}>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
             {label}
-            <input type="text" placeholder="Número de tracking"
-              value={trackingEdit[compra.id] || ""}
-              onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
-              className={`flex-1 ${inputW} ui-input ui-input-sm`}
-            />
-            <button onClick={() => guardarTrackingSingle(compra.id, compra.single_item_id)}
-              className="ui-button ui-button-sm flex-shrink-0">
-              Guardar
-            </button>
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <input type="text" placeholder="Número de tracking"
+                value={trackingEdit[compra.id] || ""}
+                onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
+                className={`flex-1 ${inputW} ui-input ui-input-sm`}
+              />
+              <button onClick={() => guardarTrackingSingle(compra.id, compra.single_item_id)}
+                className="ui-button ui-button-sm flex-shrink-0">
+                Guardar
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -518,16 +520,18 @@ export default function ComprasTable({ reload }) {
 
     return (
       <div className={`${px} py-2.5`} style={bandStyle}>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
           {label}
-          <input type="text" placeholder="Número de tracking"
-            className={`flex-1 ${inputW} ui-input ui-input-sm`}
-            onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
-          />
-          <button onClick={() => guardarTracking(compra.id)}
-            className="ui-button ui-button-sm flex-shrink-0">
-            Guardar
-          </button>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <input type="text" placeholder="Número de tracking"
+              className={`flex-1 ${inputW} ui-input ui-input-sm`}
+              onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
+            />
+            <button onClick={() => guardarTracking(compra.id)}
+              className="ui-button ui-button-sm flex-shrink-0">
+              Guardar
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -626,7 +630,7 @@ export default function ComprasTable({ reload }) {
             >
 
               {/* ZONA A — ENCABEZADO */}
-              <div className="px-4 pt-3 pb-3 flex items-start gap-3"
+              <div className="px-4 pt-3 pb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3"
                 style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
 
                 <div className="flex-1 min-w-0 flex flex-col gap-1">
@@ -679,7 +683,7 @@ export default function ComprasTable({ reload }) {
 
                 {/* Acciones solo para orden única */}
                 {isSingle && (
-                  <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                  <div className="flex items-center gap-1.5 flex-wrap self-start sm:flex-shrink-0 sm:self-auto">
                     <Badge type={c0.comprado_por === "empresa" ? "empresa" : "default"}>
                       {c0.comprado_por === "empresa" ? "Empresa" : "Cliente"}
                     </Badge>
@@ -793,7 +797,7 @@ export default function ComprasTable({ reload }) {
                           style={{ border: "1px solid var(--border)" }}>
 
                           {/* Mini-header */}
-                          <div className="px-3 py-2.5 flex items-start gap-2"
+                          <div className="px-3 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-2"
                             style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -815,7 +819,7 @@ export default function ComprasTable({ reload }) {
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="flex items-center gap-1.5 flex-wrap self-start sm:flex-shrink-0 sm:self-auto">
                               <Badge type={compra.comprado_por === "empresa" ? "empresa" : "default"}>
                                 {compra.comprado_por === "empresa" ? "Empresa" : "Cliente"}
                               </Badge>

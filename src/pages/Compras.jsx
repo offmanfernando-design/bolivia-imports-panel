@@ -468,9 +468,10 @@ export default function Compras() {
   const [nota, setNota] = useState("");
   const [ordenes, setOrdenes] = useState([emptyOrden()]);
   const [reload, setReload] = useState(0);
-  const [modoForm, setModoForm] = useState("manual");
-  const [waText,   setWaText]   = useState("");
-  const [waMsg,    setWaMsg]    = useState("");
+  const [modoForm,   setModoForm]   = useState("manual");
+  const [waText,     setWaText]     = useState("");
+  const [waMsg,      setWaMsg]      = useState("");
+  const [mobileTab,  setMobileTab]  = useState("solicitud");
 
   function updateCliente(e) {
     const { name, value } = e.target;
@@ -651,9 +652,34 @@ export default function Compras() {
 
       {/* Split de dos columnas */}
       <div className="module-body">
+
+        {/* Tab selector — solo mobile (oculto en sm+) */}
+        <div className="block sm:hidden pb-3">
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-xl"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+            {[
+              { key: "solicitud",   label: "Nueva solicitud" },
+              { key: "registradas", label: "Compras registradas" },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setMobileTab(key)}
+                style={mobileTab === key
+                  ? { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "9px 0", fontSize: "12px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", color: "var(--text)", boxShadow: "0 1px 3px rgba(0,0,0,0.12)", transition: "all 0.15s" }
+                  : { background: "transparent", border: "1px solid transparent", borderRadius: "8px", padding: "9px 0", fontSize: "12px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer", color: "var(--text-3)", transition: "all 0.15s" }
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="split-pane">
 
           {/* Panel izquierdo — formulario */}
+          <div className={mobileTab === "solicitud" ? "contents" : "hidden sm:contents"}>
           <div className="panel lg:w-[360px] lg:flex-shrink-0">
 
             <div className="panel-header">
@@ -855,11 +881,14 @@ Empresa`}
             </div>
 
           </div>
+          </div>
 
           {/* Panel derecho — tabla de compras */}
-          <div className="panel flex-1 min-w-0">
-            <div className="scroll-area p-5">
-              <ComprasTable reload={reload} />
+          <div className={mobileTab === "registradas" ? "contents" : "hidden sm:contents"}>
+            <div className="panel flex-1 min-w-0">
+              <div className="scroll-area p-5">
+                <ComprasTable reload={reload} />
+              </div>
             </div>
           </div>
 
