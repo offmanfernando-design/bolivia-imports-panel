@@ -105,6 +105,8 @@ const esEsperandoWarehouse = (item) =>
   item.estado !== "recibido_bolivia" &&
   item.estado !== "entregado";
 
+const fmtMoney = (v) => v == null ? "—" : Number(v).toFixed(2)
+
 function SectionLabel({ children }) {
   return (
     <p className="text-[10px] font-bold uppercase tracking-wider mt-1" style={{ color: "var(--text-3)" }}>
@@ -145,6 +147,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const [unidades, setUnidades] = useState("");
   const [costoInternoUsd, setCostoInternoUsd] = useState("");
   const [tarifaClienteUsd, setTarifaClienteUsd] = useState("");
+  const [monedaTarifaCliente, setMonedaTarifaCliente] = useState("usd");
   const [tipoCambioInterno, setTipoCambioInterno] = useState("");
   const [tipoCambioCliente, setTipoCambioCliente] = useState("");
   const [selectedUbicacionCodigo, setSelectedUbicacionCodigo] = useState("");
@@ -292,9 +295,9 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     if (!cat) return;
     if (cat.tipo_calculo) setTipoCalculo(cat.tipo_calculo);
     if (cat.tarifa_cliente_usd != null)
-      setTarifaClienteUsd(String(cat.tarifa_cliente_usd));
-    if (cat.precio_referencia_usd != null && costoInternoUsd === "")
-      setCostoInternoUsd(String(cat.precio_referencia_usd));
+      setTarifaClienteUsd(String(Number(cat.tarifa_cliente_usd)));
+    if (cat.precio_referencia_usd != null)
+      setCostoInternoUsd(String(Number(cat.precio_referencia_usd)));
   }
 
   const costoInternoBs = useMemo(() => {
@@ -311,15 +314,22 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
 
   const cobroClienteBs = useMemo(() => {
     const t = Number(tarifaClienteUsd);
-    const tc = Number(tipoCambioCliente);
-    if (!t || !tc || t <= 0 || tc <= 0) return null;
-    if (tipoCalculo === "kg") {
-      const p = Number(pesoCliente);
-      return p > 0 ? (p * t * tc).toFixed(2) : null;
+    if (!t || t <= 0) return null;
+    const base = tipoCalculo === "kg" ? Number(pesoCliente) : Number(unidades);
+    if (!base || base <= 0) return null;
+    if (monedaTarifaCliente === "bs") {
+      // Tarifa ingresada en Bs — T/C no altera el cobro, solo sirve de referencia
+      return (base * t).toFixed(2);
     }
-    const u = Number(unidades);
-    return u > 0 ? (u * t * tc).toFixed(2) : null;
-  }, [tipoCalculo, pesoCliente, unidades, tarifaClienteUsd, tipoCambioCliente]);
+    const tc = Number(tipoCambioCliente);
+    if (!tc || tc <= 0) return null;
+    return (base * t * tc).toFixed(2);
+  }, [tipoCalculo, pesoCliente, unidades, tarifaClienteUsd, tipoCambioCliente, monedaTarifaCliente]);
+
+  const margenBs = useMemo(() => {
+    if (!cobroClienteBs || !costoInternoBs) return null;
+    return (Number(cobroClienteBs) - Number(costoInternoBs)).toFixed(2);
+  }, [cobroClienteBs, costoInternoBs]);
 
   const validationErrors = useMemo(() => {
     if (!selectedItemId && selectedItemIds.size === 0) return [];
@@ -335,7 +345,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     if (!costoInternoUsd || Number(costoInternoUsd) <= 0)
       errs.push("Costo interno USD");
     if (!tarifaClienteUsd || Number(tarifaClienteUsd) <= 0)
-      errs.push("Tarifa cliente USD");
+      errs.push(monedaTarifaCliente === "bs" ? "Tarifa cliente (Bs)" : "Tarifa cliente (USD)");
     if (!tipoCambioInterno || Number(tipoCambioInterno) <= 0)
       errs.push("T/C interno");
     if (!tipoCambioCliente || Number(tipoCambioCliente) <= 0)
@@ -351,6 +361,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     unidades,
     costoInternoUsd,
     tarifaClienteUsd,
+    monedaTarifaCliente,
     tipoCambioInterno,
     tipoCambioCliente,
     ubicacionId,
@@ -657,7 +668,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               </p>
               {orden.ubicacion_sugerida && orden.ubicacion_sugerida_coincide_zona && (
                 <p className="text-xs" style={{ color: "var(--text-2)" }}>
-                  Ubicación sugerida: {orden.ubicacion_sugerida.codigo}
+                  Ubicación sugerida: {orden.ubicacion_sugerida.codigo} — este cliente ya tiene paquetes ahí
                 </p>
               )}
               {orden.ubicacion_sugerida && !orden.ubicacion_sugerida_coincide_zona && (
@@ -936,9 +947,9 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                 )}
               </div>
 
-              {/* Medida */}
+              {/* Tipo de cobro */}
               <div className="flex flex-col gap-1.5">
-                <SectionLabel>Medida</SectionLabel>
+                <SectionLabel>Tipo de cobro</SectionLabel>
                 <div className="flex gap-4 text-sm">
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input type="radio" checked={tipoCalculo === "kg"} onChange={() => setTipoCalculo("kg")} />
@@ -958,6 +969,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                       </label>
                       <input type="number" placeholder="0.00" value={pesoInterno}
                         onChange={(e) => setPesoInterno(e.target.value)}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="ui-input ui-input-sm" min="0" step="0.01" />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -966,6 +978,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                       </label>
                       <input type="number" placeholder="0.00" value={pesoCliente}
                         onChange={(e) => setPesoCliente(e.target.value)}
+                        onWheel={(e) => e.currentTarget.blur()}
                         className="ui-input ui-input-sm" min="0" step="0.01" />
                     </div>
                   </div>
@@ -978,6 +991,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                     </label>
                     <input type="number" placeholder="1" value={unidades}
                       onChange={(e) => setUnidades(e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
                       className="ui-input ui-input-sm" min="1" step="1" />
                   </div>
                 )}
@@ -991,14 +1005,39 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                     <label className="ui-label">Costo interno (USD)</label>
                     <input type="number" placeholder="0.00" value={costoInternoUsd}
                       onChange={(e) => setCostoInternoUsd(e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
                       className="ui-input ui-input-sm" min="0" step="0.01" />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className="ui-label">
-                      {tipoCalculo === "kg" ? "Tarifa cliente/kg (USD)" : "Tarifa cliente/unidad (USD)"}
-                    </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="ui-label">
+                        {tipoCalculo === "kg"
+                          ? `Tarifa cliente/kg (${monedaTarifaCliente === "usd" ? "USD" : "Bs"})`
+                          : `Tarifa cliente/unidad (${monedaTarifaCliente === "usd" ? "USD" : "Bs"})`}
+                      </label>
+                      <div className="flex rounded overflow-hidden border text-[10px] font-semibold flex-shrink-0"
+                        style={{ borderColor: "var(--border)" }}>
+                        <button type="button"
+                          onClick={() => setMonedaTarifaCliente("usd")}
+                          className="px-2 py-0.5 transition-colors"
+                          style={monedaTarifaCliente === "usd"
+                            ? { background: "var(--text)", color: "var(--surface)" }
+                            : { color: "var(--text-3)" }}>
+                          USD
+                        </button>
+                        <button type="button"
+                          onClick={() => setMonedaTarifaCliente("bs")}
+                          className="px-2 py-0.5 transition-colors"
+                          style={monedaTarifaCliente === "bs"
+                            ? { background: "var(--text)", color: "var(--surface)" }
+                            : { color: "var(--text-3)" }}>
+                          Bs
+                        </button>
+                      </div>
+                    </div>
                     <input type="number" placeholder="0.00" value={tarifaClienteUsd}
                       onChange={(e) => setTarifaClienteUsd(e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
                       className="ui-input ui-input-sm" min="0" step="0.01" />
                   </div>
                 </div>
@@ -1007,79 +1046,93 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                     <label className="ui-label">T/C interno</label>
                     <input type="number" placeholder="6.96" value={tipoCambioInterno}
                       onChange={(e) => setTipoCambioInterno(e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
                       className="ui-input ui-input-sm" min="0" step="0.01" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="ui-label">T/C cliente</label>
                     <input type="number" placeholder="6.96" value={tipoCambioCliente}
                       onChange={(e) => setTipoCambioCliente(e.target.value)}
+                      onWheel={(e) => e.currentTarget.blur()}
                       className="ui-input ui-input-sm" min="0" step="0.01" />
                   </div>
                 </div>
               </div>
 
-              {/* Live preview */}
-              {(costoInternoBs || cobroClienteBs) && (() => {
+              {/* Resumen financiero */}
+              {(() => {
                 const nItems = modoLote ? selectedItemIds.size : 1;
                 const esConsolidado = modoLote && modoAplicacion === "consolidado" && nItems > 1;
-                const cobroTotal = esConsolidado ? Number(cobroClienteBs) : Number(cobroClienteBs) * nItems;
-                const cobro1Item = esConsolidado ? (Number(cobroClienteBs) / nItems) : Number(cobroClienteBs);
-                const costoTotal = esConsolidado ? Number(costoInternoBs) : Number(costoInternoBs) * nItems;
-                const costo1Item = esConsolidado ? (Number(costoInternoBs) / nItems) : Number(costoInternoBs);
-                const pI = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "kg" && pesoInterno
-                  ? (Number(pesoInterno) / nItems).toFixed(3) : null;
-                const pC = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "kg" && pesoCliente
-                  ? (Number(pesoCliente) / nItems).toFixed(3) : null;
-                const uItem = modoLote && modoAplicacion === "consolidado" && tipoCalculo === "unidad" && unidades
-                  ? Math.round(Number(unidades) / nItems) : null;
+
+                if (!costoInternoBs && !cobroClienteBs) {
+                  return (
+                    <div className="rounded-xl p-3 text-xs"
+                      style={{ background: "var(--surface-2)", color: "var(--text-3)" }}>
+                      Completa los datos para calcular la ganancia
+                    </div>
+                  );
+                }
+
+                const costoTotal = esConsolidado
+                  ? Number(costoInternoBs || 0)
+                  : Number(costoInternoBs || 0) * nItems;
+                const cobroTotal = esConsolidado
+                  ? Number(cobroClienteBs || 0)
+                  : Number(cobroClienteBs || 0) * nItems;
+                const margenTotal = cobroClienteBs && costoInternoBs
+                  ? (esConsolidado ? Number(margenBs || 0) : Number(margenBs || 0) * nItems)
+                  : null;
 
                 return (
-                  <div className="rounded-xl p-3 text-sm flex flex-col gap-1"
-                    style={{ background: "var(--surface-2)" }}>
-                    {esConsolidado && (tipoCalculo === "kg" ? pI : uItem !== null) && (
-                      <p className="text-xs" style={{ color: "var(--text-3)" }}>
-                        {tipoCalculo === "kg"
-                          ? <>Peso por ítem: <span className="font-medium">{pI} kg interno / {pC} kg cliente</span></>
-                          : <>Unidades por ítem: <span className="font-medium">{uItem}</span></>}
+                  <div className="rounded-xl p-3 flex flex-col gap-2"
+                    style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+                      Resumen financiero{nItems > 1 ? ` — ${nItems} ítems` : ""}
+                    </p>
+
+                    {costoInternoBs && (
+                      <div className="flex justify-between items-baseline text-sm gap-2">
+                        <span style={{ color: "var(--text-2)" }}>Costo interno total</span>
+                        <span className="font-semibold tabular-nums" style={{ color: "var(--text)" }}>
+                          Bs {fmtMoney(costoTotal)}
+                        </span>
+                      </div>
+                    )}
+
+                    {cobroClienteBs && (
+                      <div className="flex justify-between items-baseline text-sm gap-2">
+                        <span style={{ color: "var(--text-2)" }}>Cobro cliente total</span>
+                        <span className="font-semibold tabular-nums" style={{ color: "var(--text)" }}>
+                          Bs {fmtMoney(cobroTotal)}
+                        </span>
+                      </div>
+                    )}
+
+                    {margenTotal !== null ? (
+                      <div className="flex justify-between items-baseline text-sm gap-2 pt-1.5 mt-0.5"
+                        style={{ borderTop: "1px solid var(--border)" }}>
+                        <span className="font-medium"
+                          style={{ color: margenTotal >= 0 ? "var(--success)" : "var(--danger)" }}>
+                          {margenTotal >= 0 ? "Ganancia estimada" : "Pérdida estimada"}
+                        </span>
+                        <span className="font-bold tabular-nums"
+                          style={{ color: margenTotal >= 0 ? "var(--success)" : "var(--danger)" }}>
+                          Bs {fmtMoney(Math.abs(margenTotal))}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs pt-1.5 mt-0.5"
+                        style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>
+                        Completa los datos para calcular la ganancia
                       </p>
                     )}
-                    {cobroClienteBs && (
-                      <>
-                        <p style={{ color: "var(--text-2)" }}>
-                          {esConsolidado ? "Cobro total lote" : "Cobro cliente por ítem"}:{" "}
-                          <span className="font-medium" style={{ color: "var(--text)" }}>Bs {cobroTotal.toFixed(2)}</span>
-                        </p>
-                        {esConsolidado && (
-                          <p className="text-xs" style={{ color: "var(--text-3)" }}>
-                            Por ítem: <span className="font-medium">Bs {cobro1Item.toFixed(2)}</span>
-                          </p>
-                        )}
-                      </>
-                    )}
-                    {costoInternoBs && (
-                      <>
-                        <p style={{ color: "var(--text-2)" }}>
-                          {esConsolidado ? "Costo interno total lote" : "Costo interno por ítem"}:{" "}
-                          <span className="font-medium" style={{ color: "var(--text)" }}>Bs {costoTotal.toFixed(2)}</span>
-                        </p>
-                        {esConsolidado && (
-                          <p className="text-xs" style={{ color: "var(--text-3)" }}>
-                            Por ítem: <span className="font-medium">Bs {costo1Item.toFixed(2)}</span>
-                          </p>
-                        )}
-                      </>
-                    )}
-                    {!esConsolidado && modoLote && nItems > 1 && cobroClienteBs && (
-                      <p className="text-xs pt-1 mt-0.5" style={{ color: "var(--text-3)", borderTop: "1px solid var(--border)" }}>
-                        Total lote ({nItems} ítems):{" "}
-                        <span className="font-semibold" style={{ color: "var(--text-2)" }}>
-                          Bs {cobroTotal.toFixed(2)} cobro
-                        </span>
-                        {costoInternoBs && (
-                          <span style={{ color: "var(--text-3)" }}>
-                            {" / "}Bs {costoTotal.toFixed(2)} costo
-                          </span>
-                        )}
+
+                    {esConsolidado && nItems > 1 && (
+                      <p className="text-xs" style={{ color: "var(--text-3)" }}>
+                        Por ítem:{" "}
+                        {costoInternoBs && <>costo Bs {fmtMoney(costoTotal / nItems)}</>}
+                        {costoInternoBs && cobroClienteBs && " · "}
+                        {cobroClienteBs && <>cobro Bs {fmtMoney(cobroTotal / nItems)}</>}
                       </p>
                     )}
                   </div>
