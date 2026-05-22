@@ -1,17 +1,108 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { API_URL } from "../../config/api";
 
-function printEtiquetaAlmacen({ cliente_nombre, ubicacion, cobro_cliente_bs, item_descripcion }) {
-  const precio = cobro_cliente_bs != null ? `${Number(cobro_cliente_bs).toFixed(2)} Bs` : "—"
+function printEtiquetaAlmacen(data, formato) {
+  const { cliente_nombre, ubicacion, cobro_cliente_bs, item_descripcion } = data
+  const precio = cobro_cliente_bs != null ? `Bs ${Number(cobro_cliente_bs).toFixed(2)}` : "—"
   const desc = item_descripcion
-    ? (item_descripcion.length > 42 ? item_descripcion.slice(0, 42).trimEnd() + "…" : item_descripcion)
+    ? (item_descripcion.length > 48 ? item_descripcion.slice(0, 48).trimEnd() + "…" : item_descripcion)
     : null
-  const html = `<!DOCTYPE html>
+
+  let html
+
+  if (formato === "adhesiva") {
+    const descCorto = item_descripcion
+      ? (item_descripcion.length > 32 ? item_descripcion.slice(0, 32).trimEnd() + "…" : item_descripcion)
+      : null
+    html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Etiqueta adhesiva almacén</title>
+<style>
+  @page { size: 80mm 50mm; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff;
+    color: #000;
+    width: 80mm;
+    height: 50mm;
+    display: flex;
+    align-items: stretch;
+  }
+  .etiqueta {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 2.5mm 3mm;
+    gap: 0;
+  }
+  .marca {
+    font-size: 5.5pt;
+    letter-spacing: 0.14em;
+    color: #666;
+    margin-bottom: 2mm;
+    border-bottom: 0.5px solid #ccc;
+    padding-bottom: 1.5mm;
+    text-transform: uppercase;
+  }
+  .fila { display: flex; align-items: baseline; gap: 2mm; margin-bottom: 1.5mm; }
+  .fila:last-child { margin-bottom: 0; }
+  .lbl {
+    font-size: 5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    flex-shrink: 0;
+    width: 12mm;
+  }
+  .val { font-size: 9pt; font-weight: 700; line-height: 1.2; word-break: break-word; }
+  .val.ubic {
+    font-size: 18pt;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+  .val.precio { font-size: 10pt; }
+  .val.desc { font-size: 7pt; font-weight: 400; color: #333; }
+  .sep { border: none; border-top: 0.5px solid #ddd; margin: 1.5mm 0; }
+  @media print {
+    body { width: 80mm; height: 50mm; }
+  }
+</style>
+</head>
+<body>
+<div class="etiqueta">
+  <div class="marca">Bolivia Imports — Almacén</div>
+  <div class="fila">
+    <div class="lbl">Cliente</div>
+    <div class="val">${cliente_nombre || "—"}</div>
+  </div>
+  <hr class="sep">
+  <div class="fila">
+    <div class="lbl">Ubic.</div>
+    <div class="val ubic">${ubicacion || "—"}</div>
+  </div>
+  <hr class="sep">
+  ${descCorto ? `<div class="fila"><div class="lbl">Ítem</div><div class="val desc">${descCorto}</div></div>` : ""}
+  <div class="fila">
+    <div class="lbl">Cobrar</div>
+    <div class="val precio">${precio}</div>
+  </div>
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+  } else {
+    // formato === "hoja"
+    html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Etiqueta Almacén</title>
+<title>Etiqueta hoja almacén</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -22,46 +113,47 @@ function printEtiquetaAlmacen({ cliente_nombre, ubicacion, cobro_cliente_bs, ite
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    padding: 24px;
+    padding: 32px;
   }
   .etiqueta {
-    border: 2px solid #111;
+    border: 3px solid #111;
     width: 100%;
-    max-width: 260px;
+    max-width: 420px;
     text-align: center;
     overflow: hidden;
   }
   .marca {
     background: #111;
     color: #fff;
-    font-size: 9px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
     font-weight: 700;
-    padding: 7px 12px;
+    padding: 8px 16px;
   }
-  .cuerpo { padding: 18px 20px 22px; }
-  .campo { margin-bottom: 14px; }
+  .cuerpo { padding: 28px 32px 36px; }
+  .campo { margin-bottom: 22px; }
   .campo:last-child { margin-bottom: 0; }
   .label {
     font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     color: #888;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
   }
-  .valor { font-size: 20px; font-weight: 700; line-height: 1.2; word-break: break-word; }
+  .valor { font-size: 28px; font-weight: 700; line-height: 1.2; word-break: break-word; }
   .valor.ubic {
-    font-size: 34px;
-    letter-spacing: 0.06em;
+    font-size: 56px;
+    letter-spacing: 0.08em;
     font-family: 'Courier New', monospace;
+    line-height: 1;
   }
-  .valor.precio { font-size: 26px; }
-  .valor.desc { font-size: 12px; font-weight: 400; color: #444; }
-  .sep { border: none; border-top: 1px solid #e0e0e0; margin: 12px 0; }
+  .valor.precio { font-size: 34px; }
+  .valor.desc { font-size: 14px; font-weight: 400; color: #444; }
+  .sep { border: none; border-top: 1px solid #e0e0e0; margin: 18px 0; }
   @media print {
     body { min-height: unset; padding: 0; }
-    .etiqueta { max-width: 100%; }
+    .etiqueta { max-width: 100%; border: 3px solid #111; }
   }
 </style>
 </head>
@@ -73,15 +165,15 @@ function printEtiquetaAlmacen({ cliente_nombre, ubicacion, cobro_cliente_bs, ite
       <div class="label">Cliente</div>
       <div class="valor">${cliente_nombre || "—"}</div>
     </div>
-    ${desc ? `<hr class="sep"><div class="campo"><div class="label">Ítem</div><div class="valor desc">${desc}</div></div>` : ""}
     <hr class="sep">
     <div class="campo">
       <div class="label">Ubicación</div>
       <div class="valor ubic">${ubicacion || "—"}</div>
     </div>
     <hr class="sep">
+    ${desc ? `<div class="campo"><div class="label">Ítem</div><div class="valor desc">${desc}</div></div><hr class="sep">` : ""}
     <div class="campo">
-      <div class="label">Precio</div>
+      <div class="label">Cobrar</div>
       <div class="valor precio">${precio}</div>
     </div>
   </div>
@@ -89,7 +181,9 @@ function printEtiquetaAlmacen({ cliente_nombre, ubicacion, cobro_cliente_bs, ite
 <script>window.onload = () => window.print()</script>
 </body>
 </html>`
-  const win = window.open("", "_blank", "width=400,height=480")
+  }
+
+  const win = window.open("", "_blank", "width=560,height=640")
   if (!win) return
   win.document.write(html)
   win.document.close()
@@ -604,10 +698,17 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
             <div className="flex gap-2 mt-1 flex-wrap">
               <button
                 type="button"
-                onClick={() => printEtiquetaAlmacen(ultimaRecepcion)}
+                onClick={() => printEtiquetaAlmacen(ultimaRecepcion, "hoja")}
                 className="ui-button self-start"
               >
-                Etiqueta almacén
+                Etiqueta hoja
+              </button>
+              <button
+                type="button"
+                onClick={() => printEtiquetaAlmacen(ultimaRecepcion, "adhesiva")}
+                className="ui-button self-start"
+              >
+                Etiqueta adhesiva
               </button>
             </div>
           )}

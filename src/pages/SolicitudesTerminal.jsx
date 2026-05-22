@@ -294,17 +294,95 @@ function ModalCargarGuia({ row, onClose, onSaved }) {
 }
 
 // ─── Etiqueta imprimible (Terminal) ──────────────────────────────────────────
-function printEtiqueta(row) {
-  const nombre   = ((row.recoge_quien === "tercero" ? row.nombre_receptor   : row.cliente_nombre)   || "—").toUpperCase()
-  const telefono = (row.recoge_quien === "tercero" ? row.telefono_receptor : row.cliente_telefono) || "—"
-  const destino  = (row.destino || "—").toUpperCase()
+function printEtiqueta(row, formato) {
+  const nombre       = ((row.recoge_quien === "tercero" ? row.nombre_receptor   : row.cliente_nombre)   || "—").toUpperCase()
+  const telefono     = (row.recoge_quien === "tercero" ? row.telefono_receptor : row.cliente_telefono) || "—"
+  const destino      = (row.destino || "—").toUpperCase()
+  const transportadora = (row.transportadora || "").trim().toUpperCase()
 
-  const html = `<!DOCTYPE html>
+  let html
+
+  if (formato === "adhesiva") {
+    html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Etiqueta adhesiva</title>
+<style>
+  @page { size: 100mm 150mm; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff;
+    color: #000;
+    width: 100mm;
+    height: 150mm;
+    display: flex;
+    align-items: stretch;
+  }
+  .etiqueta {
+    width: 100%;
+    height: 100%;
+    border: 1.5px solid #000;
+    display: flex;
+    flex-direction: column;
+    padding: 6mm 6mm;
+    gap: 0;
+  }
+  .marca {
+    font-size: 7pt;
+    letter-spacing: 0.18em;
+    color: #555;
+    margin-bottom: 4mm;
+    border-bottom: 0.5px solid #ccc;
+    padding-bottom: 3mm;
+  }
+  .campo { margin-bottom: 5mm; }
+  .campo:last-child { margin-bottom: 0; }
+  .label {
+    font-size: 6pt;
+    letter-spacing: 0.14em;
+    color: #777;
+    margin-bottom: 1.5mm;
+  }
+  .valor { font-size: 22pt; font-weight: 700; line-height: 1.15; word-break: break-word; }
+  .valor.md { font-size: 16pt; font-weight: 700; }
+  .valor.sm { font-size: 13pt; font-weight: 600; }
+  .sep { border: none; border-top: 0.5px solid #ddd; margin: 4mm 0; }
+  @media print {
+    body { width: 100mm; height: 150mm; }
+  }
+</style>
+</head>
+<body>
+<div class="etiqueta">
+  <div class="marca">BOLIVIA IMPORTS — ENVÍO TERMINAL</div>
+  <div class="campo">
+    <div class="label">PARA</div>
+    <div class="valor">${nombre}</div>
+  </div>
+  <hr class="sep">
+  <div class="campo">
+    <div class="label">DESTINO</div>
+    <div class="valor md">${destino}</div>
+  </div>
+  <div class="campo">
+    <div class="label">TELÉFONO</div>
+    <div class="valor sm">${telefono}</div>
+  </div>
+  ${transportadora ? `<hr class="sep"><div class="campo"><div class="label">TRANSPORTADORA</div><div class="valor sm">${transportadora}</div></div>` : ""}
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+  } else {
+    // formato === "hoja" (por defecto)
+    html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Etiqueta</title>
+<title>Etiqueta hoja</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -315,35 +393,46 @@ function printEtiqueta(row) {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 32px;
   }
   .etiqueta {
-    border: 2px solid #111;
+    border: 3px solid #000;
     width: 100%;
-    max-width: 300px;
+    max-width: 480px;
     text-align: center;
   }
-  .cuerpo { padding: 24px 24px 28px; }
-  .campo { margin-bottom: 20px; }
+  .marca {
+    background: #000;
+    color: #fff;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    padding: 8px 16px;
+  }
+  .cuerpo { padding: 32px 36px 40px; }
+  .campo { margin-bottom: 28px; }
   .campo:last-child { margin-bottom: 0; }
   .label {
-    font-size: 9px;
+    font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: #888;
-    margin-bottom: 4px;
+    letter-spacing: 0.16em;
+    color: #777;
+    margin-bottom: 6px;
   }
-  .valor { font-size: 28px; font-weight: 700; line-height: 1.2; word-break: break-word; }
-  .valor.sm { font-size: 22px; font-weight: 600; }
-  .sep { border: none; border-top: 1px solid #e0e0e0; margin: 18px 0; }
+  .valor { font-size: 48px; font-weight: 700; line-height: 1.1; word-break: break-word; }
+  .valor.md { font-size: 36px; font-weight: 700; }
+  .valor.sm { font-size: 28px; font-weight: 600; }
+  .sep { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
   @media print {
     body { min-height: unset; padding: 0; }
-    .etiqueta { max-width: 100%; border: 2px solid #000; }
+    .etiqueta { max-width: 100%; border: 3px solid #000; }
   }
 </style>
 </head>
 <body>
 <div class="etiqueta">
+  <div class="marca">Bolivia Imports — Envío Terminal</div>
   <div class="cuerpo">
     <div class="campo">
       <div class="label">PARA</div>
@@ -352,19 +441,21 @@ function printEtiqueta(row) {
     <hr class="sep">
     <div class="campo">
       <div class="label">DESTINO</div>
-      <div class="valor sm">${destino}</div>
+      <div class="valor md">${destino}</div>
     </div>
     <div class="campo">
       <div class="label">TELÉFONO</div>
       <div class="valor sm">${telefono}</div>
     </div>
+    ${transportadora ? `<hr class="sep"><div class="campo"><div class="label">TRANSPORTADORA</div><div class="valor sm">${transportadora}</div></div>` : ""}
   </div>
 </div>
 <script>window.onload = () => window.print()</script>
 </body>
 </html>`
+  }
 
-  const win = window.open("", "_blank", "width=440,height=440")
+  const win = window.open("", "_blank", "width=600,height=700")
   if (!win) return
   win.document.write(html)
   win.document.close()
@@ -718,9 +809,15 @@ export default function SolicitudesTerminal() {
                       </button>
                       <button
                         className="ui-button-ghost ui-button-sm"
-                        onClick={() => printEtiqueta(row)}
+                        onClick={() => printEtiqueta(row, "hoja")}
                       >
-                        Etiqueta
+                        Etiqueta hoja
+                      </button>
+                      <button
+                        className="ui-button-ghost ui-button-sm"
+                        onClick={() => printEtiqueta(row, "adhesiva")}
+                      >
+                        Etiqueta adhesiva
                       </button>
                     </>
                   )}
