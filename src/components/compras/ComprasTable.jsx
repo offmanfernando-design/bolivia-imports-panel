@@ -160,7 +160,7 @@ export default function ComprasTable({ reload }) {
     setItemsError("");
     const itemsToSend = editItems.filter(i => {
       if (i.id && editDeleteIds.includes(i.id)) return false;
-      if (i.id && (i.estado !== "pendiente" || i.warehouse_confirmado === true)) return false;
+      if (i.id && (i.estado === "recibido_bolivia" || i.estado === "entregado")) return false;
       return true;
     });
     for (const item of itemsToSend) {
@@ -1031,7 +1031,7 @@ export default function ComprasTable({ reload }) {
                     <div className="flex flex-col gap-1.5">
                       {editItems.map((item, idx) => {
                         if (item.id && editDeleteIds.includes(item.id)) return null;
-                        const bloqueado = Boolean(item.id) && (item.estado !== "pendiente" || item.warehouse_confirmado === true);
+                        const bloqueado = Boolean(item.id) && (item.estado === "recibido_bolivia" || item.estado === "entregado");
                         return (
                           <div key={item.id || idx}
                             className={`grid grid-cols-[minmax(0,1fr)_56px_24px] gap-1.5 items-center${bloqueado ? " opacity-60" : ""}`}>
@@ -1047,7 +1047,7 @@ export default function ComprasTable({ reload }) {
                               className="ui-input ui-input-sm text-center disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                             {bloqueado ? (
-                              <span className="text-xs text-center" style={{ color: "var(--border-strong)" }}>🔒</span>
+                              <span className="text-xs text-center" title="Bloqueado: ítem ya recibido en Bolivia o entregado" style={{ color: "var(--border-strong)" }}>🔒</span>
                             ) : (
                               <button type="button" onClick={() => marcarEliminarItem(item, idx)}
                                 className="text-xs text-center transition-colors"

@@ -74,7 +74,52 @@ function CampoGrid({ items }) {
 }
 
 /* ── Modal detalle ───────────────────────────────────────── */
-function DetalleItem({ row, onClose }) {
+function DetalleItem({ row, onClose, onReload }) {
+  const [tab, setTab]               = useState("detalle")
+  const [events, setEvents]         = useState(null) // null = no cargado aún
+
+  // ── Revertir recepción ────────────────────────────────────
+  const [revertiendo, setRevertiendo]       = useState(false)
+  const [motivo, setMotivo]                 = useState("")
+  const [loadingRevertir, setLoadingRevertir] = useState(false)
+  const [errorRevertir, setErrorRevertir]   = useState(null)
+
+  async function handleRevertir() {
+    setLoadingRevertir(true)
+    setErrorRevertir(null)
+    try {
+      const res  = await fetch(`${API_URL}/operativo/inventario/${row.item_id}/revertir-recepcion`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ motivo: motivo.trim() || null }),
+      })
+      const json = await res.json()
+      if (!json.ok) {
+        setErrorRevertir(json.error || "Error al revertir la recepción")
+        return
+      }
+      onClose()
+      if (onReload) onReload()
+    } catch {
+      setErrorRevertir("Error de conexión")
+    } finally {
+      setLoadingRevertir(false)
+    }
+  }
+
+  function cancelarRevertir() {
+    setRevertiendo(false)
+    setMotivo("")
+    setErrorRevertir(null)
+  }
+
+  useEffect(() => {
+    if (tab !== "historial" || !row?.orden_compra_id || events !== null) return
+    fetch(`${API_URL}/compras/${row.orden_compra_id}/eventos`)
+      .then(r => r.json())
+      .then(d => setEvents(d.ok ? d.data : []))
+      .catch(() => setEvents([]))
+  }, [tab, row?.orden_compra_id, events])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -113,7 +158,25 @@ function DetalleItem({ row, onClose }) {
           </div>
         </div>
 
-        {/* ── Cuerpo ── */}
+        {/* ── Tabs ── */}
+        <div className="flex px-6" style={{ borderBottom: "1px solid var(--border)" }}>
+          {[{ id: "detalle", label: "Detalle" }, { id: "historial", label: "Historial" }].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className="text-xs font-semibold px-3 py-2.5 transition"
+              style={{
+                color:        tab === t.id ? "var(--accent)"           : "var(--text-3)",
+                borderBottom: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent",
+                background:   "transparent",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "detalle" && (
         <div className="px-6 py-5 flex flex-col gap-5">
 
           {/* Ubicación */}
@@ -200,7 +263,104 @@ function DetalleItem({ row, onClose }) {
             </Sección>
           )}
 
+          {/* ── Revertir recepción ──────────────────────────────── */}
+          {!revertiendo ? (
+            <button
+              type="button"
+              onClick={() => setRevertiendo(true)}
+              className="w-full text-sm font-semibold py-2.5 px-4 rounded-xl transition"
+              style={{
+                color:      "var(--danger)",
+                background: "var(--danger-soft)",
+                border:     "1px solid var(--danger)",
+              }}
+            >
+              Revertir recepción
+            </button>
+          ) : (
+            <div className="rounded-xl p-4 flex flex-col gap-3"
+              style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)" }}>
+              <p className="text-sm font-semibold" style={{ color: "var(--danger)" }}>
+                ¿Revertir esta recepción?
+              </p>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-2)" }}>
+                El ítem volverá a Carga Bolivia para registrar la recepción nuevamente.
+                Los datos financieros registrados serán eliminados.
+              </p>
+              <input
+                type="text"
+                placeholder="Motivo (opcional)"
+                value={motivo}
+                onChange={e => setMotivo(e.target.value)}
+                className="ui-input text-sm"
+                disabled={loadingRevertir}
+              />
+              {errorRevertir && (
+                <p className="text-xs font-medium" style={{ color: "var(--danger)" }}>
+                  {errorRevertir}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleRevertir}
+                  disabled={loadingRevertir}
+                  className="flex-1 text-sm font-semibold py-2 px-4 rounded-lg transition"
+                  style={{ background: "var(--danger)", color: "#fff", opacity: loadingRevertir ? 0.7 : 1 }}
+                >
+                  {loadingRevertir ? "Revirtiendo…" : "Confirmar reversión"}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelarRevertir}
+                  disabled={loadingRevertir}
+                  className="text-sm py-2 px-4 rounded-lg transition"
+                  style={{ background: "var(--surface-3)", color: "var(--text-2)" }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
+        )}
+
+        {tab === "historial" && (
+          <div className="px-6 py-5">
+            {events === null ? (
+              <div className="py-12 text-center">
+                <p className="text-sm" style={{ color: "var(--text-3)" }}>Cargando…</p>
+              </div>
+            ) : events.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-sm" style={{ color: "var(--text-3)" }}>Sin eventos registrados.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                {events.map((event, index) => (
+                  <div key={index} className="flex gap-4 relative">
+                    {index < events.length - 1 && (
+                      <div className="absolute left-[7px] top-4 bottom-0 w-px"
+                        style={{ background: "var(--border)" }} />
+                    )}
+                    <div className="w-3.5 h-3.5 rounded-full mt-0.5 flex-shrink-0 z-10 border-2"
+                      style={{ background: "var(--surface)", borderColor: "var(--border-strong)" }} />
+                    <div className="flex flex-col gap-0.5 pb-6 min-w-0">
+                      <p className="text-sm leading-snug" style={{ color: "var(--text-2)" }}>
+                        {event.descripcion}
+                      </p>
+                      <span className="text-[11px] tabular-nums" style={{ color: "var(--text-3)" }}>
+                        {event.fecha ? new Date(event.fecha).toLocaleString() : "Pendiente"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   )
@@ -213,6 +373,7 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
   const [selected, setSelected] = useState(null)
+  const [cajaFocus, setCajaFocus] = useState(null) // null | "CAJA-LOCAL" | "CAJA-TERMINAL"
   const debounceRef             = useRef(null)
 
   async function fetchInventario(query) {
@@ -251,10 +412,18 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
   /* Métricas rápidas */
   const stats = useMemo(() => {
     if (!rows.length) return null
-    const local    = rows.filter(r => r.zona === "local").length
-    const terminal = rows.filter(r => r.zona === "terminal").length
-    return { total: rows.length, local, terminal }
+    const cajaLocal    = rows.filter(r => r.ubicacion_codigo === "CAJA-LOCAL").length
+    const cajaTerminal = rows.filter(r => r.ubicacion_codigo === "CAJA-TERMINAL").length
+    // local/terminal excluyen las cajas para no contar dos veces
+    const local    = rows.filter(r => r.zona === "local"    && r.ubicacion_codigo !== "CAJA-LOCAL").length
+    const terminal = rows.filter(r => r.zona === "terminal" && r.ubicacion_codigo !== "CAJA-TERMINAL").length
+    return { total: rows.length, local, terminal, cajaLocal, cajaTerminal }
   }, [rows])
+
+  const displayRows = useMemo(() => {
+    if (!cajaFocus) return rows;
+    return rows.filter((r) => r.ubicacion_codigo === cajaFocus);
+  }, [rows, cajaFocus]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -298,6 +467,66 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
               <span className="font-semibold">{stats.terminal}</span> terminal
             </span>
           )}
+          {stats.cajaLocal > 0 && (
+            <span className="text-xs tabular-nums" style={{ color: "var(--text-3)" }}>
+              <span className="font-semibold">{stats.cajaLocal}</span> caja local
+            </span>
+          )}
+          {stats.cajaTerminal > 0 && (
+            <span className="text-xs tabular-nums" style={{ color: "var(--text-3)" }}>
+              <span className="font-semibold">{stats.cajaTerminal}</span> caja terminal
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ── Cajas ── */}
+      {!loading && rows.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
+            Cajas
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { codigo: "CAJA-LOCAL",    label: "Caja Local",    count: stats?.cajaLocal    ?? 0 },
+              { codigo: "CAJA-TERMINAL", label: "Caja Terminal", count: stats?.cajaTerminal ?? 0 },
+            ].map(({ codigo, label, count }) => {
+              const isActive = cajaFocus === codigo;
+              return (
+                <button
+                  key={codigo}
+                  type="button"
+                  onClick={() => setCajaFocus(isActive ? null : codigo)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+                  style={isActive
+                    ? { background: "var(--text)", color: "var(--surface)", border: "1px solid var(--text)" }
+                    : { background: "var(--surface)", color: "var(--text-2)", border: "1px solid var(--border)" }
+                  }
+                >
+                  <span>{label}</span>
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                    style={isActive
+                      ? { background: "rgba(255,255,255,0.15)", color: "inherit" }
+                      : { background: "var(--surface-2)", color: "var(--text-3)" }
+                    }
+                  >
+                    {count === 0 ? "Libre" : `${count} ítem${count !== 1 ? "s" : ""}`}
+                  </span>
+                </button>
+              );
+            })}
+            {cajaFocus && (
+              <button
+                type="button"
+                onClick={() => setCajaFocus(null)}
+                className="text-xs px-3 py-2 rounded-xl"
+                style={{ color: "var(--text-3)", background: "var(--surface-2)", border: "1px solid var(--border)" }}
+              >
+                Ver todos
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -325,7 +554,17 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
 
       {!loading && rows.length > 0 && (
         <>
+          {/* ─── Estado vacío cuando cajaFocus activo pero sin ítems ── */}
+          {cajaFocus && displayRows.length === 0 && (
+            <div className="py-12 text-center text-sm rounded-2xl"
+              style={{ color: "var(--text-3)", border: "1px dashed var(--border)" }}>
+              {cajaFocus === "CAJA-LOCAL" ? "Caja Local está vacía." : "Caja Terminal está vacía."}
+            </div>
+          )}
+
           {/* ─── Tabla desktop ─────────────────────────────── */}
+          {displayRows.length > 0 && (
+          <>
           <div className="hidden md:block">
             <div className="rounded-2xl overflow-hidden"
               style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}>
@@ -341,7 +580,7 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                   </tr>
                 </thead>
                 <tbody style={{ borderTop: "none" }}>
-                  {rows.map((row, ri) => (
+                  {displayRows.map((row, ri) => (
                     <tr
                       key={row.item_id}
                       onClick={() => setSelected(row)}
@@ -427,7 +666,7 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
 
           {/* ─── Cards mobile ──────────────────────────────── */}
           <div className="flex flex-col gap-3 md:hidden">
-            {rows.map((row) => (
+            {displayRows.map((row) => (
               <button
                 key={row.item_id}
                 type="button"
@@ -471,11 +710,17 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
               </button>
             ))}
           </div>
+          </>
+          )}
         </>
       )}
 
       {selected && (
-        <DetalleItem row={selected} onClose={() => setSelected(null)} />
+        <DetalleItem
+          row={selected}
+          onClose={() => setSelected(null)}
+          onReload={() => fetchInventario(q)}
+        />
       )}
 
     </div>

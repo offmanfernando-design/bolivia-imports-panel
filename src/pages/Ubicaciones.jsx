@@ -293,9 +293,11 @@ export default function Ubicaciones() {
     return map
   }, [inventario, search])
 
-  const local        = filteredData.filter((u) => u.zona === "local")
-  const terminal     = filteredData.filter((u) => u.zona === "terminal")
-  const desconocidos = filteredData.filter((u) => u.zona === "desconocidos")
+  // CAJA-* son ubicaciones únicas: se excluyen de local/terminal para no contaminar el grid E/T
+  const cajas        = filteredData.filter((u) => u.codigo.startsWith("CAJA-"))
+  const local        = filteredData.filter((u) => u.zona === "local"        && !u.codigo.startsWith("CAJA-"))
+  const terminal     = filteredData.filter((u) => u.zona === "terminal"     && !u.codigo.startsWith("CAJA-"))
+  const desconocidos = filteredData.filter((u) => u.zona === "desconocidos" && !u.codigo.startsWith("CAJA-"))
 
   const estantesLocal    = agruparPorEstante(local)
   const estantesTerminal = agruparPorEstante(terminal)
@@ -390,6 +392,48 @@ export default function Ubicaciones() {
         </div>
       )}
 
+      {/* Cajas — Celulares */}
+      {cajas.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <ZonaHeader title="Cajas" items={cajas} />
+          <div className="flex gap-2 flex-wrap">
+            {[...cajas].sort((a, b) => a.codigo.localeCompare(b.codigo)).map((u) => {
+              const n     = Number(u.paquetes)
+              const label = u.codigo === "CAJA-LOCAL"
+                ? "Caja Local"
+                : u.codigo === "CAJA-TERMINAL"
+                  ? "Caja Terminal"
+                  : u.codigo
+              return (
+                <button
+                  key={u.codigo}
+                  type="button"
+                  onClick={() => abrirDrawer(u.codigo)}
+                  className="flex flex-col items-start gap-1 rounded-md transition-all cursor-pointer"
+                  style={{
+                    ...getRowStyle(u.paquetes),
+                    padding:  "10px 16px",
+                    minWidth: "110px",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1" }}
+                >
+                  <span
+                    className="font-semibold"
+                    style={{ fontSize: "12px", color: "inherit", fontFamily: "'Geist Mono', monospace" }}
+                  >
+                    {label}
+                  </span>
+                  <span className="tabular-nums" style={{ fontSize: "10px", ...getChipStyle(n) }}>
+                    {paquetesLabel(u.paquetes)}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Desconocidos */}
       {desconocidos.length > 0 && (
         <div className="flex flex-col gap-3">
@@ -434,7 +478,7 @@ export default function Ubicaciones() {
       )}
 
       {/* Empty state */}
-      {search && local.length === 0 && terminal.length === 0 && desconocidos.length === 0 && (
+      {search && local.length === 0 && terminal.length === 0 && desconocidos.length === 0 && cajas.length === 0 && (
         <div
           className="py-16 text-center text-sm"
           style={{

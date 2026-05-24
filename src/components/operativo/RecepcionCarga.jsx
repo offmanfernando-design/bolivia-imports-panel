@@ -200,6 +200,11 @@ const esEsperandoWarehouse = (item) =>
   item.estado !== "entregado";
 
 const fmtMoney = (v) => v == null ? "—" : Number(v).toFixed(2)
+const redondearCobroBs = (valor) => {
+  const entero = Math.floor(valor)
+  const decimal = valor - entero
+  return decimal >= 0.20 ? entero + 1 : entero
+}
 
 function SectionLabel({ children }) {
   return (
@@ -274,11 +279,26 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
 
   const zonaRecomendada = selectedOrden?.zona_recomendada || null;
 
-  const ubicacionesParaGrilla = useMemo(() => {
-    if (zonaRecomendada)
-      return ubicaciones.filter((u) => u.zona === zonaRecomendada);
-    return ubicaciones.filter((u) => u.zona === "local" || u.zona === "terminal");
+  // Ubicaciones especiales tipo caja (sin fila): se muestran aparte de la grilla
+  const ubicacionesCajas = useMemo(() => {
+    const allCajas = ubicaciones.filter((u) => u.codigo.startsWith("CAJA-"));
+    if (!zonaRecomendada) return allCajas;
+    return allCajas.filter((u) => u.zona === zonaRecomendada);
   }, [ubicaciones, zonaRecomendada]);
+
+  const ubicacionesParaGrilla = useMemo(() => {
+    const base = zonaRecomendada
+      ? ubicaciones.filter((u) => u.zona === zonaRecomendada)
+      : ubicaciones.filter((u) => u.zona === "local" || u.zona === "terminal");
+    // Excluir CAJA-* para que no contaminen los prefijos/filas de la grilla
+    return base.filter((u) => !u.codigo.startsWith("CAJA-"));
+  }, [ubicaciones, zonaRecomendada]);
+
+  const esCelular = useMemo(() => {
+    if (!categoriaId) return false;
+    const cat = categorias.find((c) => String(c.id) === categoriaId);
+    return cat?.nombre === "Celular usado" || cat?.nombre === "Celular nuevo";
+  }, [categoriaId, categorias]);
 
   const estantes = useMemo(() => {
     const s = new Set(
@@ -373,6 +393,30 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     return () => clearTimeout(delay);
   }, [tracking, buscar]);
 
+  // Regla de ubicación según categoría celular / no-celular
+  useEffect(() => {
+    if (!categoriaId) return;
+    const cat = categorias.find((c) => String(c.id) === categoriaId);
+    if (!cat) return;
+    const esCat = cat.nombre === "Celular usado" || cat.nombre === "Celular nuevo";
+    if (!esCat) {
+      // Cambia a no-celular: limpiar si la selección era una caja
+      setSelectedUbicacionCodigo((prev) =>
+        prev === "CAJA-LOCAL" || prev === "CAJA-TERMINAL" ? "" : prev
+      );
+      return;
+    }
+    // Es celular: autoselect caja si no hay ubicación elegida
+    setSelectedUbicacionCodigo((prev) => {
+      if (prev) return prev; // ya hay selección → no sobrescribir
+      if (zonaRecomendada === "local")
+        return ubicaciones.some((u) => u.codigo === "CAJA-LOCAL") ? "CAJA-LOCAL" : prev;
+      if (zonaRecomendada === "terminal")
+        return ubicaciones.some((u) => u.codigo === "CAJA-TERMINAL") ? "CAJA-TERMINAL" : prev;
+      return prev; // zona null → no autoseleccionar
+    });
+  }, [categoriaId, zonaRecomendada, categorias, ubicaciones]);
+
   function seleccionarItem(orden, itemId) {
     setSelectedOrden(orden);
     setSelectedItemId(itemId);
@@ -402,6 +446,9 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
       const p = Number(pesoInterno);
       return p > 0 ? (p * c * tc).toFixed(2) : null;
     }
+    // unidad: si hay peso interno lo usa para costo; si no, fallback a unidades
+    const pi = Number(pesoInterno);
+    if (pi > 0) return (pi * c * tc).toFixed(2);
     const u = Number(unidades);
     return u > 0 ? (u * c * tc).toFixed(2) : null;
   }, [tipoCalculo, pesoInterno, unidades, costoInternoUsd, tipoCambioInterno]);
@@ -411,13 +458,16 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     if (!t || t <= 0) return null;
     const base = tipoCalculo === "kg" ? Number(pesoCliente) : Number(unidades);
     if (!base || base <= 0) return null;
+    let raw;
     if (monedaTarifaCliente === "bs") {
       // Tarifa ingresada en Bs — T/C no altera el cobro, solo sirve de referencia
-      return (base * t).toFixed(2);
+      raw = base * t;
+    } else {
+      const tc = Number(tipoCambioCliente);
+      if (!tc || tc <= 0) return null;
+      raw = base * t * tc;
     }
-    const tc = Number(tipoCambioCliente);
-    if (!tc || tc <= 0) return null;
-    return (base * t * tc).toFixed(2);
+    return String(redondearCobroBs(raw));
   }, [tipoCalculo, pesoCliente, unidades, tarifaClienteUsd, tipoCambioCliente, monedaTarifaCliente]);
 
   const margenBs = useMemo(() => {
@@ -485,7 +535,10 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               peso_interno: Number(pesoInterno),
               peso_cliente: Number(pesoCliente),
             }
-          : { unidades: Number(unidades) }),
+          : {
+              unidades: Number(unidades),
+              ...(pesoInterno && Number(pesoInterno) > 0 ? { peso_interno: Number(pesoInterno) } : {}),
+            }),
         ...(notas.trim() ? { notas: notas.trim() } : {}),
       };
 
@@ -555,7 +608,10 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         ...(categoriaId ? { categoria_id: categoriaId } : {}),
         ...(tipoCalculo === "kg"
           ? { peso_interno: Number(pesoInterno), peso_cliente: Number(pesoCliente) }
-          : { unidades: Number(unidades) }),
+          : {
+              unidades: Number(unidades),
+              ...(pesoInterno && Number(pesoInterno) > 0 ? { peso_interno: Number(pesoInterno) } : {}),
+            }),
         ...(notas.trim() ? { notas: notas.trim() } : {}),
       };
 
@@ -1094,14 +1150,26 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                 )}
 
                 {tipoCalculo === "unidad" && (
-                  <div className="flex flex-col gap-1">
-                    <label className="ui-label">
-                      {modoLote && modoAplicacion === "consolidado" ? "Unidades TOTAL lote" : "Unidades"}
-                    </label>
-                    <input type="number" placeholder="1" value={unidades}
-                      onChange={(e) => setUnidades(e.target.value)}
-                      onWheel={(e) => e.currentTarget.blur()}
-                      className="ui-input ui-input-sm" min="1" step="1" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="ui-label">
+                        {modoLote && modoAplicacion === "consolidado" ? "Unidades TOTAL lote" : "Unidades"}
+                      </label>
+                      <input type="number" placeholder="1" value={unidades}
+                        onChange={(e) => setUnidades(e.target.value)}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        className="ui-input ui-input-sm" min="1" step="1" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="ui-label">
+                        Peso interno (kg){" "}
+                        <span style={{ fontWeight: 400, opacity: 0.6, fontSize: "0.75em" }}>opcional</span>
+                      </label>
+                      <input type="number" placeholder="0.00" value={pesoInterno}
+                        onChange={(e) => setPesoInterno(e.target.value)}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        className="ui-input ui-input-sm" min="0" step="0.01" />
+                    </div>
                   </div>
                 )}
               </div>
@@ -1212,7 +1280,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                       <div className="flex justify-between items-baseline text-sm gap-2">
                         <span style={{ color: "var(--text-2)" }}>Cobro cliente total</span>
                         <span className="font-semibold tabular-nums" style={{ color: "var(--text)" }}>
-                          Bs {fmtMoney(cobroTotal)}
+                          Bs {Math.round(cobroTotal)}
                         </span>
                       </div>
                     )}
@@ -1269,43 +1337,76 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                     </span>
                   )}
                 </SectionLabel>
-                <div className="overflow-x-auto">
-                  <div className="flex flex-col gap-1 min-w-max">
-                    <div className="flex gap-1 ml-7">
-                      {filas.map((f) => (
-                        <div key={f} className="w-12 text-center text-xs font-medium" style={{ color: "var(--text-3)" }}>
-                          {f}
+
+                {/* ── Cajas / Grilla condicional según categoría ── */}
+                {esCelular ? (
+                  <div className="flex flex-col gap-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: "var(--text-3)" }}>Cajas</div>
+                    <div className="flex gap-1 flex-wrap">
+                      {ubicacionesCajas.length > 0 ? ubicacionesCajas.map((u) => {
+                        const label      = u.codigo === "CAJA-LOCAL" ? "Caja Local"
+                                         : u.codigo === "CAJA-TERMINAL" ? "Caja Terminal"
+                                         : u.codigo;
+                        const isSelected = selectedUbicacionCodigo === u.codigo;
+                        const cellStyle  = isSelected
+                          ? { background: "var(--text)", color: "var(--surface)", cursor: "pointer" }
+                          : { borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)", color: "var(--text-2)", background: "var(--surface)", cursor: "pointer" };
+                        return (
+                          <button
+                            key={u.codigo}
+                            type="button"
+                            onClick={() => setSelectedUbicacionCodigo(u.codigo)}
+                            className="px-3 h-8 rounded-lg text-xs font-medium transition-colors"
+                            style={cellStyle}
+                          >
+                            {label}
+                          </button>
+                        );
+                      }) : (
+                        <p className="text-xs" style={{ color: "var(--text-3)" }}>No hay cajas disponibles.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <div className="flex flex-col gap-1 min-w-max">
+                      <div className="flex gap-1 ml-7">
+                        {filas.map((f) => (
+                          <div key={f} className="w-12 text-center text-xs font-medium" style={{ color: "var(--text-3)" }}>
+                            {f}
+                          </div>
+                        ))}
+                      </div>
+                      {estantes.map((est) => (
+                        <div key={est} className="flex items-center gap-1">
+                          <div className="w-6 text-xs font-medium text-right" style={{ color: "var(--text-3)" }}>{est}</div>
+                          {filas.map((fil) => {
+                            const codigo = `${est}-${fil}`;
+                            const existe = ubicacionesParaGrilla.some((u) => u.codigo === codigo);
+                            const isSelected = selectedUbicacionCodigo === codigo;
+                            const isSugerida = sugeridaCodigo === codigo;
+                            if (!existe) {
+                              return <div key={fil} className="w-12 h-8 rounded-lg" style={{ background: "var(--surface-3)" }} />;
+                            }
+                            const cellStyle = isSelected
+                              ? { background: "var(--text)", color: "var(--surface)", borderColor: "var(--text)", cursor: "pointer" }
+                              : isSugerida
+                                ? { borderWidth: 2, borderStyle: "solid", borderColor: "var(--border-strong)", color: "var(--text-2)", background: "var(--surface-2)", cursor: "pointer" }
+                                : { borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)", color: "var(--text-2)", background: "var(--surface)", cursor: "pointer" };
+                            return (
+                              <button key={fil} type="button" onClick={() => setSelectedUbicacionCodigo(codigo)}
+                                className="w-12 h-8 rounded-lg text-xs font-medium transition-colors flex items-center justify-center"
+                                style={cellStyle}>
+                                {codigo}
+                              </button>
+                            );
+                          })}
                         </div>
                       ))}
                     </div>
-                    {estantes.map((est) => (
-                      <div key={est} className="flex items-center gap-1">
-                        <div className="w-6 text-xs font-medium text-right" style={{ color: "var(--text-3)" }}>{est}</div>
-                        {filas.map((fil) => {
-                          const codigo = `${est}-${fil}`;
-                          const existe = ubicacionesParaGrilla.some((u) => u.codigo === codigo);
-                          const isSelected = selectedUbicacionCodigo === codigo;
-                          const isSugerida = sugeridaCodigo === codigo;
-                          if (!existe) {
-                            return <div key={fil} className="w-12 h-8 rounded-lg" style={{ background: "var(--surface-3)" }} />;
-                          }
-                          const cellStyle = isSelected
-                            ? { background: "var(--text)", color: "var(--surface)", borderColor: "var(--text)", cursor: "pointer" }
-                            : isSugerida
-                              ? { borderWidth: 2, borderStyle: "solid", borderColor: "var(--border-strong)", color: "var(--text-2)", background: "var(--surface-2)", cursor: "pointer" }
-                              : { borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)", color: "var(--text-2)", background: "var(--surface)", cursor: "pointer" };
-                          return (
-                            <button key={fil} type="button" onClick={() => setSelectedUbicacionCodigo(codigo)}
-                              className="w-12 h-8 rounded-lg text-xs font-medium transition-colors flex items-center justify-center"
-                              style={cellStyle}>
-                              {codigo}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
                   </div>
-                </div>
+                )}
                 <p className="text-sm" style={{ color: "var(--text-2)" }}>
                   Seleccionada:{" "}
                   {selectedUbicacionCodigo ? (
