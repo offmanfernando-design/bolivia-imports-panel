@@ -1,6 +1,250 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { API_URL } from "../../config/api"
 
+/* ── Etiqueta hoja 110×70mm ─────────────────────────────────
+   Función copiada de RecepcionCarga.jsx — no importar para
+   evitar dependencia circular; sólo formato "hoja" se usa aquí.
+─────────────────────────────────────────────────────────── */
+function printEtiquetaAlmacen(data, formato) {
+  const { cliente_nombre, ubicacion, cobro_cliente_bs, item_descripcion, codigo_recepcion, numero_orden } = data
+  const precio = cobro_cliente_bs != null ? `Bs ${Number(cobro_cliente_bs).toFixed(2)}` : "—"
+  const desc = item_descripcion
+    ? (item_descripcion.length > 48 ? item_descripcion.slice(0, 48).trimEnd() + "…" : item_descripcion)
+    : null
+  const codigoCorto = codigo_recepcion
+    ? codigo_recepcion.split("-").slice(-2).join("-")
+    : "—"
+
+  let html
+
+  if (formato === "adhesiva") {
+    const descCorto = item_descripcion
+      ? (item_descripcion.length > 32 ? item_descripcion.slice(0, 32).trimEnd() + "…" : item_descripcion)
+      : null
+    html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Etiqueta adhesiva almacén</title>
+<style>
+  @page { size: 80mm 50mm; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff;
+    color: #000;
+    width: 80mm;
+    height: 50mm;
+    display: flex;
+    align-items: stretch;
+  }
+  .etiqueta {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 2.5mm 3mm;
+    gap: 0;
+  }
+  .marca {
+    font-size: 5.5pt;
+    letter-spacing: 0.14em;
+    color: #666;
+    margin-bottom: 2mm;
+    border-bottom: 0.5px solid #ccc;
+    padding-bottom: 1.5mm;
+    text-transform: uppercase;
+  }
+  .fila { display: flex; align-items: baseline; gap: 2mm; margin-bottom: 1.5mm; }
+  .fila:last-child { margin-bottom: 0; }
+  .lbl {
+    font-size: 5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    flex-shrink: 0;
+    width: 12mm;
+  }
+  .val { font-size: 9pt; font-weight: 700; line-height: 1.2; word-break: break-word; }
+  .val.ubic {
+    font-size: 18pt;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+  .val.precio { font-size: 10pt; }
+  .val.desc { font-size: 7pt; font-weight: 400; color: #333; }
+  .sep { border: none; border-top: 0.5px solid #ddd; margin: 1.5mm 0; }
+  @media print {
+    body { width: 80mm; height: 50mm; }
+  }
+</style>
+</head>
+<body>
+<div class="etiqueta">
+  <div class="marca">Bolivia Imports — Almacén</div>
+  <div class="fila">
+    <div class="lbl">Cliente</div>
+    <div class="val">${cliente_nombre || "—"}</div>
+  </div>
+  <hr class="sep">
+  <div class="fila">
+    <div class="lbl">Ubic.</div>
+    <div class="val ubic">${ubicacion || "—"}</div>
+  </div>
+  <hr class="sep">
+  ${descCorto ? `<div class="fila"><div class="lbl">Ítem</div><div class="val desc">${descCorto}</div></div>` : ""}
+  <div class="fila">
+    <div class="lbl">Cobrar</div>
+    <div class="val precio">${precio}</div>
+  </div>
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+  } else {
+    // formato === "hoja" — papel personalizado 110mm × 70mm horizontal
+    html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Etiqueta hoja almacén</title>
+<style>
+  @page { size: 110mm 70mm landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff;
+    color: #000;
+    width: 110mm;
+    height: 70mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .etiqueta {
+    width: 102mm;
+    height: 60mm;
+    border: 1.5px solid #111;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .header {
+    background: #111;
+    color: #fff;
+    font-size: 6.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    padding: 1.8mm 3mm;
+    flex-shrink: 0;
+  }
+  .body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    padding: 2.5mm 3mm;
+    gap: 2mm;
+  }
+  .col-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .col-right {
+    flex-shrink: 0;
+    width: 32mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-left: 0.5px solid #ccc;
+    padding-left: 2.5mm;
+  }
+  .lbl {
+    font-size: 4.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 0.8mm;
+  }
+  .cliente {
+    font-size: 13pt;
+    font-weight: 700;
+    line-height: 1.15;
+    word-break: break-word;
+  }
+  .desc {
+    font-size: 6.5pt;
+    color: #444;
+    line-height: 1.3;
+  }
+  .ubic-lbl { font-size: 5pt; text-transform: uppercase; letter-spacing: 0.12em; color: #888; margin-bottom: 1mm; }
+  .ubic {
+    font-size: 22pt;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-align: center;
+  }
+  .footer {
+    border-top: 0.5px solid #ccc;
+    padding: 1.5mm 3mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .fi { display: flex; flex-direction: column; }
+  .fi.r { align-items: flex-end; }
+  .fi-lbl { font-size: 4pt; text-transform: uppercase; letter-spacing: 0.1em; color: #888; }
+  .fi-val { font-size: 7.5pt; font-weight: 700; line-height: 1.2; }
+  .fi-val.precio { font-size: 10pt; }
+</style>
+</head>
+<body>
+<div class="etiqueta">
+  <div class="header">Bolivia Imports · Almacén</div>
+  <div class="body">
+    <div class="col-left">
+      <div>
+        <div class="lbl">Cliente</div>
+        <div class="cliente">${cliente_nombre || "—"}</div>
+      </div>
+      ${desc ? `<div><div class="lbl">Ítem</div><div class="desc">${desc}</div></div>` : "<div></div>"}
+    </div>
+    <div class="col-right">
+      <div class="ubic-lbl">Ubic.</div>
+      <div class="ubic">${ubicacion || "—"}</div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="fi">
+      <div class="fi-lbl">Código</div>
+      <div class="fi-val">${codigoCorto}</div>
+    </div>
+    ${numero_orden ? `<div class="fi"><div class="fi-lbl">Orden</div><div class="fi-val">${numero_orden}</div></div>` : ""}
+    <div class="fi r">
+      <div class="fi-lbl">Cobrar</div>
+      <div class="fi-val precio">${precio}</div>
+    </div>
+  </div>
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+  }
+
+  const win = window.open("", "_blank", "width=480,height=340")
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+}
+
 function formatFecha(iso) {
   if (!iso) return null
   const d = new Date(iso)
@@ -577,6 +821,9 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                         {col}
                       </th>
                     ))}
+                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap"
+                      style={{ color: "var(--text-3)" }}>
+                    </th>
                   </tr>
                 </thead>
                 <tbody style={{ borderTop: "none" }}>
@@ -657,6 +904,23 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                         )}
                       </td>
 
+                      {/* Etiqueta hoja */}
+                      <td className="px-4 py-3 whitespace-nowrap align-middle">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            printEtiquetaAlmacen({ ...row, ubicacion: row.ubicacion_codigo }, "hoja")
+                          }}
+                          className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-colors"
+                          style={{ background: "var(--surface-2)", color: "var(--text-2)", border: "1px solid var(--border)" }}
+                          onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-3)"; e.currentTarget.style.color = "var(--text)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-2)"; e.currentTarget.style.color = "var(--text-2)"; }}
+                        >
+                          Etiqueta hoja
+                        </button>
+                      </td>
+
                     </tr>
                   ))}
                 </tbody>
@@ -667,11 +931,10 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
           {/* ─── Cards mobile ──────────────────────────────── */}
           <div className="flex flex-col gap-3 md:hidden">
             {displayRows.map((row) => (
-              <button
+              <div
                 key={row.item_id}
-                type="button"
                 onClick={() => setSelected(row)}
-                className="w-full text-left rounded-2xl overflow-hidden transition-shadow"
+                className="w-full text-left rounded-2xl overflow-hidden transition-shadow cursor-pointer"
                 style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)" }}
               >
                 <div className="px-4 py-3 flex items-start justify-between gap-3"
@@ -701,13 +964,24 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                     {row.ubicacion_codigo || "—"}
                   </span>
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        printEtiquetaAlmacen({ ...row, ubicacion: row.ubicacion_codigo }, "hoja")
+                      }}
+                      className="text-[10px] font-semibold px-2 py-1 rounded-lg"
+                      style={{ background: "var(--surface)", color: "var(--text-2)", border: "1px solid var(--border)" }}
+                    >
+                      Etiqueta
+                    </button>
                     <ZonaPill zona={row.zona} />
                     <span className="text-[11px] tabular-nums" style={{ color: "var(--text-3)" }}>
                       {formatFecha(row.recibido_at) ?? "—"}
                     </span>
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
           </>
