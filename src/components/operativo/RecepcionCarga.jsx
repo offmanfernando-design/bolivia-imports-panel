@@ -705,8 +705,13 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
 
   const costoInternoBs = useMemo(() => {
     const c = Number(costoInternoUsd);
+    if (!c || c <= 0) return null;
+    if (tipoCalculo === "declarado") {
+      // Monto declarado: valor final en Bs, sin conversión
+      return c.toFixed(2);
+    }
     const tc = Number(tipoCambioInterno);
-    if (!c || !tc || c <= 0 || tc <= 0) return null;
+    if (!tc || tc <= 0) return null;
     if (tipoCalculo === "kg") {
       const p = Number(pesoInterno);
       return p > 0 ? (p * c * tc).toFixed(2) : null;
@@ -721,6 +726,10 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const cobroClienteBs = useMemo(() => {
     const t = Number(tarifaClienteUsd);
     if (!t || t <= 0) return null;
+    if (tipoCalculo === "declarado") {
+      // Monto declarado: valor final en Bs, sin conversión ni redondeo
+      return String(t);
+    }
     const base = tipoCalculo === "kg" ? Number(pesoCliente) : Number(unidades);
     if (!base || base <= 0) return null;
     let raw;
@@ -748,17 +757,26 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         errs.push("Peso interno (kg)");
       if (!pesoCliente || Number(pesoCliente) <= 0)
         errs.push("Peso cliente (kg)");
-    } else {
+    } else if (tipoCalculo === "unidad") {
       if (!unidades || Number(unidades) <= 0) errs.push("Unidades");
     }
+    // declarado: sin peso ni unidades requeridas
     if (!costoInternoUsd || Number(costoInternoUsd) <= 0)
-      errs.push("Costo interno USD");
+      errs.push(tipoCalculo === "declarado" ? "Costo interno" : "Costo interno (USD)");
     if (!tarifaClienteUsd || Number(tarifaClienteUsd) <= 0)
-      errs.push(monedaTarifaCliente === "bs" ? "Tarifa cliente (Bs)" : "Tarifa cliente (USD)");
-    if (!tipoCambioInterno || Number(tipoCambioInterno) <= 0)
-      errs.push("T/C interno");
-    if (!tipoCambioCliente || Number(tipoCambioCliente) <= 0)
-      errs.push("T/C cliente");
+      errs.push(
+        tipoCalculo === "declarado"
+          ? "Costo cliente"
+          : monedaTarifaCliente === "bs" ? "Tarifa cliente (Bs)" : "Tarifa cliente (USD)"
+      );
+    // T/C nunca requerido para declarado (montos fijos en Bs)
+    const tcRequerido = tipoCalculo !== "declarado";
+    if (tcRequerido) {
+      if (!tipoCambioInterno || Number(tipoCambioInterno) <= 0)
+        errs.push("T/C interno");
+      if (!tipoCambioCliente || Number(tipoCambioCliente) <= 0)
+        errs.push("T/C cliente");
+    }
     if (!ubicacionId) errs.push("Ubicación");
     return errs;
   }, [
@@ -782,17 +800,29 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     setError("");
     setLoadingRegistrar(true);
     try {
-      const tarifaParaBackend =
-        monedaTarifaCliente === "bs"
-          ? Number(tarifaClienteUsd) / Number(tipoCambioCliente)
-          : Number(tarifaClienteUsd);
+      // Para "declarado": montos fijos en Bs, TC = 1, sin conversión
+      // Para kg/unidad en Bs: convertir tarifa de Bs → USD para que backend calcule bien
+      let tarifaParaBackend, tcInternoFinal, tcClienteFinal;
+      if (tipoCalculo === "declarado") {
+        tarifaParaBackend = Number(tarifaClienteUsd);
+        tcInternoFinal = 1;
+        tcClienteFinal = 1;
+      } else if (monedaTarifaCliente === "bs") {
+        tarifaParaBackend = Number(tarifaClienteUsd) / Number(tipoCambioCliente);
+        tcInternoFinal = Number(tipoCambioInterno);
+        tcClienteFinal = Number(tipoCambioCliente);
+      } else {
+        tarifaParaBackend = Number(tarifaClienteUsd);
+        tcInternoFinal = Number(tipoCambioInterno);
+        tcClienteFinal = Number(tipoCambioCliente);
+      }
       const payload = {
         item_id: selectedItemId,
         tipo_calculo: tipoCalculo,
         costo_interno_usd: Number(costoInternoUsd),
         tarifa_cliente_usd: tarifaParaBackend,
-        tipo_cambio_interno: Number(tipoCambioInterno),
-        tipo_cambio_cliente: Number(tipoCambioCliente),
+        tipo_cambio_interno: tcInternoFinal,
+        tipo_cambio_cliente: tcClienteFinal,
         ubicacion_id: ubicacionId,
         ...(categoriaId ? { categoria_id: categoriaId } : {}),
         ...(tipoCalculo === "kg"
@@ -800,10 +830,12 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               peso_interno: Number(pesoInterno),
               peso_cliente: Number(pesoCliente),
             }
-          : {
-              unidades: Number(unidades),
-              ...(pesoInterno && Number(pesoInterno) > 0 ? { peso_interno: Number(pesoInterno) } : {}),
-            }),
+          : tipoCalculo === "unidad"
+            ? {
+                unidades: Number(unidades),
+                ...(pesoInterno && Number(pesoInterno) > 0 ? { peso_interno: Number(pesoInterno) } : {}),
+              }
+            : {}),  // declarado: sin peso ni unidades
         ...(notas.trim() ? { notas: notas.trim() } : {}),
       };
 
@@ -857,26 +889,38 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     setError("");
     setLoadingRegistrar(true);
     try {
-      const tarifaParaBackend =
-        monedaTarifaCliente === "bs"
-          ? Number(tarifaClienteUsd) / Number(tipoCambioCliente)
-          : Number(tarifaClienteUsd);
+      let tarifaParaBackend, tcInternoFinal, tcClienteFinal;
+      if (tipoCalculo === "declarado") {
+        tarifaParaBackend = Number(tarifaClienteUsd);
+        tcInternoFinal = 1;
+        tcClienteFinal = 1;
+      } else if (monedaTarifaCliente === "bs") {
+        tarifaParaBackend = Number(tarifaClienteUsd) / Number(tipoCambioCliente);
+        tcInternoFinal = Number(tipoCambioInterno);
+        tcClienteFinal = Number(tipoCambioCliente);
+      } else {
+        tarifaParaBackend = Number(tarifaClienteUsd);
+        tcInternoFinal = Number(tipoCambioInterno);
+        tcClienteFinal = Number(tipoCambioCliente);
+      }
       const payload = {
         item_ids: [...selectedItemIds],
         tipo_calculo: tipoCalculo,
         modo_lote: modoAplicacion,
         costo_interno_usd: Number(costoInternoUsd),
         tarifa_cliente_usd: tarifaParaBackend,
-        tipo_cambio_interno: Number(tipoCambioInterno),
-        tipo_cambio_cliente: Number(tipoCambioCliente),
+        tipo_cambio_interno: tcInternoFinal,
+        tipo_cambio_cliente: tcClienteFinal,
         ubicacion_id: ubicacionId,
         ...(categoriaId ? { categoria_id: categoriaId } : {}),
         ...(tipoCalculo === "kg"
           ? { peso_interno: Number(pesoInterno), peso_cliente: Number(pesoCliente) }
-          : {
-              unidades: Number(unidades),
-              ...(pesoInterno && Number(pesoInterno) > 0 ? { peso_interno: Number(pesoInterno) } : {}),
-            }),
+          : tipoCalculo === "unidad"
+            ? {
+                unidades: Number(unidades),
+                ...(pesoInterno && Number(pesoInterno) > 0 ? { peso_interno: Number(pesoInterno) } : {}),
+              }
+            : {}),  // declarado: sin peso ni unidades
         ...(notas.trim() ? { notas: notas.trim() } : {}),
       };
 
@@ -1759,7 +1803,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               {/* Tipo de cobro */}
               <div className="flex flex-col gap-1.5">
                 <SectionLabel>Tipo de cobro</SectionLabel>
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4 text-sm flex-wrap">
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input type="radio" checked={tipoCalculo === "kg"} onChange={() => setTipoCalculo("kg")} />
                     Por kg
@@ -1767,6 +1811,10 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input type="radio" checked={tipoCalculo === "unidad"} onChange={() => setTipoCalculo("unidad")} />
                     Por unidad
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="radio" checked={tipoCalculo === "declarado"} onChange={() => setTipoCalculo("declarado")} />
+                    Declarado
                   </label>
                 </div>
 
@@ -1823,7 +1871,9 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                 <SectionLabel>Financiero</SectionLabel>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col gap-1">
-                    <label className="ui-label">Costo interno (USD)</label>
+                    <label className="ui-label">
+                      {tipoCalculo === "declarado" ? "Costo interno" : "Costo interno (USD)"}
+                    </label>
                     <input type="number" placeholder="0.00" value={costoInternoUsd}
                       onChange={(e) => setCostoInternoUsd(e.target.value)}
                       onWheel={(e) => e.currentTarget.blur()}
@@ -1832,29 +1882,34 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-2">
                       <label className="ui-label">
-                        {tipoCalculo === "kg"
-                          ? `Tarifa cliente/kg (${monedaTarifaCliente === "usd" ? "USD" : "Bs"})`
-                          : `Tarifa cliente/unidad (${monedaTarifaCliente === "usd" ? "USD" : "Bs"})`}
+                        {tipoCalculo === "declarado"
+                          ? "Costo cliente"
+                          : tipoCalculo === "kg"
+                            ? `Tarifa cliente/kg (${monedaTarifaCliente === "usd" ? "USD" : "Bs"})`
+                            : `Tarifa cliente/unidad (${monedaTarifaCliente === "usd" ? "USD" : "Bs"})`}
                       </label>
-                      <div className="flex rounded overflow-hidden border text-[10px] font-semibold flex-shrink-0"
-                        style={{ borderColor: "var(--border)" }}>
-                        <button type="button"
-                          onClick={() => setMonedaTarifaCliente("usd")}
-                          className="px-2 py-0.5 transition-colors"
-                          style={monedaTarifaCliente === "usd"
-                            ? { background: "var(--text)", color: "var(--surface)" }
-                            : { color: "var(--text-3)" }}>
-                          USD
-                        </button>
-                        <button type="button"
-                          onClick={() => setMonedaTarifaCliente("bs")}
-                          className="px-2 py-0.5 transition-colors"
-                          style={monedaTarifaCliente === "bs"
-                            ? { background: "var(--text)", color: "var(--surface)" }
-                            : { color: "var(--text-3)" }}>
-                          Bs
-                        </button>
-                      </div>
+                      {/* Toggle moneda: ocultar en declarado (siempre Bs) */}
+                      {tipoCalculo !== "declarado" && (
+                        <div className="flex rounded overflow-hidden border text-[10px] font-semibold flex-shrink-0"
+                          style={{ borderColor: "var(--border)" }}>
+                          <button type="button"
+                            onClick={() => setMonedaTarifaCliente("usd")}
+                            className="px-2 py-0.5 transition-colors"
+                            style={monedaTarifaCliente === "usd"
+                              ? { background: "var(--text)", color: "var(--surface)" }
+                              : { color: "var(--text-3)" }}>
+                            USD
+                          </button>
+                          <button type="button"
+                            onClick={() => setMonedaTarifaCliente("bs")}
+                            className="px-2 py-0.5 transition-colors"
+                            style={monedaTarifaCliente === "bs"
+                              ? { background: "var(--text)", color: "var(--surface)" }
+                              : { color: "var(--text-3)" }}>
+                            Bs
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <input type="number" placeholder="0.00" value={tarifaClienteUsd}
                       onChange={(e) => setTarifaClienteUsd(e.target.value)}
@@ -1862,22 +1917,25 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                       className="ui-input ui-input-sm" min="0" step="0.01" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <label className="ui-label">T/C interno</label>
-                    <input type="number" placeholder="6.96" value={tipoCambioInterno}
-                      onChange={(e) => setTipoCambioInterno(e.target.value)}
-                      onWheel={(e) => e.currentTarget.blur()}
-                      className="ui-input ui-input-sm" min="0" step="0.01" />
+                {/* T/C: solo para kg/unidad, nunca para declarado */}
+                {tipoCalculo !== "declarado" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="ui-label">T/C interno</label>
+                      <input type="number" placeholder="6.96" value={tipoCambioInterno}
+                        onChange={(e) => setTipoCambioInterno(e.target.value)}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        className="ui-input ui-input-sm" min="0" step="0.01" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="ui-label">T/C cliente</label>
+                      <input type="number" placeholder="6.96" value={tipoCambioCliente}
+                        onChange={(e) => setTipoCambioCliente(e.target.value)}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        className="ui-input ui-input-sm" min="0" step="0.01" />
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="ui-label">T/C cliente</label>
-                    <input type="number" placeholder="6.96" value={tipoCambioCliente}
-                      onChange={(e) => setTipoCambioCliente(e.target.value)}
-                      onWheel={(e) => e.currentTarget.blur()}
-                      className="ui-input ui-input-sm" min="0" step="0.01" />
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Resumen financiero */}
