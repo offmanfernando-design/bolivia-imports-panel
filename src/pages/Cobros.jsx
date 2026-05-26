@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { API_URL } from "../config/api"
 import Badge from "../components/ui/Badge"
+import useRealtimeEvents from "../hooks/useRealtimeEvents"
 
 const METODOS = [
   { value: "efectivo",      label: "Efectivo" },
@@ -272,6 +273,13 @@ export default function Cobros() {
 
   useEffect(() => { fetchItems("") }, [])
 
+  // Actualizar automáticamente cuando otro operador cambia un cobro
+  useRealtimeEvents((event) => {
+    if (event.type === "cobros.updated") {
+      fetchItems(q)
+    }
+  })
+
   function handleChange(e) {
     const val = e.target.value
     setQ(val)
@@ -300,21 +308,27 @@ export default function Cobros() {
       }
       const msg = await generarMensaje(row, itemsCliente)
       window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank")
+
+      // Marcar como enviados TODOS los ítems del cliente incluidos en el mensaje
+      const ids = itemsCliente.map(i => i.recepcion_id)
       try {
-        const patchRes = await fetch(`${API_URL}/cobros/items/${row.recepcion_id}/enviado`, {
+        const patchRes = await fetch(`${API_URL}/cobros/items/enviado-lote`, {
           method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
         })
         if (patchRes.ok) {
+          const idsSet = new Set(ids)
           setRows(prev => prev.map(r =>
-            r.recepcion_id === row.recepcion_id
+            idsSet.has(r.recepcion_id)
               ? { ...r, payment_status: "sent" }
               : r
           ))
         } else {
-          console.error("No se pudo marcar cobro como enviado:", await patchRes.text())
+          console.error("No se pudo marcar cobros como enviados:", await patchRes.text())
         }
       } catch (patchErr) {
-        console.error("Error al marcar cobro como enviado:", patchErr)
+        console.error("Error al marcar cobros como enviados:", patchErr)
       }
     } catch {
       // silencioso — el mensaje no se pudo generar
