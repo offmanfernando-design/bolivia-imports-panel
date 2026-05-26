@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { API_URL } from "../config/api"
 import Badge from "../components/ui/Badge"
 import useRealtimeEvents from "../hooks/useRealtimeEvents"
@@ -19,6 +19,13 @@ function formatFecha(iso) {
   const d = new Date(iso)
   const p = n => String(n).padStart(2, "0")
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`
+}
+
+function formatDateTime(iso) {
+  if (!iso) return "—"
+  const d = new Date(iso)
+  const p = n => String(n).padStart(2, "0")
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
 const ZONA_LABEL = { local: "Local", terminal: "Terminal", desconocidos: "Desc." }
@@ -255,6 +262,9 @@ export default function Cobros() {
   const [enviando, setEnviando]     = useState(null)
   const [recordando, setRecordando] = useState(null)
   const [tab, setTab]               = useState("pending")
+  const [expandedClientes, setExpandedClientes] = useState(new Set())
+  const [enviandoCliente, setEnviandoCliente]   = useState(null)
+  const [expandedDetalles, setExpandedDetalles] = useState(new Set())
   const debounceRef                 = useRef(null)
 
   async function fetchItems(query) {
@@ -337,6 +347,18 @@ export default function Cobros() {
     }
   }
 
+  async function abrirWhatsAppCliente(group) {
+    if (enviandoCliente === group.cliente_id) return
+    setEnviandoCliente(group.cliente_id)
+    try {
+      // Reutiliza abrirWhatsApp con el primer ítem del grupo.
+      // abrirWhatsApp ya detecta y marca todos los pending del mismo cliente.
+      await abrirWhatsApp(group.items[0])
+    } finally {
+      setEnviandoCliente(null)
+    }
+  }
+
   async function recordarCobro(row) {
     if (recordando === row.recepcion_id) return
     setRecordando(row.recepcion_id)
@@ -363,6 +385,47 @@ export default function Cobros() {
   const sentAmount    = _sum(sent,     "cobro_cliente_bs")
   const paidAmount    = _sum(finished, "payment_amount")
   const totalAmount   = _sum(rows,     "cobro_cliente_bs")
+
+  // Pendientes agrupados por cliente
+  const groupedPending = useMemo(() => {
+    const map = new Map()
+    for (const row of rows) {
+      if (row.payment_status !== "pending") continue
+      const cid = row.cliente_id
+      if (!map.has(cid)) {
+        map.set(cid, {
+          cliente_id:           cid,
+          cliente_nombre:       row.cliente_nombre,
+          cliente_telefono:     row.cliente_telefono,
+          departamento_destino: row.departamento_destino,
+          items:                [],
+          total_bs:             0,
+        })
+      }
+      const g = map.get(cid)
+      g.items.push(row)
+      g.total_bs += Number(row.cobro_cliente_bs || 0)
+    }
+    return Array.from(map.values())
+  }, [rows])
+
+  function toggleExpanded(clienteId) {
+    setExpandedClientes(prev => {
+      const next = new Set(prev)
+      if (next.has(clienteId)) next.delete(clienteId)
+      else next.add(clienteId)
+      return next
+    })
+  }
+
+  function toggleDetalle(recepcionId) {
+    setExpandedDetalles(prev => {
+      const next = new Set(prev)
+      if (next.has(recepcionId)) next.delete(recepcionId)
+      else next.add(recepcionId)
+      return next
+    })
+  }
 
   return (
     <div className="module-shell">
@@ -537,10 +600,10 @@ export default function Cobros() {
               </div>
             )}
 
-            {/* ── TAB PENDIENTES ─────────────────────────── */}
+            {/* ── TAB PENDIENTES — agrupado por cliente ──── */}
             {!loading && tab === "pending" && (
               <>
-                {pending.length === 0 && (
+                {groupedPending.length === 0 && (
                   <div
                     className="flex items-center justify-center py-16 rounded-xl text-sm"
                     style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}
@@ -550,84 +613,177 @@ export default function Cobros() {
                 )}
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 }}>
-                  {pending.map(row => (
-                    <div
-                      key={row.recepcion_id}
-                      style={{
-                        display:       "flex",
-                        flexDirection: "column",
-                        background:    "var(--surface, #ffffff)",
-                        border:        "1px solid var(--border, #d5dbe2)",
-                        borderRadius:  "12px",
-                        minWidth:      0,
-                        width:         "100%",
-                      }}
-                    >
-                      {/* ── HEADER: cliente · teléfono/ciudad | monto ── */}
-                      <div style={{
-                        display:        "flex",
-                        justifyContent: "space-between",
-                        alignItems:     "flex-start",
-                        gap:            "12px",
-                        padding:        "16px 18px 14px",
-                      }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <p style={{ margin: 0, fontWeight: 700, fontSize: "14px", color: "var(--text)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {row.cliente_nombre}
-                          </p>
-                          <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-3)", lineHeight: 1.4 }}>
-                            {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
-                          </p>
-                        </div>
-                        <span style={{ margin: 0, fontWeight: 700, fontSize: "16px", color: "var(--text)", fontFamily: "'Geist Mono', 'Courier New', monospace", letterSpacing: "-0.01em", flexShrink: 0 }}>
-                          {formatBs(row.cobro_cliente_bs)}
-                        </span>
-                      </div>
+                  {groupedPending.map(group => {
+                    const expanded    = expandedClientes.has(group.cliente_id)
+                    const sendingThis = enviandoCliente === group.cliente_id
 
-                      {/* ── DETALLE: descripción | tracking+ubicación+zona ── */}
-                      <div style={{ borderTop: "1px solid var(--border, #d5dbe2)", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                        <p style={{ margin: 0, fontSize: "12px", color: "var(--text-2)", lineHeight: 1.5, flex: "1 1 220px", minWidth: 0 }}>
-                          {row.item_descripcion || "—"}
-                        </p>
-                        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: "0 1 auto", maxWidth: "100%" }}>
-                          <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", color: "var(--text-3)" }}>
-                            {row.tracking_number || "Sin tracking"}
-                          </span>
-                          {row.ubicacion_codigo ? (
-                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
-                              {row.ubicacion_codigo}
+                    return (
+                      <div
+                        key={group.cliente_id}
+                        style={{
+                          display:       "flex",
+                          flexDirection: "column",
+                          background:    "var(--surface)",
+                          border:        "1px solid var(--border)",
+                          borderRadius:  "12px",
+                          minWidth:      0,
+                          width:         "100%",
+                        }}
+                      >
+                        {/* ── HEADER: cliente · totales ── */}
+                        <div style={{
+                          display:        "flex",
+                          justifyContent: "space-between",
+                          alignItems:     "flex-start",
+                          gap:            "12px",
+                          padding:        "16px 18px 14px",
+                        }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <p style={{
+                              margin: 0, fontWeight: 700, fontSize: "14px",
+                              color: "var(--text)", lineHeight: 1.3,
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                              {group.cliente_nombre}
+                            </p>
+                            <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-3)", lineHeight: 1.4 }}>
+                              {[group.cliente_telefono, group.departamento_destino].filter(Boolean).join(" · ") || "—"}
+                            </p>
+                          </div>
+                          <div style={{
+                            display: "flex", flexDirection: "column",
+                            alignItems: "flex-end", gap: "3px", flexShrink: 0,
+                          }}>
+                            <span style={{
+                              fontWeight: 700, fontSize: "16px", color: "var(--text)",
+                              fontFamily: "'Geist Mono', 'Courier New', monospace", letterSpacing: "-0.01em",
+                            }}>
+                              {fmtBs(group.total_bs)}
                             </span>
-                          ) : (
-                            <span style={{ fontSize: "11px", color: "var(--text-3)" }}>Sin ubicación</span>
-                          )}
-                          {row.zona && (
-                            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", fontWeight: 500, ...(ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos) }}>
-                              {ZONA_LABEL[row.zona] ?? row.zona}
+                            <span style={{ fontSize: "11px", color: "var(--text-3)" }}>
+                              {group.items.length} ítem{group.items.length !== 1 ? "s" : ""}
                             </span>
-                          )}
+                          </div>
+                        </div>
+
+                        {/* ── DETALLE EXPANDIDO ── */}
+                        {expanded && (
+                          <div style={{ borderTop: "1px solid var(--border)" }}>
+                            {group.items.map((item, idx) => (
+                              <div
+                                key={item.recepcion_id}
+                                style={{
+                                  padding:    "12px 18px",
+                                  display:    "flex",
+                                  gap:        "12px",
+                                  alignItems: "flex-start",
+                                  borderTop:  idx === 0 ? "none" : "1px solid var(--border)",
+                                }}
+                              >
+                                {/* Info del ítem */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{
+                                    margin: 0, fontSize: "12px", fontWeight: 500,
+                                    color: "var(--text-2)", lineHeight: 1.5,
+                                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                  }}>
+                                    {item.item_descripcion || "—"}
+                                  </p>
+                                  <div style={{
+                                    display: "flex", flexWrap: "wrap",
+                                    gap: "6px", marginTop: "5px", alignItems: "center",
+                                  }}>
+                                    {item.tracking_number && (
+                                      <span style={{
+                                        fontSize: "10px", fontFamily: "'Courier New', monospace",
+                                        color: "var(--text-3)",
+                                      }}>
+                                        {item.tracking_number}
+                                      </span>
+                                    )}
+                                    {item.codigo_recepcion && (
+                                      <span style={{
+                                        fontSize: "10px", fontFamily: "'Courier New', monospace",
+                                        color: "var(--text-3)",
+                                      }}>
+                                        {item.codigo_recepcion}
+                                      </span>
+                                    )}
+                                    {item.ubicacion_codigo && (
+                                      <span style={{
+                                        fontSize: "10px", fontFamily: "'Courier New', monospace",
+                                        fontWeight: 600, color: "var(--text-2)",
+                                      }}>
+                                        {item.ubicacion_codigo}
+                                      </span>
+                                    )}
+                                    {item.zona && (
+                                      <span style={{
+                                        fontSize: "10px", padding: "1px 6px", borderRadius: "4px",
+                                        fontWeight: 500,
+                                        ...(ZONA_STYLE[item.zona] ?? ZONA_STYLE.desconocidos),
+                                      }}>
+                                        {ZONA_LABEL[item.zona] ?? item.zona}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Monto + acción individual */}
+                                <div style={{
+                                  display: "flex", flexDirection: "column",
+                                  alignItems: "flex-end", gap: "6px", flexShrink: 0,
+                                }}>
+                                  <span style={{
+                                    fontSize: "13px", fontWeight: 600, color: "var(--text)",
+                                    fontFamily: "'Geist Mono', 'Courier New', monospace",
+                                  }}>
+                                    {formatBs(item.cobro_cliente_bs)}
+                                  </span>
+                                  <button
+                                    className="ui-button-ghost ui-button-sm"
+                                    style={{ fontSize: "11px" }}
+                                    onClick={() => setCobrando(item)}
+                                  >
+                                    Cobrar
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* ── FOOTER ── */}
+                        <div style={{
+                          borderTop:    "1px solid var(--border)",
+                          background:   "var(--surface-2)",
+                          padding:      "12px 18px",
+                          display:      "flex",
+                          gap:          "8px",
+                          alignItems:   "center",
+                          borderRadius: "0 0 12px 12px",
+                        }}>
+                          <button
+                            className="ui-button ui-button-sm"
+                            style={{ flexShrink: 0 }}
+                            onClick={() => abrirWhatsAppCliente(group)}
+                            disabled={sendingThis}
+                          >
+                            {sendingThis ? "..." : "Cobrar por WhatsApp"}
+                          </button>
+                          <button
+                            className="ui-button-ghost ui-button-sm"
+                            style={{ marginLeft: "auto", flexShrink: 0 }}
+                            onClick={() => toggleExpanded(group.cliente_id)}
+                          >
+                            {expanded
+                              ? "Ocultar ítems ▲"
+                              : `Ver ${group.items.length} ítem${group.items.length !== 1 ? "s" : ""} ▼`}
+                          </button>
                         </div>
                       </div>
-
-                      {/* ── FOOTER: botón ── */}
-                      <div style={{
-                        borderTop:    "1px solid var(--border, #d5dbe2)",
-                        background:   "var(--surface-2, #e9eef2)",
-                        padding:      "12px 18px",
-                        display:      "flex",
-                        gap:          "8px",
-                        borderRadius: "0 0 12px 12px",
-                      }}>
-                        <button
-                          className="ui-button ui-button-sm"
-                          style={{ flexShrink: 0 }}
-                          onClick={() => abrirWhatsApp(row)}
-                          disabled={enviando === row.recepcion_id}
-                        >
-                          {enviando === row.recepcion_id ? "..." : "Cobrar por WhatsApp"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </>
             )}
@@ -645,81 +801,142 @@ export default function Cobros() {
                 )}
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 }}>
-                  {sent.map(row => (
-                    <div
-                      key={row.recepcion_id}
-                      style={{
-                        display:       "flex",
-                        flexDirection: "column",
-                        background:    "var(--surface, #ffffff)",
-                        border:        "1px solid var(--border, #d5dbe2)",
-                        borderRadius:  "12px",
-                        minWidth:      0,
-                        width:         "100%",
-                      }}
-                    >
-                      {/* ── HEADER ── */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", padding: "16px 18px 14px" }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <p style={{ margin: 0, fontWeight: 600, fontSize: "14px", color: "var(--text-2)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {row.cliente_nombre}
-                          </p>
-                          <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-3)", lineHeight: 1.4 }}>
-                            {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
-                          </p>
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                          <span style={{ margin: 0, fontWeight: 600, fontSize: "14px", color: "var(--text-2)", fontFamily: "'Geist Mono', 'Courier New', monospace" }}>
-                            {formatBs(row.cobro_cliente_bs)}
-                          </span>
-                          <Badge type="info">Enviado</Badge>
-                        </div>
-                      </div>
+                  {sent.map(row => {
+                    const detalleOpen = expandedDetalles.has(row.recepcion_id)
 
-                      {/* ── DETALLE ── */}
-                      <div style={{ borderTop: "1px solid var(--border, #d5dbe2)", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                        <p style={{ margin: 0, fontSize: "12px", color: "var(--text-3)", lineHeight: 1.5, flex: "1 1 220px", minWidth: 0 }}>
-                          {row.item_descripcion || "—"}
-                        </p>
-                        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: "0 1 auto", maxWidth: "100%" }}>
-                          <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", color: "var(--text-3)" }}>
-                            {row.tracking_number || "Sin tracking"}
-                          </span>
-                          {row.ubicacion_codigo ? (
-                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
-                              {row.ubicacion_codigo}
+                    // Campos para el bloque de detalle
+                    const detalleFields = [
+                      { label: "Producto",       value: row.item_descripcion,              mono: false },
+                      { label: "Monto",          value: formatBs(row.cobro_cliente_bs),    mono: true  },
+                      { label: "Cliente",        value: row.cliente_nombre,                mono: false },
+                      { label: "Teléfono",       value: row.cliente_telefono,              mono: true  },
+                      { label: "Ciudad",         value: row.departamento_destino,          mono: false },
+                      { label: "Recepción",      value: formatDateTime(row.recibido_at),   mono: true  },
+                      { label: "Cobro enviado",  value: formatDateTime(row.cobro_enviado_at), mono: true },
+                      { label: "Código REC",     value: row.codigo_recepcion,              mono: true  },
+                      { label: "Tracking",       value: row.tracking_number,               mono: true  },
+                      { label: "Ubicación",      value: row.ubicacion_codigo,              mono: true  },
+                    ]
+
+                    return (
+                      <div
+                        key={row.recepcion_id}
+                        style={{
+                          display:       "flex",
+                          flexDirection: "column",
+                          background:    "var(--surface)",
+                          border:        "1px solid var(--border)",
+                          borderRadius:  "12px",
+                          minWidth:      0,
+                          width:         "100%",
+                        }}
+                      >
+                        {/* ── HEADER ── */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", padding: "16px 18px 14px" }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <p style={{ margin: 0, fontWeight: 600, fontSize: "14px", color: "var(--text-2)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {row.cliente_nombre}
+                            </p>
+                            <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-3)", lineHeight: 1.4 }}>
+                              {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
+                            </p>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                            <span style={{ margin: 0, fontWeight: 600, fontSize: "14px", color: "var(--text-2)", fontFamily: "'Geist Mono', 'Courier New', monospace" }}>
+                              {formatBs(row.cobro_cliente_bs)}
                             </span>
-                          ) : (
-                            <span style={{ fontSize: "11px", color: "var(--text-3)" }}>Sin ubicación</span>
-                          )}
-                          {row.zona && (
-                            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", fontWeight: 500, ...(ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos) }}>
-                              {ZONA_LABEL[row.zona] ?? row.zona}
+                            <Badge type="info">Enviado</Badge>
+                          </div>
+                        </div>
+
+                        {/* ── RESUMEN COMPACTO ── */}
+                        <div style={{ borderTop: "1px solid var(--border)", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                          <p style={{ margin: 0, fontSize: "12px", color: "var(--text-3)", lineHeight: 1.5, flex: "1 1 220px", minWidth: 0 }}>
+                            {row.item_descripcion || "—"}
+                          </p>
+                          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: "0 1 auto", maxWidth: "100%" }}>
+                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", color: "var(--text-3)" }}>
+                              {row.tracking_number || "Sin tracking"}
                             </span>
-                          )}
+                            {row.ubicacion_codigo ? (
+                              <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
+                                {row.ubicacion_codigo}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: "11px", color: "var(--text-3)" }}>Sin ubicación</span>
+                            )}
+                            {row.zona && (
+                              <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", fontWeight: 500, ...(ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos) }}>
+                                {ZONA_LABEL[row.zona] ?? row.zona}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* ── DETALLE EXPANDIDO ── */}
+                        {detalleOpen && (
+                          <div style={{
+                            borderTop:           "1px solid var(--border)",
+                            padding:             "14px 18px",
+                            display:             "grid",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
+                            gap:                 "10px 24px",
+                            background:          "var(--surface-2)",
+                          }}>
+                            {detalleFields.map(({ label, value, mono }) =>
+                              value ? (
+                                <div key={label} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                  <span style={{
+                                    fontSize: "10px", fontWeight: 600,
+                                    textTransform: "uppercase", letterSpacing: "0.08em",
+                                    color: "var(--text-3)",
+                                  }}>
+                                    {label}
+                                  </span>
+                                  <span style={{
+                                    fontSize: "12px",
+                                    color: "var(--text-2)",
+                                    fontFamily: mono ? "'Courier New', monospace" : "inherit",
+                                    wordBreak: "break-all",
+                                  }}>
+                                    {value}
+                                  </span>
+                                </div>
+                              ) : null
+                            )}
+                          </div>
+                        )}
+
+                        {/* ── FOOTER: botones ── */}
+                        <div style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)", padding: "12px 18px", display: "flex", gap: "8px", alignItems: "center", borderRadius: "0 0 12px 12px" }}>
+                          <button
+                            className="ui-button-ghost ui-button-sm"
+                            style={{ flexShrink: 0 }}
+                            onClick={() => toggleDetalle(row.recepcion_id)}
+                          >
+                            {detalleOpen ? "Ocultar detalles ▲" : "Ver detalles ▼"}
+                          </button>
+                          <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+                            <button
+                              className="ui-button-ghost ui-button-sm"
+                              style={{ flexShrink: 0 }}
+                              onClick={() => recordarCobro(row)}
+                              disabled={recordando === row.recepcion_id}
+                            >
+                              {recordando === row.recepcion_id ? "..." : "Recordar cobro"}
+                            </button>
+                            <button
+                              className="ui-button ui-button-sm"
+                              style={{ flexShrink: 0 }}
+                              onClick={() => setCobrando(row)}
+                            >
+                              Confirmar pago
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      {/* ── FOOTER: botones ── */}
-                      <div style={{ borderTop: "1px solid var(--border, #d5dbe2)", background: "var(--surface-2, #e9eef2)", padding: "12px 18px", display: "flex", gap: "8px", justifyContent: "flex-end", borderRadius: "0 0 12px 12px" }}>
-                        <button
-                          className="ui-button-ghost ui-button-sm"
-                          style={{ flexShrink: 0 }}
-                          onClick={() => recordarCobro(row)}
-                          disabled={recordando === row.recepcion_id}
-                        >
-                          {recordando === row.recepcion_id ? "..." : "Recordar cobro"}
-                        </button>
-                        <button
-                          className="ui-button ui-button-sm"
-                          style={{ flexShrink: 0 }}
-                          onClick={() => setCobrando(row)}
-                        >
-                          Confirmar pago
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </>
             )}
