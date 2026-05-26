@@ -4,11 +4,59 @@ import { API_URL } from "../../config/api";
 import Badge from "../ui/Badge";
 import useRealtimeEvents from "../../hooks/useRealtimeEvents";
 
+/* ── Helpers WhatsApp ──────────────────────────────────────── */
+
+function normalizarTelefonoWhatsApp(tel) {
+  if (!tel) return null;
+  const digits = String(tel).replace(/\D/g, "");
+  if (digits.length === 8 && /^[6-7]/.test(digits)) return `591${digits}`;
+  if (digits.length === 11 && digits.startsWith("591")) return digits;
+  return null;
+}
+
+function renderBtnWA(compra) {
+  if (compra.tracking_responsible !== "cliente") return null;
+  if (compra.tracking_status === "received") return null;
+  const tel = normalizarTelefonoWhatsApp(compra.cliente_telefono);
+  if (!tel) return null;
+
+  const nombre = compra.cliente_nombre || "";
+  const lineas = [
+    `Hola ${nombre}, le escribimos de Bolivia Imports.`,
+    "",
+    "Necesitamos que nos envíe el número de tracking de su pedido para poder continuar con el seguimiento y recepción del paquete.",
+    "",
+  ];
+  if (compra.descripcion_producto) lineas.push(`Producto: ${compra.descripcion_producto}`);
+  if (compra.numero_orden)         lineas.push(`Orden: ${compra.numero_orden}`);
+  if (compra.descripcion_producto || compra.numero_orden) lineas.push("");
+  lineas.push(
+    "Sin el número de tracking no podemos avanzar correctamente con el proceso.",
+    "",
+    "Por favor envíenos el tracking apenas lo tenga. Gracias."
+  );
+
+  const url = `https://wa.me/${tel}?text=${encodeURIComponent(lineas.join("\n"))}`;
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="ui-button ui-button-sm flex-shrink-0"
+      style={{ background: "#25D366", color: "#fff", border: "1px solid #1da851", textDecoration: "none" }}
+    >
+      Solicitar tracking
+    </a>
+  );
+}
+
 export default function ComprasTable({ reload }) {
   const [compras,          setCompras]          = useState([]);
   const [trackingEdit,     setTrackingEdit]      = useState({});
   const [loading,          setLoading]           = useState(true);
   const [filtro,           setFiltro]            = useState("");
+  const [filtroVista,      setFiltroVista]       = useState("activas");
   const [filtroTracking,   setFiltroTracking]    = useState("todos");
   const [expandedId,       setExpandedId]        = useState(null);
   const [itemsMap,         setItemsMap]          = useState({});
@@ -326,7 +374,9 @@ export default function ComprasTable({ reload }) {
   }
 
   /* ── Filtros ─────────────────────────────────────────────────── */
-  const comprasTexto = compras.filter(c => {
+
+  // 1. Búsqueda de texto (sobre todas las compras)
+  const comprasBusqueda = compras.filter(c => {
     if (!filtro) return true;
     const texto = filtro.toLowerCase();
     return (
@@ -335,6 +385,22 @@ export default function ComprasTable({ reload }) {
       c.proveedor?.toLowerCase().includes(texto) ||
       c.numero_orden?.toLowerCase().includes(texto)
     );
+  });
+
+  // 2. Conteos para los botones de vista (sobre el texto buscado)
+  const conteosVista = {
+    activas:     comprasBusqueda.filter(c => c.estado !== "recibido").length,
+    finalizadas: comprasBusqueda.filter(c => c.estado === "recibido").length,
+    todas:       comprasBusqueda.length,
+  };
+
+  // 3. Filtro de vista (activas / finalizadas / todas)
+  const comprasTexto = comprasBusqueda.filter(c => {
+    switch (filtroVista) {
+      case "activas":     return c.estado !== "recibido";
+      case "finalizadas": return c.estado === "recibido";
+      default:            return true;
+    }
   });
 
   const conteos = {
@@ -507,7 +573,7 @@ export default function ComprasTable({ reload }) {
         <div className={`${px} py-2.5`} style={bandStyle}>
           <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
             {label}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
               <input type="text" placeholder="Número de tracking"
                 value={trackingEdit[compra.id] || ""}
                 onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
@@ -517,6 +583,7 @@ export default function ComprasTable({ reload }) {
                 className="ui-button ui-button-sm flex-shrink-0">
                 Guardar
               </button>
+              {renderBtnWA(compra)}
             </div>
           </div>
         </div>
@@ -538,7 +605,7 @@ export default function ComprasTable({ reload }) {
       <div className={`${px} py-2.5`} style={bandStyle}>
         <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
           {label}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
             <input type="text" placeholder="Número de tracking"
               className={`flex-1 ${inputW} ui-input ui-input-sm`}
               onChange={e => setTrackingEdit({ ...trackingEdit, [compra.id]: e.target.value })}
@@ -547,6 +614,7 @@ export default function ComprasTable({ reload }) {
               className="ui-button ui-button-sm flex-shrink-0">
               Guardar
             </button>
+            {renderBtnWA(compra)}
           </div>
         </div>
       </div>
@@ -586,6 +654,35 @@ export default function ComprasTable({ reload }) {
         onChange={e => setFiltro(e.target.value)}
         className="ui-input max-w-md"
       />
+
+      {/* Filtro de vista */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+        {[
+          { key: "activas",     label: `Activas (${conteosVista.activas})` },
+          { key: "finalizadas", label: `Finalizadas (${conteosVista.finalizadas})` },
+          { key: "todas",       label: `Todas (${conteosVista.todas})` },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => { setFiltroVista(key); setFiltroTracking("todos"); }}
+            style={{
+              padding: "5px 10px",
+              borderRadius: "20px",
+              fontSize: "11px",
+              fontWeight: filtroVista === key ? 700 : 500,
+              fontFamily: "inherit",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              border: `1px solid ${filtroVista === key ? "var(--accent-2)" : "var(--border)"}`,
+              background: filtroVista === key ? "var(--accent-soft)" : "transparent",
+              color: filtroVista === key ? "var(--accent-2)" : "var(--text-3)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {/* Filtros rápidos de tracking */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
