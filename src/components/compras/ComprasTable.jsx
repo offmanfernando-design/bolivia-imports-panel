@@ -56,6 +56,8 @@ export default function ComprasTable({ reload }) {
   const [trackingEdit,     setTrackingEdit]      = useState({});
   const [loading,          setLoading]           = useState(true);
   const [filtro,           setFiltro]            = useState("");
+  const [fechaDesde,       setFechaDesde]        = useState("");
+  const [fechaHasta,       setFechaHasta]        = useState("");
   const [filtroVista,      setFiltroVista]       = useState("activas");
   const [filtroTracking,   setFiltroTracking]    = useState("todos");
   const [expandedId,       setExpandedId]        = useState(null);
@@ -387,15 +389,24 @@ export default function ComprasTable({ reload }) {
     );
   });
 
-  // 2. Conteos para los botones de vista (sobre el texto buscado)
+  // 1b. Filtro por fecha (fecha_estimada con fallback a created_at)
+  const comprasFecha = comprasBusqueda.filter(c => {
+    const fechaRef = (c.fecha_estimada || c.created_at || "").split("T")[0];
+    if (!fechaRef) return true;
+    if (fechaDesde && fechaRef < fechaDesde) return false;
+    if (fechaHasta && fechaRef > fechaHasta) return false;
+    return true;
+  });
+
+  // 2. Conteos para los botones de vista (sobre texto + fecha)
   const conteosVista = {
-    activas:     comprasBusqueda.filter(c => c.estado !== "recibido").length,
-    finalizadas: comprasBusqueda.filter(c => c.estado === "recibido").length,
-    todas:       comprasBusqueda.length,
+    activas:     comprasFecha.filter(c => c.estado !== "recibido").length,
+    finalizadas: comprasFecha.filter(c => c.estado === "recibido").length,
+    todas:       comprasFecha.length,
   };
 
   // 3. Filtro de vista (activas / finalizadas / todas)
-  const comprasTexto = comprasBusqueda.filter(c => {
+  const comprasTexto = comprasFecha.filter(c => {
     switch (filtroVista) {
       case "activas":     return c.estado !== "recibido";
       case "finalizadas": return c.estado === "recibido";
@@ -654,6 +665,43 @@ export default function ComprasTable({ reload }) {
         onChange={e => setFiltro(e.target.value)}
         className="ui-input max-w-md"
       />
+
+      {/* Filtro de fecha */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <label style={{ fontSize: "11px", color: "var(--text-3)", whiteSpace: "nowrap" }}>Desde</label>
+          <input
+            type="date"
+            className="ui-input"
+            style={{ fontSize: "12px", padding: "5px 8px", width: "140px" }}
+            value={fechaDesde}
+            onChange={e => setFechaDesde(e.target.value)}
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <label style={{ fontSize: "11px", color: "var(--text-3)", whiteSpace: "nowrap" }}>Hasta</label>
+          <input
+            type="date"
+            className="ui-input"
+            style={{ fontSize: "12px", padding: "5px 8px", width: "140px" }}
+            value={fechaHasta}
+            onChange={e => setFechaHasta(e.target.value)}
+          />
+        </div>
+        {(fechaDesde || fechaHasta) && (
+          <button
+            onClick={() => { setFechaDesde(""); setFechaHasta(""); }}
+            style={{
+              fontSize: "11px", padding: "4px 10px",
+              background: "transparent", border: "none",
+              color: "var(--text-3)", cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            ✕ Limpiar fechas
+          </button>
+        )}
+      </div>
 
       {/* Filtro de vista */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
