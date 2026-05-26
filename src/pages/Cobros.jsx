@@ -262,6 +262,8 @@ export default function Cobros() {
   const [enviando, setEnviando]     = useState(null)
   const [recordando, setRecordando] = useState(null)
   const [tab, setTab]               = useState("pending")
+  const [rowsVoid, setRowsVoid]     = useState([])
+  const [loadingVoid, setLoadingVoid] = useState(false)
   const [anulandoId, setAnulandoId]       = useState(null) // id con confirm expandido
   const [anulaMotivo, setAnulaMotivo]     = useState("")
   const [anulaLoading, setAnulaLoading]   = useState(false)
@@ -285,12 +287,29 @@ export default function Cobros() {
     }
   }
 
+  async function fetchVoid() {
+    setLoadingVoid(true)
+    try {
+      const res  = await fetch(`${API_URL}/cobros/items?status=void`)
+      const json = await res.json()
+      setRowsVoid(Array.isArray(json.data) ? json.data : [])
+    } catch {
+      // silencioso — el listado simplemente queda vacío
+    } finally {
+      setLoadingVoid(false)
+    }
+  }
+
   useEffect(() => { fetchItems("") }, [])
+
+  // Cargar anulados al entrar al tab
+  useEffect(() => { if (tab === "void") fetchVoid() }, [tab])
 
   // Actualizar automáticamente cuando otro operador cambia un cobro
   useRealtimeEvents((event) => {
     if (event.type === "cobros.updated") {
       fetchItems(q)
+      if (tab === "void") fetchVoid()
     }
   })
 
@@ -585,6 +604,7 @@ export default function Cobros() {
                 { key: "pending",  label: "Pendientes",     count: pending.length  },
                 { key: "sent",     label: "Cobro enviado",  count: sent.length     },
                 { key: "finished", label: "Pago confirmado", count: finished.length },
+                { key: "void",     label: "Anulados",       count: rowsVoid.length },
               ].map(({ key, label, count }) => (
                 <button
                   key={key}
@@ -1202,6 +1222,108 @@ export default function Cobros() {
                     </div>
                   ))}
                 </div>
+              </>
+            )}
+
+            {/* ── TAB ANULADOS ──────────────────────────── */}
+            {tab === "void" && (
+              <>
+                {loadingVoid && (
+                  <div className="flex flex-col gap-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-[72px] rounded-xl animate-pulse"
+                        style={{ background: "var(--surface-2)" }} />
+                    ))}
+                  </div>
+                )}
+
+                {!loadingVoid && rowsVoid.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 rounded-xl gap-3 text-sm"
+                    style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}>
+                    <span>Sin cobros anulados.</span>
+                  </div>
+                )}
+
+                {!loadingVoid && rowsVoid.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {rowsVoid.map(row => {
+                      const esReversion = row.origen_anulacion === "inventario_reversion"
+                      const origenLabel = esReversion
+                        ? "Anulado por reversión de inventario"
+                        : "Anulado desde Cobros"
+                      const origenStyle = esReversion
+                        ? { background: "var(--warning-soft)", color: "var(--warning)" }
+                        : { background: "var(--surface-3)", color: "var(--text-3)" }
+
+                      return (
+                        <div
+                          key={row.record_id || row.recepcion_id}
+                          style={{
+                            display:       "flex",
+                            flexDirection: "column",
+                            background:    "var(--surface)",
+                            border:        "1px solid var(--border)",
+                            borderRadius:  "12px",
+                            opacity:       0.9,
+                          }}
+                        >
+                          {/* Header */}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", padding: "14px 18px 12px" }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p style={{ margin: 0, fontWeight: 600, fontSize: "13px", color: "var(--text-2)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {row.cliente_nombre}
+                              </p>
+                              <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {row.item_descripcion || "—"}
+                              </p>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "5px", flexShrink: 0 }}>
+                              <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-3)", fontFamily: "'Geist Mono', 'Courier New', monospace" }}>
+                                {formatBs(row.cobro_cliente_bs)}
+                              </span>
+                              <span style={{
+                                fontSize: "10px", fontWeight: 600, padding: "2px 8px", borderRadius: "4px",
+                                letterSpacing: "0.04em", whiteSpace: "nowrap",
+                                ...origenStyle,
+                              }}>
+                                {origenLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Datos */}
+                          <div style={{
+                            borderTop: "1px solid var(--border)",
+                            padding: "10px 18px",
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                            gap: "8px 20px",
+                            background: "var(--surface-2)",
+                            borderRadius: "0 0 12px 12px",
+                          }}>
+                            {[
+                              { label: "Tracking",      value: row.tracking_number,                  mono: true  },
+                              { label: "Código REC",    value: row.codigo_recepcion,                 mono: true  },
+                              { label: "Teléfono",      value: row.cliente_telefono,                 mono: true  },
+                              { label: "Ciudad",        value: row.departamento_destino,             mono: false },
+                              { label: "Cobro enviado", value: formatDateTime(row.cobro_enviado_at), mono: true  },
+                              { label: "Motivo",        value: row.motivo,                           mono: false },
+                            ].filter(({ value }) => value).map(({ label, value, mono }) => (
+                              <div key={label} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                <span style={{ fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-3)" }}>
+                                  {label}
+                                </span>
+                                <span style={{ fontSize: "11px", color: "var(--text-2)", fontFamily: mono ? "'Courier New', monospace" : "inherit", wordBreak: "break-word", lineHeight: 1.4 }}>
+                                  {value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </>
             )}
 

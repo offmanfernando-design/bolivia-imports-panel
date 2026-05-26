@@ -493,13 +493,20 @@ function DetalleItem({ row, onClose, onReload, onUpdate }) {
   const [errorRevertir, setErrorRevertir]   = useState(null)
 
   async function handleRevertir() {
+    const esSent = row.payment_status === "sent"
+    if (esSent && !motivo.trim()) {
+      setErrorRevertir("El motivo es obligatorio para anular un cobro enviado")
+      return
+    }
     setLoadingRevertir(true)
     setErrorRevertir(null)
     try {
+      const body = { motivo: motivo.trim() || null }
+      if (esSent) body.anular_si_enviado = true
       const res  = await fetch(`${API_URL}/operativo/inventario/${row.item_id}/revertir-recepcion`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ motivo: motivo.trim() || null }),
+        body:    JSON.stringify(body),
       })
       const json = await res.json()
       if (!json.ok) {
@@ -800,7 +807,18 @@ function DetalleItem({ row, onClose, onReload, onUpdate }) {
           </button>
 
           {/* ── Revertir recepción ──────────────────────────────── */}
-          {!revertiendo ? (
+          {(row.payment_status === "paid" || row.payment_status === "confirmed") ? (
+            /* Bloqueado: pago ya registrado o confirmado */
+            <div className="rounded-xl px-4 py-3 flex items-start gap-2"
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+              <span className="text-base leading-none flex-shrink-0 mt-0.5">🔒</span>
+              <p className="text-xs leading-relaxed" style={{ color: "var(--text-3)" }}>
+                No se puede revertir: el cobro ya fue{" "}
+                {row.payment_status === "confirmed" ? "confirmado" : "registrado como pagado"}.
+              </p>
+            </div>
+          ) : !revertiendo ? (
+            /* Botón inicial — texto distinto si el cobro fue enviado */
             <button
               type="button"
               onClick={() => setRevertiendo(true)}
@@ -811,26 +829,52 @@ function DetalleItem({ row, onClose, onReload, onUpdate }) {
                 border:     "1px solid var(--danger)",
               }}
             >
-              Revertir recepción
+              {row.payment_status === "sent"
+                ? "Anular cobro y revertir recepción"
+                : "Revertir recepción"}
             </button>
           ) : (
+            /* Panel de confirmación */
             <div className="rounded-xl p-4 flex flex-col gap-3"
               style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)" }}>
-              <p className="text-sm font-semibold" style={{ color: "var(--danger)" }}>
-                ¿Revertir esta recepción?
-              </p>
-              <p className="text-xs leading-relaxed" style={{ color: "var(--text-2)" }}>
-                El ítem volverá a Carga Bolivia para registrar la recepción nuevamente.
-                Los datos financieros registrados serán eliminados.
-              </p>
-              <input
-                type="text"
-                placeholder="Motivo (opcional)"
-                value={motivo}
-                onChange={e => setMotivo(e.target.value)}
-                className="ui-input text-sm"
-                disabled={loadingRevertir}
-              />
+              {row.payment_status === "sent" ? (
+                <>
+                  <p className="text-sm font-semibold" style={{ color: "var(--danger)" }}>
+                    ¿Anular cobro y revertir recepción?
+                  </p>
+                  <p className="text-xs leading-relaxed" style={{ color: "var(--text-2)" }}>
+                    Este cobro ya fue enviado al cliente. Si fue enviado por error o el ítem no
+                    pertenece a este cliente, puedes anular el cobro y revertir la recepción.
+                    El cobro pasará a estado anulado y el ítem volverá a Carga Bolivia.
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Motivo (obligatorio)"
+                    value={motivo}
+                    onChange={e => setMotivo(e.target.value)}
+                    className="ui-input text-sm"
+                    disabled={loadingRevertir}
+                  />
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold" style={{ color: "var(--danger)" }}>
+                    ¿Revertir esta recepción?
+                  </p>
+                  <p className="text-xs leading-relaxed" style={{ color: "var(--text-2)" }}>
+                    El ítem volverá a Carga Bolivia para registrar la recepción nuevamente.
+                    Los datos financieros registrados serán eliminados.
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Motivo (opcional)"
+                    value={motivo}
+                    onChange={e => setMotivo(e.target.value)}
+                    className="ui-input text-sm"
+                    disabled={loadingRevertir}
+                  />
+                </>
+              )}
               {errorRevertir && (
                 <p className="text-xs font-medium" style={{ color: "var(--danger)" }}>
                   {errorRevertir}
@@ -840,11 +884,18 @@ function DetalleItem({ row, onClose, onReload, onUpdate }) {
                 <button
                   type="button"
                   onClick={handleRevertir}
-                  disabled={loadingRevertir}
+                  disabled={loadingRevertir || (row.payment_status === "sent" && !motivo.trim())}
                   className="flex-1 text-sm font-semibold py-2 px-4 rounded-lg transition"
-                  style={{ background: "var(--danger)", color: "#fff", opacity: loadingRevertir ? 0.7 : 1 }}
+                  style={{
+                    background: "var(--danger)", color: "#fff",
+                    opacity: (loadingRevertir || (row.payment_status === "sent" && !motivo.trim())) ? 0.5 : 1,
+                  }}
                 >
-                  {loadingRevertir ? "Revirtiendo…" : "Confirmar reversión"}
+                  {loadingRevertir
+                    ? "Procesando…"
+                    : row.payment_status === "sent"
+                      ? "Confirmar anulación y reversión"
+                      : "Confirmar reversión"}
                 </button>
                 <button
                   type="button"
