@@ -339,6 +339,13 @@ function formatFecha(iso) {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`
 }
 
+function formatFechaHora(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  const p = n => String(n).padStart(2, "0")
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 function formatBs(val) {
   if (val == null) return null
   return `${Number(val).toFixed(2)} Bs`
@@ -601,49 +608,47 @@ function DetalleItem({ row, onClose, onReload, onUpdate }) {
             ]} />
           </Sección>
 
-          {/* Operativo */}
-          <Sección titulo="Operativo">
+          {/* Fechas del ítem */}
+          <Sección titulo="Fechas del ítem">
             <CampoGrid items={[
               ["Recibido Bolivia",  formatFecha(row.recibido_at),             false],
               ["Entrega proveedor", formatFecha(row.fecha_entrega_proveedor), false],
-              ["Categoría",        row.categoria_nombre,                      false],
-              ["Tipo cálculo",     row.tipo_calculo,                          false],
+              ["Fecha estimada",    formatFecha(row.fecha_estimada),          false],
+              ["Warehouse",         formatFecha(row.warehouse_fecha),         false],
+              ["Cobro enviado",     formatFechaHora(row.cobro_enviado_at),    false],
+              ["Pago registrado",   formatFechaHora(row.paid_at),             false],
+              ["Orden creada",      formatFecha(row.orden_created_at),        false],
             ]} />
           </Sección>
 
-          {/* Medidas */}
-          {(
-            (row.tipo_calculo === "kg"      && (row.peso_cliente != null || row.peso_interno != null)) ||
-            (row.tipo_calculo === "unidad"  && row.unidades != null) ||
-            row.notas
-          ) && (
-            <Sección titulo="Medidas">
-              {row.tipo_calculo === "kg" && (
-                <>
-                  <CampoGrid items={[
-                    ["Peso cliente", row.peso_cliente != null ? `${row.peso_cliente} kg` : null, false],
-                    ["Peso interno", row.peso_interno != null ? `${row.peso_interno} kg` : null, false],
-                  ]} />
-                  {row.peso_cliente != null && row.peso_interno == null && (
-                    <p className="text-[11px] italic" style={{ color: "var(--text-3)" }}>Sin peso interno registrado</p>
-                  )}
-                </>
-              )}
-              {row.tipo_calculo === "unidad" && row.unidades != null && (
-                <CampoGrid items={[["Unidades", String(row.unidades), false]]} />
-              )}
-              {row.notas && (
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>Notas</p>
-                  <p className="text-sm leading-snug" style={{ color: "var(--text-2)" }}>{row.notas}</p>
-                </div>
-              )}
+          {/* Pesos */}
+          {row.tipo_calculo === "kg" && (row.peso_cliente != null || row.peso_interno != null) && (
+            <Sección titulo="Pesos">
+              <CampoGrid items={[
+                ["Peso cliente", row.peso_cliente != null ? `${row.peso_cliente} kg` : null, false],
+                ["Peso interno", row.peso_interno != null ? `${row.peso_interno} kg` : null, false],
+              ]} />
             </Sección>
           )}
 
-          {/* Financiero */}
+          {/* Operativo */}
+          <Sección titulo="Operativo">
+            <CampoGrid items={[
+              ["Categoría",    row.categoria_nombre,                                                       false],
+              ["Tipo cálculo", row.tipo_calculo,                                                           false],
+              ["Unidades",     row.tipo_calculo === "unidad" && row.unidades != null ? String(row.unidades) : null, false],
+            ]} />
+            {row.notas && (
+              <div className="flex flex-col gap-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>Notas</p>
+                <p className="text-sm leading-snug" style={{ color: "var(--text-2)" }}>{row.notas}</p>
+              </div>
+            )}
+          </Sección>
+
+          {/* Cobro y cálculo */}
           {(row.costo_interno_bs != null || row.cobro_cliente_bs != null) && (
-            <Sección titulo="Financiero">
+            <Sección titulo="Cobro y cálculo">
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { label: "Costo interno", value: formatBs(row.costo_interno_bs) },
