@@ -262,6 +262,10 @@ export default function Cobros() {
   const [enviando, setEnviando]     = useState(null)
   const [recordando, setRecordando] = useState(null)
   const [tab, setTab]               = useState("pending")
+  const [anulandoId, setAnulandoId]       = useState(null) // id con confirm expandido
+  const [anulaMotivo, setAnulaMotivo]     = useState("")
+  const [anulaLoading, setAnulaLoading]   = useState(false)
+  const [anulaError, setAnulaError]       = useState(null)
   const [expandedClientes, setExpandedClientes] = useState(new Set())
   const [enviandoCliente, setEnviandoCliente]   = useState(null)
   const [expandedDetalles, setExpandedDetalles] = useState(new Set())
@@ -373,6 +377,44 @@ export default function Cobros() {
     } finally {
       setRecordando(null)
     }
+  }
+
+  async function confirmarAnular(row) {
+    if (anulaLoading) return
+    setAnulaLoading(true)
+    setAnulaError(null)
+    try {
+      const res = await fetch(`${API_URL}/cobros/items/${row.recepcion_id}/anular`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ motivo: anulaMotivo.trim() || undefined }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setAnulaError(json.error || "Error al anular el cobro")
+        return
+      }
+      // Quitar el ítem de la lista local
+      setRows(prev => prev.filter(r => r.recepcion_id !== row.recepcion_id))
+      setAnulandoId(null)
+      setAnulaMotivo("")
+    } catch {
+      setAnulaError("Error de red")
+    } finally {
+      setAnulaLoading(false)
+    }
+  }
+
+  function abrirAnular(recepcionId) {
+    setAnulandoId(recepcionId)
+    setAnulaMotivo("")
+    setAnulaError(null)
+  }
+
+  function cancelarAnular() {
+    setAnulandoId(null)
+    setAnulaMotivo("")
+    setAnulaError(null)
   }
 
   const pending  = rows.filter(r => r.payment_status === "pending")
@@ -907,6 +949,59 @@ export default function Cobros() {
                           </div>
                         )}
 
+                        {/* ── PANEL ANULAR (confirmación inline) ── */}
+                        {anulandoId === row.recepcion_id && (
+                          <div style={{
+                            borderTop:    "1px solid var(--danger)",
+                            background:   "var(--danger-soft)",
+                            padding:      "14px 18px",
+                            display:      "flex",
+                            flexDirection:"column",
+                            gap:          "10px",
+                          }}>
+                            <p style={{ margin: 0, fontSize: "12px", fontWeight: 600, color: "var(--danger)" }}>
+                              ¿Anular este cobro enviado?
+                            </p>
+                            <p style={{ margin: 0, fontSize: "11px", color: "var(--text-2)", lineHeight: 1.5 }}>
+                              El cobro quedará marcado como anulado y desaparecerá del listado activo.
+                              El ítem podrá corregirse o revertirse desde Inventario Bolivia.
+                            </p>
+                            <input
+                              className="ui-input"
+                              style={{ fontSize: "12px", padding: "7px 10px" }}
+                              placeholder="Motivo de anulación (opcional)"
+                              value={anulaMotivo}
+                              onChange={e => setAnulaMotivo(e.target.value)}
+                              disabled={anulaLoading}
+                            />
+                            {anulaError && (
+                              <p style={{ margin: 0, fontSize: "11px", color: "var(--danger)" }}>{anulaError}</p>
+                            )}
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button
+                                className="ui-button-sm"
+                                style={{
+                                  background: "var(--danger)", color: "#fff",
+                                  border: "none", borderRadius: "8px", padding: "6px 14px",
+                                  fontWeight: 600, fontSize: "12px", cursor: "pointer",
+                                  opacity: anulaLoading ? 0.7 : 1,
+                                }}
+                                onClick={() => confirmarAnular(row)}
+                                disabled={anulaLoading}
+                              >
+                                {anulaLoading ? "Anulando…" : "Confirmar anulación"}
+                              </button>
+                              <button
+                                className="ui-button-ghost ui-button-sm"
+                                onClick={cancelarAnular}
+                                disabled={anulaLoading}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         {/* ── FOOTER: botones ── */}
                         <div style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)", padding: "12px 18px", display: "flex", gap: "8px", alignItems: "center", borderRadius: "0 0 12px 12px" }}>
                           <button
@@ -917,6 +1012,13 @@ export default function Cobros() {
                             {detalleOpen ? "Ocultar detalles ▲" : "Ver detalles ▼"}
                           </button>
                           <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+                            <button
+                              className="ui-button-ghost ui-button-sm"
+                              style={{ flexShrink: 0, color: "var(--danger)" }}
+                              onClick={() => anulandoId === row.recepcion_id ? cancelarAnular() : abrirAnular(row.recepcion_id)}
+                            >
+                              {anulandoId === row.recepcion_id ? "Cancelar anulación" : "Anular cobro"}
+                            </button>
                             <button
                               className="ui-button-ghost ui-button-sm"
                               style={{ flexShrink: 0 }}
@@ -1015,7 +1117,54 @@ export default function Cobros() {
                         </div>
                       </div>
 
-                      {/* Footer: método + fecha */}
+                      {/* ── PANEL ANULAR pago (solo paid, no confirmed) ── */}
+                      {row.payment_status === "paid" && anulandoId === row.recepcion_id && (
+                        <div style={{
+                          borderTop:    "1px solid var(--danger)",
+                          background:   "var(--danger-soft)",
+                          padding:      "14px 18px",
+                          display:      "flex",
+                          flexDirection:"column",
+                          gap:          "10px",
+                        }}>
+                          <p style={{ margin: 0, fontSize: "12px", fontWeight: 600, color: "var(--danger)" }}>
+                            ¿Anular este pago registrado?
+                          </p>
+                          <p style={{ margin: 0, fontSize: "11px", color: "var(--text-2)", lineHeight: 1.5 }}>
+                            El pago registrado quedará anulado. El ítem podrá corregirse o revertirse desde Inventario Bolivia.
+                          </p>
+                          <input
+                            className="ui-input"
+                            style={{ fontSize: "12px", padding: "7px 10px" }}
+                            placeholder="Motivo de anulación (opcional)"
+                            value={anulaMotivo}
+                            onChange={e => setAnulaMotivo(e.target.value)}
+                            disabled={anulaLoading}
+                          />
+                          {anulaError && (
+                            <p style={{ margin: 0, fontSize: "11px", color: "var(--danger)" }}>{anulaError}</p>
+                          )}
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                              style={{
+                                background: "var(--danger)", color: "#fff",
+                                border: "none", borderRadius: "8px", padding: "6px 14px",
+                                fontWeight: 600, fontSize: "12px", cursor: "pointer",
+                                opacity: anulaLoading ? 0.7 : 1,
+                              }}
+                              onClick={() => confirmarAnular(row)}
+                              disabled={anulaLoading}
+                            >
+                              {anulaLoading ? "Anulando…" : "Confirmar anulación"}
+                            </button>
+                            <button className="ui-button-ghost ui-button-sm" onClick={cancelarAnular} disabled={anulaLoading}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer: método + fecha + anular */}
                       <div style={{
                         borderTop:    "1px solid var(--border, #d5dbe2)",
                         background:   "var(--surface-2, #e9eef2)",
@@ -1033,6 +1182,20 @@ export default function Cobros() {
                         {row.paid_at && (
                           <span style={{ fontSize: "11px", color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>
                             {formatFecha(row.paid_at)}
+                          </span>
+                        )}
+                        {row.payment_status === "paid" && (
+                          <button
+                            className="ui-button-ghost ui-button-sm"
+                            style={{ marginLeft: "auto", color: "var(--danger)", fontSize: "11px" }}
+                            onClick={() => anulandoId === row.recepcion_id ? cancelarAnular() : abrirAnular(row.recepcion_id)}
+                          >
+                            {anulandoId === row.recepcion_id ? "Cancelar anulación" : "Anular pago"}
+                          </button>
+                        )}
+                        {row.payment_status === "confirmed" && (
+                          <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-3)" }}>
+                            Confirmado · no anulable
                           </span>
                         )}
                       </div>
