@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
-import { API_URL } from "../config/api";
-
-const EVENTS_URL = `${API_URL}/events`;
+import { subscribeRealtime, unsubscribeRealtime } from "../lib/realtimeClient";
 
 /**
  * Hook para recibir eventos en tiempo real vía Server-Sent Events.
+ *
+ * Usa una sola conexión SSE global compartida por toda la app.
+ * No abre una nueva conexión por componente — solo registra un listener.
  *
  * Uso:
  *   useRealtimeEvents((event) => {
@@ -12,52 +13,21 @@ const EVENTS_URL = `${API_URL}/events`;
  *     if (event.type === "inventory.updated") refetch();
  *   });
  *
- * Reconecta automáticamente si la conexión se cae.
- * Se limpia al desmontar el componente.
+ * Se limpia automáticamente al desmontar el componente.
  */
 export default function useRealtimeEvents(onEvent) {
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
 
   useEffect(() => {
-    let es = null;
-    let retryTimeout = null;
-    let active = true;
+    const listener = (data) => {
+      onEventRef.current?.(data);
+    };
 
-    function connect() {
-      if (!active) return;
-      try {
-        es = new EventSource(EVENTS_URL);
-
-        es.onmessage = (e) => {
-          try {
-            const data = JSON.parse(e.data);
-            onEventRef.current?.(data);
-          } catch {
-            // Ignorar mensajes no JSON (pings con ": ping")
-          }
-        };
-
-        es.onerror = () => {
-          es?.close();
-          es = null;
-          if (active) {
-            retryTimeout = setTimeout(connect, 3000);
-          }
-        };
-      } catch {
-        if (active) {
-          retryTimeout = setTimeout(connect, 5000);
-        }
-      }
-    }
-
-    connect();
+    subscribeRealtime(listener);
 
     return () => {
-      active = false;
-      clearTimeout(retryTimeout);
-      es?.close();
+      unsubscribeRealtime(listener);
     };
   }, []);
 }
