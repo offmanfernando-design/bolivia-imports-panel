@@ -15,6 +15,7 @@ import {
   Sun,
   Moon,
   X,
+  Archive,
 } from "lucide-react";
 
 import BottomTabBar from "../components/BottomTabBar";
@@ -27,6 +28,7 @@ const NAV_GROUPS = [
     items: [
       { to: "/",                     label: "Dashboard",     icon: <LayoutGrid    size={15} />, end: true },
       { to: "/compras",              label: "Compras",       icon: <Package       size={15} /> },
+      { to: "/arribos-bolivia",      label: "Arribos",       icon: <Archive       size={15} /> },
       { to: "/operativo",            label: "Operativo",     icon: <Boxes         size={15} /> },
       { to: "/ubicaciones",          label: "Ubicaciones",   icon: <MapPin        size={15} /> },
       { to: "/solicitudes-terminal", label: "Sol. Terminal", icon: <ClipboardList size={15} /> },
@@ -73,6 +75,7 @@ function collapsedNavClass({ isActive }) {
 const PAGE_LABELS = {
   "/":                     "Dashboard",
   "/compras":              "Compras",
+  "/arribos-bolivia":      "Arribos Bolivia",
   "/operativo":            "Operativo",
   "/ubicaciones":          "Ubicaciones",
   "/cobros":               "Cobros",

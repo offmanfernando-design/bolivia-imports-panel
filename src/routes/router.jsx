@@ -4,6 +4,7 @@ import MainLayout from "../layouts/MainLayout";
 import Dashboard from "../pages/Dashboard";
 import Compras from "../pages/Compras";
 import Operativo from "../pages/Operativo";
+import ArribosBolivia from "../pages/ArribosBolivia";
 import Ubicaciones from "../pages/Ubicaciones";
 import Cobros from "../pages/Cobros";
 import Entregas from "../pages/Entregas";
@@ -22,6 +23,7 @@ export default function AppRouter() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/compras" element={<Compras />} />
+          <Route path="/arribos-bolivia" element={<ArribosBolivia />} />
           <Route path="/operativo" element={<Operativo />} />
           <Route path="/ubicaciones" element={<Ubicaciones />} />
           <Route path="/etiquetas" element={<Etiquetas />} />
