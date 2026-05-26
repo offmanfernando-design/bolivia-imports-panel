@@ -1,19 +1,34 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { API_URL } from "../../config/api"
+import { normalizarUbicacion, desnormalizarUbicacion } from "../../utils/ubicacion"
+import useRealtimeEvents from "../../hooks/useRealtimeEvents"
 
 /* ── Etiqueta hoja 110×70mm ─────────────────────────────────
    Función copiada de RecepcionCarga.jsx — no importar para
    evitar dependencia circular; sólo formato "hoja" se usa aquí.
 ─────────────────────────────────────────────────────────── */
 function printEtiquetaAlmacen(data, formato) {
-  const { cliente_nombre, ubicacion, cobro_cliente_bs, item_descripcion, codigo_recepcion, numero_orden } = data
+  const {
+    cliente_nombre, ubicacion, cobro_cliente_bs, item_descripcion,
+    recibido_at, tracking_number, cliente_id
+  } = data
   const precio = cobro_cliente_bs != null ? `Bs ${Number(cobro_cliente_bs).toFixed(2)}` : "—"
   const desc = item_descripcion
     ? (item_descripcion.length > 48 ? item_descripcion.slice(0, 48).trimEnd() + "…" : item_descripcion)
     : null
-  const codigoCorto = codigo_recepcion
-    ? codigo_recepcion.split("-").slice(-2).join("-")
-    : "—"
+
+  // vars para etiqueta hoja
+  const trackFinal = tracking_number ? tracking_number.slice(-4) : null
+  const fechaRaw   = recibido_at || data.recibido_bolivia_at
+  const fechaCarga = fechaRaw ? (() => {
+    const d = new Date(fechaRaw)
+    const p = n => String(n).padStart(2, "0")
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`
+  })() : null
+  const ubicacionN = normalizarUbicacion(ubicacion)
+  const ubicParts  = ubicacionN && /^([A-Z]\d+)-(F\d+)$/.test(ubicacionN)
+    ? ubicacionN.split("-")
+    : null
 
   let html
 
@@ -90,7 +105,7 @@ function printEtiquetaAlmacen(data, formato) {
   <hr class="sep">
   <div class="fila">
     <div class="lbl">Ubic.</div>
-    <div class="val ubic">${ubicacion || "—"}</div>
+    <div class="val ubic">${ubicacionN}</div>
   </div>
   <hr class="sep">
   ${descCorto ? `<div class="fila"><div class="lbl">Ítem</div><div class="val desc">${descCorto}</div></div>` : ""}
@@ -103,14 +118,20 @@ function printEtiquetaAlmacen(data, formato) {
 </body>
 </html>`
   } else {
-    // formato === "hoja" — papel personalizado 110mm × 70mm horizontal
+    // formato === "hoja" — papel personalizado 110mm × 70mm
+    const ubicHTML  = ubicParts
+      ? `<div class="ubic-split"><div class="ubic-top">${ubicParts[0]}</div><div class="ubic-bot">${ubicParts[1]}</div></div>`
+      : `<div class="ubic">${ubicacionN}</div>`
+    const metaFecha = fechaCarga ? `<span><span class="ml">Fecha</span>&nbsp;${fechaCarga}</span>` : ""
+    const metaTrack = trackFinal ? `<span><span class="ml">Track</span>&nbsp;…${trackFinal}</span>` : ""
+    const metaID    = cliente_id ? `<span><span class="ml">ID</span>&nbsp;${cliente_id}</span>`    : ""
     html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Etiqueta hoja almacén</title>
 <style>
-  @page { size: 110mm 70mm landscape; margin: 0; }
+  @page { size: 110mm 70mm; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: Arial, sans-serif;
@@ -122,10 +143,13 @@ function printEtiquetaAlmacen(data, formato) {
     align-items: center;
     justify-content: center;
   }
+  @media screen {
+    body { width: auto; height: auto; min-height: 100vh; padding-bottom: 56px; }
+  }
   .etiqueta {
-    width: 102mm;
-    height: 60mm;
-    border: 1.5px solid #111;
+    width: 104mm;
+    height: 62mm;
+    border: 1px solid #111;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -133,77 +157,140 @@ function printEtiquetaAlmacen(data, formato) {
   .header {
     background: #111;
     color: #fff;
-    font-size: 6.5pt;
+    font-size: 5.5pt;
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.22em;
     font-weight: 700;
-    padding: 1.8mm 3mm;
     flex-shrink: 0;
+    min-height: 7mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .body {
     display: flex;
     flex: 1;
     min-height: 0;
-    padding: 2.5mm 3mm;
-    gap: 2mm;
+    padding: 1.5mm 2.5mm;
   }
   .col-left {
-    flex: 1;
+    flex: 0 0 62%;
     min-width: 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    padding-right: 2mm;
   }
   .col-right {
-    flex-shrink: 0;
-    width: 32mm;
+    flex: 0 0 38%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     border-left: 0.5px solid #ccc;
-    padding-left: 2.5mm;
+    padding-left: 2mm;
   }
   .lbl {
-    font-size: 4.5pt;
+    font-size: 4pt;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #888;
+    margin-bottom: 0.5mm;
+  }
+  .cliente {
+    font-size: 11pt;
+    font-weight: 700;
+    line-height: 1.2;
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5mm 3mm;
+    font-size: 6.5pt;
+    color: #222;
+    line-height: 1.4;
+  }
+  .ml {
+    font-size: 4pt;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: #888;
-    margin-bottom: 0.8mm;
-  }
-  .cliente {
-    font-size: 13pt;
-    font-weight: 700;
-    line-height: 1.15;
-    word-break: break-word;
+    margin-right: 0.8mm;
   }
   .desc {
-    font-size: 6.5pt;
-    color: #444;
+    font-size: 7pt;
+    color: #333;
     line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
-  .ubic-lbl { font-size: 5pt; text-transform: uppercase; letter-spacing: 0.12em; color: #888; margin-bottom: 1mm; }
+  .ubic-lbl {
+    font-size: 4pt;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #888;
+    margin-bottom: 1mm;
+  }
   .ubic {
-    font-size: 22pt;
+    font-size: 18pt;
     font-family: 'Courier New', monospace;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    line-height: 1;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
     text-align: center;
+    word-break: break-all;
   }
-  .footer {
-    border-top: 0.5px solid #ccc;
-    padding: 1.5mm 3mm;
+  .ubic-split {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    flex-shrink: 0;
+    gap: 0.5mm;
+    line-height: 1;
   }
-  .fi { display: flex; flex-direction: column; }
-  .fi.r { align-items: flex-end; }
-  .fi-lbl { font-size: 4pt; text-transform: uppercase; letter-spacing: 0.1em; color: #888; }
-  .fi-val { font-size: 7.5pt; font-weight: 700; line-height: 1.2; }
-  .fi-val.precio { font-size: 10pt; }
+  .ubic-top {
+    font-size: 20pt;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .ubic-bot {
+    font-size: 13pt;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: #444;
+    letter-spacing: 0.04em;
+  }
+  .screen-actions {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 8px 12px;
+    background: #f0f0f0;
+    border-top: 1px solid #ccc;
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+  .screen-actions button {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+  }
+  .btn-v { background: #222; color: #fff; }
+  .btn-c { background: #ddd; color: #333; }
+  @media print {
+    .screen-actions { display: none !important; }
+    body { width: 110mm; height: 70mm; padding-bottom: 0; }
+  }
 </style>
 </head>
 <body>
@@ -215,31 +302,31 @@ function printEtiquetaAlmacen(data, formato) {
         <div class="lbl">Cliente</div>
         <div class="cliente">${cliente_nombre || "—"}</div>
       </div>
-      ${desc ? `<div><div class="lbl">Ítem</div><div class="desc">${desc}</div></div>` : "<div></div>"}
+      <div class="meta-row">
+        <span><span class="ml">Cobro</span>${precio}</span>
+        ${metaFecha}${metaTrack}${metaID}
+      </div>
+      <div>
+        <div class="lbl">Ítem</div>
+        <div class="desc">${desc || "—"}</div>
+      </div>
     </div>
     <div class="col-right">
       <div class="ubic-lbl">Ubic.</div>
-      <div class="ubic">${ubicacion || "—"}</div>
+      ${ubicHTML}
     </div>
   </div>
-  <div class="footer">
-    <div class="fi">
-      <div class="fi-lbl">Código</div>
-      <div class="fi-val">${codigoCorto}</div>
-    </div>
-    ${numero_orden ? `<div class="fi"><div class="fi-lbl">Orden</div><div class="fi-val">${numero_orden}</div></div>` : ""}
-    <div class="fi r">
-      <div class="fi-lbl">Cobrar</div>
-      <div class="fi-val precio">${precio}</div>
-    </div>
-  </div>
+</div>
+<div class="screen-actions">
+  <button class="btn-v" onclick="window.history.back()">← Volver</button>
+  <button class="btn-c" onclick="window.close()">Cerrar</button>
 </div>
 <script>window.onload = () => window.print()</script>
 </body>
 </html>`
   }
 
-  const win = window.open("", "_blank", "width=480,height=340")
+  const win = window.open("", "_blank", "width=480,height=400")
   if (!win) return
   win.document.write(html)
   win.document.close()
@@ -318,9 +405,79 @@ function CampoGrid({ items }) {
 }
 
 /* ── Modal detalle ───────────────────────────────────────── */
-function DetalleItem({ row, onClose, onReload }) {
+function DetalleItem({ row, onClose, onReload, onUpdate }) {
   const [tab, setTab]               = useState("detalle")
   const [events, setEvents]         = useState(null) // null = no cargado aún
+
+  // ── Corrección de datos ───────────────────────────────────
+  const [editando,    setEditando]    = useState(false)
+  const [editForm,    setEditForm]    = useState({})
+  const [savingEdit,  setSavingEdit]  = useState(false)
+  const [editError,   setEditError]   = useState("")
+  const [editSuccess, setEditSuccess] = useState(false)
+
+  function abrirEdicion() {
+    setEditForm({
+      cliente_nombre:    row.cliente_nombre    || "",
+      cliente_telefono:  row.cliente_telefono  || "",
+      item_descripcion:  row.item_descripcion  || "",
+      tracking_number:   row.tracking_number   || "",
+      ubicacion_codigo:  normalizarUbicacion(row.ubicacion_codigo) === "—"
+                           ? ""
+                           : normalizarUbicacion(row.ubicacion_codigo),
+      cobro_cliente_bs:  row.cobro_cliente_bs  != null ? String(row.cobro_cliente_bs) : "",
+      unidades:          row.unidades          != null ? String(row.unidades)          : "",
+      notas:             row.notas             || "",
+    })
+    setEditError("")
+    setEditando(true)
+  }
+
+  async function guardarEdicion() {
+    if (!editForm.cliente_nombre?.trim()) {
+      setEditError("El nombre del cliente no puede quedar vacío"); return
+    }
+    if (!editForm.item_descripcion?.trim()) {
+      setEditError("La descripción del ítem no puede quedar vacía"); return
+    }
+    setSavingEdit(true)
+    setEditError("")
+    try {
+      const body = {
+        cliente_nombre:   editForm.cliente_nombre.trim(),
+        cliente_telefono: editForm.cliente_telefono.trim() || undefined,
+        item_descripcion: editForm.item_descripcion.trim(),
+        tracking_number:  editForm.tracking_number.trim()  || undefined,
+      }
+      // Ubicación: de-normalizar para enviar código de DB
+      const ubCodigo = editForm.ubicacion_codigo.trim()
+      if (ubCodigo) body.ubicacion_codigo = desnormalizarUbicacion(ubCodigo)
+
+      if (editForm.cobro_cliente_bs !== "") body.cobro_cliente_bs = Number(editForm.cobro_cliente_bs)
+      if (row.tipo_calculo === "unidad" && editForm.unidades !== "") body.unidades = Number(editForm.unidades)
+      if (editForm.notas !== row.notas) body.notas = editForm.notas.trim() || null
+
+      const res  = await fetch(`${API_URL}/operativo/items/${row.item_id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo guardar")
+
+      setEditando(false)
+      setEditSuccess(true)
+      setTimeout(() => setEditSuccess(false), 3000)
+
+      // Actualizar el modal y la lista
+      if (json.data) onUpdate?.(json.data)
+      onReload?.()
+    } catch (err) {
+      setEditError(err.message || "Error al guardar")
+    } finally {
+      setSavingEdit(false)
+    }
+  }
 
   // ── Revertir recepción ────────────────────────────────────
   const [revertiendo, setRevertiendo]       = useState(false)
@@ -429,7 +586,7 @@ function DetalleItem({ row, onClose, onReload }) {
             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>Ubicación</p>
               <p className="text-xl font-bold font-mono leading-none" style={{ color: "var(--text)" }}>
-                {row.ubicacion_codigo || "—"}
+                {normalizarUbicacion(row.ubicacion_codigo)}
               </p>
             </div>
             <ZonaPill zona={row.zona} />
@@ -506,6 +663,136 @@ function DetalleItem({ row, onClose, onReload }) {
               </div>
             </Sección>
           )}
+
+          {/* ── Mensaje de éxito de edición ─────────────────────── */}
+          {editSuccess && (
+            <div className="text-sm px-3 py-2 rounded-xl font-medium"
+              style={{ background: "var(--success-soft)", color: "var(--success)", border: "1px solid var(--success)" }}>
+              ✓ Datos actualizados correctamente
+            </div>
+          )}
+
+          {/* ── Formulario de corrección ─────────────────────────── */}
+          {editando ? (
+            <div className="flex flex-col gap-3 rounded-xl p-4"
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border-strong)" }}>
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
+                Corregir datos
+              </p>
+              {[
+                { label: "Nombre del cliente",   key: "cliente_nombre",   ph: "" },
+                { label: "Teléfono del cliente", key: "cliente_telefono", ph: "" },
+                { label: "Descripción del ítem", key: "item_descripcion", ph: "" },
+                { label: "Tracking",             key: "tracking_number",  ph: "" },
+                { label: "Ubicación (ej. T1-F2)", key: "ubicacion_codigo", ph: "" },
+              ].map(({ label, key, ph }) => (
+                <div key={key}>
+                  <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1"
+                    style={{ color: "var(--text-3)" }}>{label}</label>
+                  <input
+                    placeholder={ph}
+                    value={editForm[key] || ""}
+                    onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                    disabled={savingEdit}
+                    className="ui-input w-full text-sm disabled:opacity-50"
+                  />
+                </div>
+              ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1"
+                    style={{ color: "var(--text-3)" }}>Cobro cliente (Bs)</label>
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={editForm.cobro_cliente_bs || ""}
+                    onChange={e => setEditForm(f => ({ ...f, cobro_cliente_bs: e.target.value }))}
+                    disabled={savingEdit}
+                    className="ui-input w-full text-sm disabled:opacity-50"
+                  />
+                </div>
+                {row.tipo_calculo === "unidad" && (
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1"
+                      style={{ color: "var(--text-3)" }}>Unidades</label>
+                    <input
+                      type="number" min="0"
+                      value={editForm.unidades || ""}
+                      onChange={e => setEditForm(f => ({ ...f, unidades: e.target.value }))}
+                      disabled={savingEdit}
+                      className="ui-input w-full text-sm disabled:opacity-50"
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1"
+                  style={{ color: "var(--text-3)" }}>Notas</label>
+                <input
+                  placeholder="Notas (opcional)"
+                  value={editForm.notas || ""}
+                  onChange={e => setEditForm(f => ({ ...f, notas: e.target.value }))}
+                  disabled={savingEdit}
+                  className="ui-input w-full text-sm disabled:opacity-50"
+                />
+              </div>
+              {editError && (
+                <p className="text-xs px-3 py-2 rounded-xl"
+                  style={{ color: "var(--danger)", background: "var(--danger-soft)", border: "1px solid var(--danger)" }}>
+                  {editError}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={guardarEdicion}
+                  disabled={savingEdit}
+                  className="ui-button flex-1 disabled:opacity-50"
+                >
+                  {savingEdit ? "Guardando..." : "Guardar cambios"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditando(false); setEditError("") }}
+                  disabled={savingEdit}
+                  className="px-4 py-2 rounded-xl text-sm font-medium transition"
+                  style={{ color: "var(--text-2)", background: "var(--surface-3)" }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={abrirEdicion}
+              className="w-full text-sm font-semibold py-2.5 px-4 rounded-xl transition"
+              style={{
+                color:      "var(--text-2)",
+                background: "var(--surface-2)",
+                border:     "1px solid var(--border)",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-3)"; e.currentTarget.style.color = "var(--text)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-2)"; e.currentTarget.style.color = "var(--text-2)"; }}
+            >
+              ✏️ Corregir datos
+            </button>
+          )}
+
+          {/* ── Imprimir etiqueta hoja ───────────────────────────── */}
+          <button
+            type="button"
+            onClick={() => printEtiquetaAlmacen({ ...row, ubicacion: row.ubicacion_codigo }, "hoja")}
+            className="w-full text-sm font-semibold py-2.5 px-4 rounded-xl transition"
+            style={{
+              color:      "var(--text-2)",
+              background: "var(--surface-2)",
+              border:     "1px solid var(--border)",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-3)"; e.currentTarget.style.color = "var(--text)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-2)"; e.currentTarget.style.color = "var(--text-2)"; }}
+          >
+            🖨 Imprimir etiqueta hoja
+          </button>
 
           {/* ── Revertir recepción ──────────────────────────────── */}
           {!revertiendo ? (
@@ -638,6 +925,16 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
     fetchInventario(q)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey])
+
+  // SSE: refrescar inventario automáticamente cuando cambian ítems
+  const sseDebounce = useRef(null)
+  useRealtimeEvents((ev) => {
+    const RELEVANTES = ["item.updated", "item.received", "item.reverted", "inventory.updated"]
+    if (RELEVANTES.includes(ev.type)) {
+      clearTimeout(sseDebounce.current)
+      sseDebounce.current = setTimeout(() => fetchInventario(q), 400)
+    }
+  })
 
   function handleChange(e) {
     const val = e.target.value
@@ -821,9 +1118,6 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                         {col}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap"
-                      style={{ color: "var(--text-3)" }}>
-                    </th>
                   </tr>
                 </thead>
                 <tbody style={{ borderTop: "none" }}>
@@ -878,7 +1172,7 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                       {/* Ubicación · Zona */}
                       <td className="px-4 py-3 whitespace-nowrap align-top">
                         <p className="font-mono font-bold text-base leading-snug" style={{ color: "var(--text)" }}>
-                          {row.ubicacion_codigo || "—"}
+                          {normalizarUbicacion(row.ubicacion_codigo)}
                         </p>
                         <div className="mt-1">
                           <ZonaPill zona={row.zona} />
@@ -902,23 +1196,6 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                         {!formatFecha(row.recibido_at) && !row.fecha_entrega_proveedor && (
                           <span className="text-xs" style={{ color: "var(--border-strong)" }}>—</span>
                         )}
-                      </td>
-
-                      {/* Etiqueta hoja */}
-                      <td className="px-4 py-3 whitespace-nowrap align-middle">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            printEtiquetaAlmacen({ ...row, ubicacion: row.ubicacion_codigo }, "hoja")
-                          }}
-                          className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-colors"
-                          style={{ background: "var(--surface-2)", color: "var(--text-2)", border: "1px solid var(--border)" }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-3)"; e.currentTarget.style.color = "var(--text)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-2)"; e.currentTarget.style.color = "var(--text-2)"; }}
-                        >
-                          Etiqueta hoja
-                        </button>
                       </td>
 
                     </tr>
@@ -961,20 +1238,9 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                 <div className="px-4 py-2 flex items-center justify-between gap-3"
                   style={{ background: "var(--surface-2)", borderTop: "1px solid var(--border)" }}>
                   <span className="font-mono text-xs font-bold" style={{ color: "var(--text)" }}>
-                    {row.ubicacion_codigo || "—"}
+                    {normalizarUbicacion(row.ubicacion_codigo)}
                   </span>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        printEtiquetaAlmacen({ ...row, ubicacion: row.ubicacion_codigo }, "hoja")
-                      }}
-                      className="text-[10px] font-semibold px-2 py-1 rounded-lg"
-                      style={{ background: "var(--surface)", color: "var(--text-2)", border: "1px solid var(--border)" }}
-                    >
-                      Etiqueta
-                    </button>
                     <ZonaPill zona={row.zona} />
                     <span className="text-[11px] tabular-nums" style={{ color: "var(--text-3)" }}>
                       {formatFecha(row.recibido_at) ?? "—"}
@@ -994,6 +1260,7 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
           row={selected}
           onClose={() => setSelected(null)}
           onReload={() => fetchInventario(q)}
+          onUpdate={(updatedRow) => setSelected(updatedRow)}
         />
       )}
 

@@ -1,7 +1,9 @@
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { API_URL } from "../config/api"
 import Drawer from "../components/ui/Drawer"
 import UbicacionDrawer from "../components/ubicaciones/UbicacionDrawer"
+import { normalizarUbicacion } from "../utils/ubicacion"
+import useRealtimeEvents from "../hooks/useRealtimeEvents"
 
 /* ── Lógica de agrupación (sin cambios) ─────────────────────── */
 
@@ -32,10 +34,11 @@ function getRowStyle(paquetes) {
     border:      "1px solid var(--border-strong)",
     color:       "var(--text-2)",
   }
+  // 6+ ítems: ocupada pero neutro — sin accent para no confundir con búsqueda/hover
   return {
-    background:  "var(--accent-soft)",
-    border:      "1px solid var(--accent)",
-    color:       "var(--accent)",
+    background:  "var(--surface)",
+    border:      "1px solid var(--border-strong)",
+    color:       "var(--text)",
   }
 }
 
@@ -43,7 +46,8 @@ function getChipStyle(paquetes) {
   const n = Number(paquetes)
   if (n === 0) return { color: "var(--text-3)", fontWeight: 400 }
   if (n <= 5)  return { color: "var(--text-2)", fontWeight: 600 }
-  return { color: "var(--accent)", fontWeight: 700 }
+  // 6+ ítems: texto fuerte pero neutro
+  return { color: "var(--text)", fontWeight: 700 }
 }
 
 function paquetesLabel(paquetes) {
@@ -54,7 +58,7 @@ function paquetesLabel(paquetes) {
 
 /* ── Card de estante ─────────────────────────────────────────── */
 
-function ColumnaEstante({ estante, filas, onSelect, matchesPorUbicacion = {} }) {
+function ColumnaEstante({ estante, filas, onSelect, matchesPorUbicacion = {}, hasSearch = false }) {
   const filasOrdenadas = [...filas].sort((a, b) =>
     Number(a.fila.slice(1)) - Number(b.fila.slice(1))
   )
@@ -81,7 +85,7 @@ function ColumnaEstante({ estante, filas, onSelect, matchesPorUbicacion = {} }) 
             className="font-semibold tracking-wide"
             style={{ fontSize: "13px", color: "var(--text)", fontFamily: "'Geist Mono', monospace" }}
           >
-            {estante}
+            {normalizarUbicacion(estante)}
           </span>
           {filasOcupadas > 0 && (
             <span
@@ -108,11 +112,14 @@ function ColumnaEstante({ estante, filas, onSelect, matchesPorUbicacion = {} }) 
       {/* Filas */}
       <div className="p-2 flex flex-col gap-1">
         {filasOrdenadas.map((f) => {
-          const coincidencias = matchesPorUbicacion[f.codigo] || []
+          const coincidencias = hasSearch ? (matchesPorUbicacion[f.codigo] || []) : []
           const shown = coincidencias.slice(0, 2)
           const extra = coincidencias.length - shown.length
+          const isMatch = hasSearch && coincidencias.length > 0
           const rowStyle = getRowStyle(f.paquetes)
-          const chipStyle = getChipStyle(f.paquetes)
+          const chipStyle = isMatch
+            ? { color: "var(--accent)", fontWeight: 700 }
+            : getChipStyle(f.paquetes)
 
           return (
             <button
@@ -122,9 +129,15 @@ function ColumnaEstante({ estante, filas, onSelect, matchesPorUbicacion = {} }) 
               className="ubicacion-cell flex flex-col gap-1 items-stretch text-left rounded-md cursor-pointer"
               style={{
                 ...rowStyle,
-                padding:    "8px 10px",
+                // Accent solo en coincidencia de búsqueda activa
+                ...(isMatch && {
+                  background:  "var(--accent-soft)",
+                  border:      "1px solid var(--accent)",
+                  color:       "var(--accent)",
+                }),
+                padding:      "8px 10px",
                 borderRadius: "6px",
-                transition: "background 120ms ease-out, border-color 120ms ease-out",
+                transition:   "background 120ms ease-out, border-color 120ms ease-out",
               }}
             >
               <div className="flex items-center justify-between gap-2">
@@ -218,27 +231,36 @@ export default function Ubicaciones() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [search,     setSearch]     = useState("")
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [ubicRes, invRes] = await Promise.all([
-          fetch(`${API_URL}/operativo/ubicaciones`),
-          fetch(`${API_URL}/operativo/inventario?q=`),
-        ])
-        const [ubicJson, invJson] = await Promise.all([
-          ubicRes.json(),
-          invRes.json(),
-        ])
-        setData(ubicJson.data || [])
-        setInventario(Array.isArray(invJson.data) ? invJson.data : [])
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+  const load = useCallback(async () => {
+    try {
+      const [ubicRes, invRes] = await Promise.all([
+        fetch(`${API_URL}/operativo/ubicaciones`),
+        fetch(`${API_URL}/operativo/inventario?q=`),
+      ])
+      const [ubicJson, invJson] = await Promise.all([
+        ubicRes.json(),
+        invRes.json(),
+      ])
+      setData(ubicJson.data || [])
+      setInventario(Array.isArray(invJson.data) ? invJson.data : [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
     }
-    load()
   }, [])
+
+  useEffect(() => { load() }, [load])
+
+  // SSE: refrescar ubicaciones cuando cambia el inventario
+  const sseDebounce = useRef(null)
+  useRealtimeEvents((ev) => {
+    const RELEVANTES = ["item.updated", "item.received", "item.reverted", "inventory.updated"]
+    if (RELEVANTES.includes(ev.type)) {
+      clearTimeout(sseDebounce.current)
+      sseDebounce.current = setTimeout(load, 500)
+    }
+  })
 
   const filteredData = useMemo(() => {
     if (!search.trim()) return data
@@ -364,6 +386,7 @@ export default function Ubicaciones() {
                   filas={filas}
                   onSelect={abrirDrawer}
                   matchesPorUbicacion={matchesPorUbicacion}
+                  hasSearch={Boolean(search.trim())}
                 />
               ))
             }
@@ -385,6 +408,7 @@ export default function Ubicaciones() {
                   filas={filas}
                   onSelect={abrirDrawer}
                   matchesPorUbicacion={matchesPorUbicacion}
+                  hasSearch={Boolean(search.trim())}
                 />
               ))
             }

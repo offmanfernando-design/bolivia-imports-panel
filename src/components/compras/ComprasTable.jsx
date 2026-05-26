@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { API_URL } from "../../config/api";
 import Badge from "../ui/Badge";
+import useRealtimeEvents from "../../hooks/useRealtimeEvents";
 
 export default function ComprasTable({ reload }) {
   const [compras,          setCompras]          = useState([]);
@@ -23,7 +24,7 @@ export default function ComprasTable({ reload }) {
   const [savingItems,      setSavingItems]        = useState(false);
   const [itemsError,       setItemsError]         = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const res  = await fetch(`${API_URL}/compras`);
       const json = await res.json();
@@ -33,9 +34,18 @@ export default function ComprasTable({ reload }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { load(); }, [reload]);
+  useEffect(() => { load(); }, [reload, load]);
+
+  // Tiempo real: recargar lista cuando hay cambios en compras
+  const reloadDebounce = useRef(null);
+  useRealtimeEvents((ev) => {
+    if (ev.type === "purchase.updated") {
+      clearTimeout(reloadDebounce.current);
+      reloadDebounce.current = setTimeout(load, 400);
+    }
+  });
 
   useEffect(() => {
     if (!editingId) {
@@ -194,6 +204,8 @@ export default function ComprasTable({ reload }) {
   function abrirEditar(compra) {
     setEditingId(compra.id);
     setEditForm({
+      cliente_nombre:          compra.cliente_nombre || "",
+      cliente_telefono:        compra.cliente_telefono || "",
       proveedor:               compra.proveedor || "",
       numero_orden:            compra.numero_orden || "",
       url_orden:               compra.url_orden || "",
@@ -216,6 +228,8 @@ export default function ComprasTable({ reload }) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          cliente_nombre:          editForm.cliente_nombre.trim() || undefined,
+          cliente_telefono:        editForm.cliente_telefono.trim() !== "" ? editForm.cliente_telefono.trim() : undefined,
           proveedor:               editForm.proveedor.trim(),
           numero_orden:            editForm.numero_orden.trim(),
           url_orden:               editForm.url_orden.trim() || null,
@@ -232,6 +246,8 @@ export default function ComprasTable({ reload }) {
         if (c.id !== editingId) return c;
         return {
           ...c,
+          cliente_nombre:          json.data.cliente_nombre          ?? c.cliente_nombre,
+          cliente_telefono:        json.data.cliente_telefono        ?? c.cliente_telefono,
           proveedor:               json.data.proveedor,
           numero_orden:            json.data.numero_orden,
           url_orden:               json.data.url_orden,
@@ -948,7 +964,9 @@ export default function ComprasTable({ reload }) {
               <div className="flex flex-col gap-3">
 
                 {[
-                  { label: "Página / Proveedor",   key: "proveedor",            type: "text",  ph: "" },
+                  { label: "Nombre del cliente",    key: "cliente_nombre",       type: "text",  ph: "" },
+                  { label: "Teléfono del cliente",  key: "cliente_telefono",     type: "text",  ph: "" },
+                  { label: "Página / Proveedor",    key: "proveedor",            type: "text",  ph: "" },
                   { label: "Número de orden",       key: "numero_orden",         type: "text",  ph: "" },
                   { label: "Link de la orden",      key: "url_orden",            type: "text",  ph: "https://..." },
                   { label: "Descripción producto",  key: "descripcion_producto", type: "text",  ph: "" },

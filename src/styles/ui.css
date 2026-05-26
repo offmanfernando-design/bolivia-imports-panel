@@ -269,13 +269,18 @@
 }
 
 .ubicacion-cell:hover,
-.ubicacion-cell:focus,
-.ubicacion-cell:focus-visible,
 .ubicacion-cell:active {
   border-color: var(--accent)      !important;
   background:   var(--accent-soft) !important;
   outline:      none               !important;
   box-shadow:   none               !important;
+}
+
+/* Foco de teclado: ring sutil sin cambiar fondo */
+.ubicacion-cell:focus-visible {
+  outline:      2px solid var(--accent) !important;
+  outline-offset: 1px                  !important;
+  box-shadow:   none                   !important;
 }
 
 
