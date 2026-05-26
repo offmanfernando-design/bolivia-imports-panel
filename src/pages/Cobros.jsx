@@ -255,6 +255,8 @@ function ModalCobro({ row, onClose, onSaved }) {
 
 export default function Cobros() {
   const [q, setQ]                   = useState("")
+  const [fechaDesde, setFechaDesde] = useState("")
+  const [fechaHasta, setFechaHasta] = useState("")
   const [rows, setRows]             = useState([])
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState(null)
@@ -273,11 +275,14 @@ export default function Cobros() {
   const [expandedDetalles, setExpandedDetalles] = useState(new Set())
   const debounceRef                 = useRef(null)
 
-  async function fetchItems(query) {
+  async function fetchItems(query, desde, hasta) {
     setLoading(true)
     setError(null)
     try {
-      const res  = await fetch(`${API_URL}/cobros/items?q=${encodeURIComponent(query)}`)
+      const params = new URLSearchParams({ q: query || "" })
+      if (desde) params.set("fecha_desde", desde)
+      if (hasta) params.set("fecha_hasta", hasta)
+      const res  = await fetch(`${API_URL}/cobros/items?${params}`)
       const json = await res.json()
       setRows(Array.isArray(json.data) ? json.data : [])
     } catch {
@@ -300,7 +305,7 @@ export default function Cobros() {
     }
   }
 
-  useEffect(() => { fetchItems("") }, [])
+  useEffect(() => { fetchItems("", "", "") }, [])
 
   // Cargar anulados al entrar al tab
   useEffect(() => { if (tab === "void") fetchVoid() }, [tab])
@@ -308,7 +313,7 @@ export default function Cobros() {
   // Actualizar automáticamente cuando otro operador cambia un cobro
   useRealtimeEvents((event) => {
     if (event.type === "cobros.updated") {
-      fetchItems(q)
+      fetchItems(q, fechaDesde, fechaHasta)
       if (tab === "void") fetchVoid()
     }
   })
@@ -317,14 +322,34 @@ export default function Cobros() {
     const val = e.target.value
     setQ(val)
     clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => fetchItems(val), 350)
+    debounceRef.current = setTimeout(() => fetchItems(val, fechaDesde, fechaHasta), 350)
   }
 
   function handleKeyDown(e) {
     if (e.key === "Enter") {
       clearTimeout(debounceRef.current)
-      fetchItems(q)
+      fetchItems(q, fechaDesde, fechaHasta)
     }
+  }
+
+  function handleFechaDesde(e) {
+    const val = e.target.value
+    setFechaDesde(val)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => fetchItems(q, val, fechaHasta), 350)
+  }
+
+  function handleFechaHasta(e) {
+    const val = e.target.value
+    setFechaHasta(val)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => fetchItems(q, fechaDesde, val), 350)
+  }
+
+  function limpiarFechas() {
+    setFechaDesde("")
+    setFechaHasta("")
+    fetchItems(q, "", "")
   }
 
   async function abrirWhatsApp(row) {
@@ -583,7 +608,7 @@ export default function Cobros() {
 
           {/* Búsqueda + Tabs */}
           <div className="panel-header flex flex-col gap-3" style={{ paddingBottom: "0" }}>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <input
                 className="ui-input flex-1 max-w-md"
                 placeholder="Cliente, tracking, REC, descripción..."
@@ -593,11 +618,43 @@ export default function Cobros() {
               />
               <button
                 className="ui-button whitespace-nowrap"
-                onClick={() => { clearTimeout(debounceRef.current); fetchItems(q) }}
+                onClick={() => { clearTimeout(debounceRef.current); fetchItems(q, fechaDesde, fechaHasta) }}
                 disabled={loading}
               >
                 {loading ? "..." : "Buscar"}
               </button>
+            </div>
+            {/* Filtro de fechas */}
+            <div className="flex gap-2 flex-wrap items-center">
+              <div className="flex items-center gap-1.5">
+                <label style={{ fontSize: "11px", color: "var(--text-3)", whiteSpace: "nowrap" }}>Desde</label>
+                <input
+                  type="date"
+                  className="ui-input"
+                  style={{ fontSize: "12px", padding: "5px 8px", width: "140px" }}
+                  value={fechaDesde}
+                  onChange={handleFechaDesde}
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <label style={{ fontSize: "11px", color: "var(--text-3)", whiteSpace: "nowrap" }}>Hasta</label>
+                <input
+                  type="date"
+                  className="ui-input"
+                  style={{ fontSize: "12px", padding: "5px 8px", width: "140px" }}
+                  value={fechaHasta}
+                  onChange={handleFechaHasta}
+                />
+              </div>
+              {(fechaDesde || fechaHasta) && (
+                <button
+                  className="ui-button-ghost"
+                  style={{ fontSize: "11px", padding: "4px 10px", color: "var(--text-3)" }}
+                  onClick={limpiarFechas}
+                >
+                  ✕ Limpiar fechas
+                </button>
+              )}
             </div>
             <div style={{ display: "flex", overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", maxWidth: "100%" }}>
               {[
