@@ -419,6 +419,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const [ultimoDesconocido, setUltimoDesconocido] = useState(null);
 
   const trackingRef = useRef(null);
+  const paso3Ref    = useRef(null);
 
   const ubicacionObj = ubicaciones.find((u) => u.codigo === selectedUbicacionCodigo);
   const ubicacionId = ubicacionObj ? String(ubicacionObj.id) : "";
@@ -557,7 +558,21 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         setUltimaRecepcion(null);
         setError("");
         setFormTouched(false);
+        // Reset campos propios del ítem anterior — no arrastrar datos incorrectos
+        setSelectedUbicacionCodigo("");
+        setCategoriaId("");
+        setTipoCalculo("kg");
+        setPesoInterno("");
+        setPesoCliente("");
+        setUnidades("");
+        setTarifaClienteUsd("");
+        setCostoInternoUsd("");
+        setNotas("");
         aplicarSugerida(orden);
+        // Auto-scroll al Paso 3 después de que React renderice el formulario
+        setTimeout(() => {
+          paso3Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 0);
       }
     } catch (err) {
       console.error(err);
@@ -612,7 +627,22 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     setUltimaRecepcion(null);
     setError("");
     setFormTouched(false);
+    // Reset campos propios del ítem anterior — no arrastrar datos incorrectos
+    setSelectedUbicacionCodigo("");
+    setCategoriaId("");
+    setTipoCalculo("kg");
+    setPesoInterno("");
+    setPesoCliente("");
+    setUnidades("");
+    setTarifaClienteUsd("");
+    setCostoInternoUsd("");
+    setNotas("");
+    // Aplicar sugerencia de ubicación para el nuevo ítem (si existe y coincide zona)
     aplicarSugerida(orden);
+    // Auto-scroll al Paso 3 después de que React renderice el formulario
+    setTimeout(() => {
+      paso3Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   }
 
   function seleccionarCategoria(id) {
@@ -1276,7 +1306,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
 
       {/* Paso 3 + Reception form */}
       {((selectedItemId && selectedItem) || (modoLote && selectedItemIds.size > 0 && selectedOrden)) && (
-        <>
+        <div ref={paso3Ref} className="flex flex-col gap-6">
         <StepLabel number="3">Registrar recepción</StepLabel>
         <div className="rounded-2xl p-4 flex flex-col gap-4"
           style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
@@ -1725,7 +1755,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
             </button>
           )}
         </div>
-        </>
+        </div>
       )}
 
       {/* Paquete desconocido */}
