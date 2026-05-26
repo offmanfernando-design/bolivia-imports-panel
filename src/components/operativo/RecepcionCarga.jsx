@@ -328,11 +328,12 @@ function printEtiquetaAlmacen(data, formato) {
   win.document.close()
 }
 
+// esPendiente: seleccionable aunque no tenga warehouse confirmado
 const esPendiente = (item) =>
-  item.warehouse_confirmado === true &&
   item.estado !== "recibido_bolivia" &&
   item.estado !== "entregado";
 
+// esEsperandoWarehouse: solo informativo — muestra badge "Sin warehouse" pero no bloquea
 const esEsperandoWarehouse = (item) =>
   !item.warehouse_confirmado &&
   item.estado !== "recibido_bolivia" &&
@@ -1464,7 +1465,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                             )}
                           </span>
                           <span className="text-xs" style={{ color: "var(--text-3)" }}>
-                            {esperando ? "Esperando warehouse" : "Pendiente"}
+                            {esperando ? "Sin confirmación warehouse" : "Pendiente"}
                           </span>
                         </span>
                       </button>
@@ -1505,7 +1506,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                             {isRecibido
                               ? item.estado === "entregado" ? "Entregado" : "Recibido en Bolivia"
                               : esperando
-                                ? "Esperando warehouse"
+                                ? "Sin confirmación warehouse"
                                 : "Pendiente"}
                           </span>
                         </div>
