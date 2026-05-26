@@ -328,6 +328,8 @@ function printEtiquetaAlmacen(data, formato) {
   win.document.close()
 }
 
+const ESPECIALES_ORDER = ["PISO", "PASILLO", "D1", "D2", "D3", "D4", "D5"];
+
 // esPendiente: seleccionable aunque no tenga warehouse confirmado
 const esPendiente = (item) =>
   item.estado !== "recibido_bolivia" &&
@@ -462,6 +464,20 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     const cat = categorias.find((c) => String(c.id) === categoriaId);
     return cat?.nombre === "Celular usado" || cat?.nombre === "Celular nuevo";
   }, [categoriaId, categorias]);
+
+  const ubicacionesEspeciales = useMemo(() => {
+    const raw = ubicaciones.filter(
+      (u) => u.zona === "especial" || u.zona === "desconocidos"
+    );
+    return [...raw].sort((a, b) => {
+      const ia = ESPECIALES_ORDER.indexOf(a.codigo);
+      const ib = ESPECIALES_ORDER.indexOf(b.codigo);
+      if (ia === -1 && ib === -1) return a.codigo.localeCompare(b.codigo);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }, [ubicaciones]);
 
   const estantes = useMemo(() => {
     const s = new Set(
@@ -1922,6 +1938,33 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                     </div>
                   </div>
                 )}
+                {/* ── Especiales: PISO, PASILLO, D1-D5 ── */}
+                {ubicacionesEspeciales.length > 0 && (
+                  <div className="flex flex-col gap-1 mt-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: "var(--text-3)" }}>Especiales</div>
+                    <div className="flex gap-1 flex-wrap">
+                      {ubicacionesEspeciales.map((u) => {
+                        const isSelected = selectedUbicacionCodigo === u.codigo;
+                        return (
+                          <button
+                            key={u.codigo}
+                            type="button"
+                            onClick={() => setSelectedUbicacionCodigo(u.codigo)}
+                            className="px-3 h-8 rounded-lg text-xs font-medium transition-colors"
+                            style={isSelected
+                              ? { background: "var(--text)", color: "var(--surface)", cursor: "pointer" }
+                              : { borderWidth: 1, borderStyle: "solid", borderColor: "var(--border)", color: "var(--text-2)", background: "var(--surface)", cursor: "pointer" }
+                            }
+                          >
+                            {u.codigo}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <p className="text-sm" style={{ color: "var(--text-2)" }}>
                   Seleccionada:{" "}
                   {selectedUbicacionCodigo ? (

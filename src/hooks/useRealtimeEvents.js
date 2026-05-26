@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { subscribeRealtime, unsubscribeRealtime } from "../lib/realtimeClient";
 
 /**
@@ -17,7 +17,11 @@ import { subscribeRealtime, unsubscribeRealtime } from "../lib/realtimeClient";
  */
 export default function useRealtimeEvents(onEvent) {
   const onEventRef = useRef(onEvent);
-  onEventRef.current = onEvent;
+
+  // Sincronizar ref después de cada render (sin causar re-renders)
+  useLayoutEffect(() => {
+    onEventRef.current = onEvent;
+  });
 
   useEffect(() => {
     const listener = (data) => {

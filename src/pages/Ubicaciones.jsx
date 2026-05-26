@@ -221,6 +221,8 @@ function ZonaHeader({ title, items }) {
   )
 }
 
+const ESPECIALES_ORDER = ["PISO", "PASILLO", "D1", "D2", "D3", "D4", "D5"]
+
 /* ── Componente principal ────────────────────────────────────── */
 
 export default function Ubicaciones() {
@@ -316,10 +318,19 @@ export default function Ubicaciones() {
   }, [inventario, search])
 
   // CAJA-* son ubicaciones únicas: se excluyen de local/terminal para no contaminar el grid E/T
-  const cajas        = filteredData.filter((u) => u.codigo.startsWith("CAJA-"))
-  const local        = filteredData.filter((u) => u.zona === "local"        && !u.codigo.startsWith("CAJA-"))
-  const terminal     = filteredData.filter((u) => u.zona === "terminal"     && !u.codigo.startsWith("CAJA-"))
-  const desconocidos = filteredData.filter((u) => u.zona === "desconocidos" && !u.codigo.startsWith("CAJA-"))
+  const cajas     = filteredData.filter((u) => u.codigo.startsWith("CAJA-"))
+  const local     = filteredData.filter((u) => u.zona === "local"    && !u.codigo.startsWith("CAJA-"))
+  const terminal  = filteredData.filter((u) => u.zona === "terminal" && !u.codigo.startsWith("CAJA-"))
+  const especiales = filteredData
+    .filter((u) => (u.zona === "especial" || u.zona === "desconocidos") && !u.codigo.startsWith("CAJA-"))
+    .sort((a, b) => {
+      const ia = ESPECIALES_ORDER.indexOf(a.codigo)
+      const ib = ESPECIALES_ORDER.indexOf(b.codigo)
+      if (ia === -1 && ib === -1) return a.codigo.localeCompare(b.codigo)
+      if (ia === -1) return 1
+      if (ib === -1) return -1
+      return ia - ib
+    })
 
   const estantesLocal    = agruparPorEstante(local)
   const estantesTerminal = agruparPorEstante(terminal)
@@ -458,51 +469,48 @@ export default function Ubicaciones() {
         </div>
       )}
 
-      {/* Desconocidos */}
-      {desconocidos.length > 0 && (
+      {/* Especiales — PISO, PASILLO, D1-D5 */}
+      {especiales.length > 0 && (
         <div className="flex flex-col gap-3">
-          <ZonaHeader title="Desconocidos" items={desconocidos} />
+          <ZonaHeader title="Especiales" items={especiales} />
           <div className="flex gap-2 flex-wrap">
-            {desconocidos
-              .sort((a, b) => a.codigo.localeCompare(b.codigo))
-              .map((u) => {
-                const n = Number(u.paquetes)
-                return (
-                  <button
-                    key={u.codigo}
-                    type="button"
-                    onClick={() => abrirDrawer(u.codigo)}
-                    className="flex flex-col items-center gap-1 rounded-md transition-all cursor-pointer"
-                    style={{
-                      ...getRowStyle(u.paquetes),
-                      padding:      "10px 14px",
-                      minWidth:     "68px",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+            {especiales.map((u) => {
+              const n = Number(u.paquetes)
+              return (
+                <button
+                  key={u.codigo}
+                  type="button"
+                  onClick={() => abrirDrawer(u.codigo)}
+                  className="flex flex-col items-center gap-1 rounded-md transition-all cursor-pointer"
+                  style={{
+                    ...getRowStyle(u.paquetes),
+                    padding:  "10px 14px",
+                    minWidth: "68px",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "1" }}
+                >
+                  <span
+                    className="font-semibold tabular-nums"
+                    style={{ fontSize: "12px", fontFamily: "'Geist Mono', monospace", color: "inherit" }}
                   >
-                    <span
-                      className="font-semibold tabular-nums"
-                      style={{ fontSize: "12px", fontFamily: "'Geist Mono', monospace", color: "inherit" }}
-                    >
-                      {u.codigo}
-                    </span>
-                    <span
-                      className="tabular-nums"
-                      style={{ fontSize: "10px", ...getChipStyle(n) }}
-                    >
-                      {paquetesLabel(u.paquetes)}
-                    </span>
-                  </button>
-                )
-              })
-            }
+                    {u.codigo}
+                  </span>
+                  <span
+                    className="tabular-nums"
+                    style={{ fontSize: "10px", ...getChipStyle(n) }}
+                  >
+                    {paquetesLabel(u.paquetes)}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
 
       {/* Empty state */}
-      {search && local.length === 0 && terminal.length === 0 && desconocidos.length === 0 && cajas.length === 0 && (
+      {search && local.length === 0 && terminal.length === 0 && especiales.length === 0 && cajas.length === 0 && (
         <div
           className="py-16 text-center text-sm"
           style={{
