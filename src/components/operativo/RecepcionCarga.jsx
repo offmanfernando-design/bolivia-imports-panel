@@ -1465,6 +1465,11 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                     : `Terminal — ${orden.cliente_ciudad || "otro departamento"}`}
                 </p>
               )}
+              {orden.cliente_telefono && (
+                <p className="text-xs" style={{ color: "var(--text-3)" }}>
+                  {orden.cliente_telefono}
+                </p>
+              )}
               {orden.nota_solicitud && (
                 <div
                   className="text-xs mt-1 px-2 py-1.5 rounded"
