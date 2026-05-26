@@ -62,8 +62,8 @@ function FirmaCanvas({ canvasRef, onHasFirma }) {
     <canvas
       ref={canvasRef}
       width={560}
-      height={180}
-      className="w-full rounded-lg touch-none cursor-crosshair"
+      height={320}
+      className="w-full rounded-lg touch-none cursor-crosshair h-[240px] sm:h-[300px] lg:h-[320px]"
       style={{ touchAction: "none", border: "1px solid var(--border)", background: "var(--surface)" }}
       onMouseDown={startDraw}  onMouseMove={draw}  onMouseUp={endDraw}  onMouseLeave={endDraw}
       onTouchStart={startDraw} onTouchMove={draw}  onTouchEnd={endDraw}
@@ -361,7 +361,7 @@ function TabPendientes() {
       {!loading && !error && filtered.length > 0 && (
         <>
           {/* Tabla desktop */}
-          <div className="hidden md:block ui-table overflow-x-auto">
+          <div className="hidden md:block ui-table" style={{ overflowX: "auto" }}>
             <table className="w-full text-sm" style={{ minWidth: "680px" }}>
               <thead>
                 <tr>
@@ -567,7 +567,7 @@ function TabHistorial() {
       {!loading && !error && filtered.length > 0 && (
         <>
           {/* Tabla desktop */}
-          <div className="hidden md:block ui-table overflow-x-auto">
+          <div className="hidden md:block ui-table" style={{ overflowX: "auto" }}>
             <table className="w-full text-sm" style={{ minWidth: "740px" }}>
               <thead>
                 <tr>
