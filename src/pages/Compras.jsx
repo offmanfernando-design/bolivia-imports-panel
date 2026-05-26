@@ -766,7 +766,7 @@ export default function Compras() {
                       />
                     </div>
                     <input
-                      placeholder="Nota solicitud (opcional)"
+                      placeholder="Observación interna (opcional)"
                       value={nota}
                       onChange={(e) => setNota(e.target.value)}
                       className="ui-input"

@@ -1380,6 +1380,22 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                     : `Terminal — ${orden.cliente_ciudad || "otro departamento"}`}
                 </p>
               )}
+              {orden.nota_solicitud && (
+                <div
+                  className="text-xs mt-1 px-2 py-1.5 rounded"
+                  style={{ background: "rgba(111,164,183,0.10)", borderLeft: "2px solid #6FA4B7" }}
+                >
+                  <p
+                    className="font-semibold uppercase"
+                    style={{ fontFamily: "'Geist Mono', monospace", fontSize: "9px", letterSpacing: "0.10em", color: "var(--text-3)" }}
+                  >
+                    Observación interna
+                  </p>
+                  <p className="mt-0.5 leading-snug" style={{ color: "var(--text-2)" }}>
+                    {orden.nota_solicitud}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-wrap gap-1.5 mt-0.5">
                 {habilitados.length > 0 && (
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
