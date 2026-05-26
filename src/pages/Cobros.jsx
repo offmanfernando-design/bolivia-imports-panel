@@ -294,8 +294,22 @@ export default function Cobros() {
       }
       const msg = await generarMensaje(row, itemsCliente)
       window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank")
-      // PATCH /api/cobros/items/:id/enviado disponible pero no se llama automáticamente.
-      // El ítem permanece en Pendientes hasta que se confirme el pago manualmente.
+      try {
+        const patchRes = await fetch(`${API_URL}/cobros/items/${row.recepcion_id}/enviado`, {
+          method: "PATCH",
+        })
+        if (patchRes.ok) {
+          setRows(prev => prev.map(r =>
+            r.recepcion_id === row.recepcion_id
+              ? { ...r, payment_status: "sent" }
+              : r
+          ))
+        } else {
+          console.error("No se pudo marcar cobro como enviado:", await patchRes.text())
+        }
+      } catch (patchErr) {
+        console.error("Error al marcar cobro como enviado:", patchErr)
+      }
     } catch {
       // silencioso — el mensaje no se pudo generar
     } finally {
