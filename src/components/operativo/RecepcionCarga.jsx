@@ -1,11 +1,29 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { API_URL } from "../../config/api";
+import { normalizarUbicacion } from "../../utils/ubicacion";
+import useRealtimeEvents from "../../hooks/useRealtimeEvents";
 
 function printEtiquetaAlmacen(data, formato) {
-  const { cliente_nombre, ubicacion, cobro_cliente_bs, item_descripcion } = data
+  const {
+    cliente_nombre, ubicacion, cobro_cliente_bs, item_descripcion,
+    recibido_at, tracking_number, cliente_id
+  } = data
   const precio = cobro_cliente_bs != null ? `Bs ${Number(cobro_cliente_bs).toFixed(2)}` : "—"
   const desc = item_descripcion
     ? (item_descripcion.length > 48 ? item_descripcion.slice(0, 48).trimEnd() + "…" : item_descripcion)
+    : null
+
+  // vars para etiqueta hoja
+  const trackFinal = tracking_number ? tracking_number.slice(-4) : null
+  const fechaRaw   = recibido_at || data.recibido_bolivia_at
+  const fechaCarga = fechaRaw ? (() => {
+    const d = new Date(fechaRaw)
+    const p = n => String(n).padStart(2, "0")
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`
+  })() : null
+  const ubicacionN = normalizarUbicacion(ubicacion)
+  const ubicParts  = ubicacionN && /^([A-Z]\d+)-(F\d+)$/.test(ubicacionN)
+    ? ubicacionN.split("-")
     : null
 
   let html
@@ -83,7 +101,7 @@ function printEtiquetaAlmacen(data, formato) {
   <hr class="sep">
   <div class="fila">
     <div class="lbl">Ubic.</div>
-    <div class="val ubic">${ubicacion || "—"}</div>
+    <div class="val ubic">${ubicacionN}</div>
   </div>
   <hr class="sep">
   ${descCorto ? `<div class="fila"><div class="lbl">Ítem</div><div class="val desc">${descCorto}</div></div>` : ""}
@@ -96,94 +114,215 @@ function printEtiquetaAlmacen(data, formato) {
 </body>
 </html>`
   } else {
-    // formato === "hoja"
+    // formato === "hoja" — papel personalizado 110mm × 70mm
+    const ubicHTML  = ubicParts
+      ? `<div class="ubic-split"><div class="ubic-top">${ubicParts[0]}</div><div class="ubic-bot">${ubicParts[1]}</div></div>`
+      : `<div class="ubic">${ubicacionN}</div>`
+    const metaFecha = fechaCarga ? `<span><span class="ml">Fecha</span>&nbsp;${fechaCarga}</span>` : ""
+    const metaTrack = trackFinal ? `<span><span class="ml">Track</span>&nbsp;…${trackFinal}</span>` : ""
+    const metaID    = cliente_id ? `<span><span class="ml">ID</span>&nbsp;${cliente_id}</span>`    : ""
     html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Etiqueta hoja almacén</title>
 <style>
+  @page { size: 110mm 70mm; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: Arial, sans-serif;
     background: #fff;
     color: #000;
+    width: 110mm;
+    height: 70mm;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
-    padding: 32px;
+  }
+  @media screen {
+    body { width: auto; height: auto; min-height: 100vh; padding-bottom: 56px; }
   }
   .etiqueta {
-    border: 3px solid #111;
-    width: 100%;
-    max-width: 420px;
-    text-align: center;
+    width: 104mm;
+    height: 62mm;
+    border: 1px solid #111;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
   }
-  .marca {
+  .header {
     background: #111;
     color: #fff;
-    font-size: 10px;
+    font-size: 5.5pt;
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.22em;
     font-weight: 700;
-    padding: 8px 16px;
+    flex-shrink: 0;
+    min-height: 7mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .cuerpo { padding: 28px 32px 36px; }
-  .campo { margin-bottom: 22px; }
-  .campo:last-child { margin-bottom: 0; }
-  .label {
-    font-size: 9px;
+  .body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    padding: 1.5mm 2.5mm;
+  }
+  .col-left {
+    flex: 0 0 62%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-right: 2mm;
+  }
+  .col-right {
+    flex: 0 0 38%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-left: 0.5px solid #ccc;
+    padding-left: 2mm;
+  }
+  .lbl {
+    font-size: 4pt;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #888;
+    margin-bottom: 0.5mm;
+  }
+  .cliente {
+    font-size: 11pt;
+    font-weight: 700;
+    line-height: 1.2;
+    word-break: break-word;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5mm 3mm;
+    font-size: 6.5pt;
+    color: #222;
+    line-height: 1.4;
+  }
+  .ml {
+    font-size: 4pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-right: 0.8mm;
+  }
+  .desc {
+    font-size: 7pt;
+    color: #333;
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .ubic-lbl {
+    font-size: 4pt;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     color: #888;
-    margin-bottom: 4px;
+    margin-bottom: 1mm;
   }
-  .valor { font-size: 28px; font-weight: 700; line-height: 1.2; word-break: break-word; }
-  .valor.ubic {
-    font-size: 56px;
-    letter-spacing: 0.08em;
+  .ubic {
+    font-size: 18pt;
     font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    text-align: center;
+    word-break: break-all;
+  }
+  .ubic-split {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5mm;
     line-height: 1;
   }
-  .valor.precio { font-size: 34px; }
-  .valor.desc { font-size: 14px; font-weight: 400; color: #444; }
-  .sep { border: none; border-top: 1px solid #e0e0e0; margin: 18px 0; }
+  .ubic-top {
+    font-size: 20pt;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .ubic-bot {
+    font-size: 13pt;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: #444;
+    letter-spacing: 0.04em;
+  }
+  .screen-actions {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 8px 12px;
+    background: #f0f0f0;
+    border-top: 1px solid #ccc;
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+  }
+  .screen-actions button {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    cursor: pointer;
+  }
+  .btn-v { background: #222; color: #fff; }
+  .btn-c { background: #ddd; color: #333; }
   @media print {
-    body { min-height: unset; padding: 0; }
-    .etiqueta { max-width: 100%; border: 3px solid #111; }
+    .screen-actions { display: none !important; }
+    body { width: 110mm; height: 70mm; padding-bottom: 0; }
   }
 </style>
 </head>
 <body>
 <div class="etiqueta">
-  <div class="marca">Bolivia Imports — Almacén</div>
-  <div class="cuerpo">
-    <div class="campo">
-      <div class="label">Cliente</div>
-      <div class="valor">${cliente_nombre || "—"}</div>
+  <div class="header">Bolivia Imports · Almacén</div>
+  <div class="body">
+    <div class="col-left">
+      <div>
+        <div class="lbl">Cliente</div>
+        <div class="cliente">${cliente_nombre || "—"}</div>
+      </div>
+      <div class="meta-row">
+        <span><span class="ml">Cobro</span>${precio}</span>
+        ${metaFecha}${metaTrack}${metaID}
+      </div>
+      <div>
+        <div class="lbl">Ítem</div>
+        <div class="desc">${desc || "—"}</div>
+      </div>
     </div>
-    <hr class="sep">
-    <div class="campo">
-      <div class="label">Ubicación</div>
-      <div class="valor ubic">${ubicacion || "—"}</div>
-    </div>
-    <hr class="sep">
-    ${desc ? `<div class="campo"><div class="label">Ítem</div><div class="valor desc">${desc}</div></div><hr class="sep">` : ""}
-    <div class="campo">
-      <div class="label">Cobrar</div>
-      <div class="valor precio">${precio}</div>
+    <div class="col-right">
+      <div class="ubic-lbl">Ubic.</div>
+      ${ubicHTML}
     </div>
   </div>
+</div>
+<div class="screen-actions">
+  <button class="btn-v" onclick="window.history.back()">← Volver</button>
+  <button class="btn-c" onclick="window.close()">Cerrar</button>
 </div>
 <script>window.onload = () => window.print()</script>
 </body>
 </html>`
   }
 
-  const win = window.open("", "_blank", "width=560,height=640")
+  const win = window.open("", "_blank", "width=480,height=400")
   if (!win) return
   win.document.write(html)
   win.document.close()
@@ -260,6 +399,13 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const [modoLote, setModoLote] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState(new Set());
   const [modoAplicacion, setModoAplicacion] = useState("individual");
+
+  // ── Corrección rápida de cliente ──────────────────────────────────────────
+  const [editandoCliente, setEditandoCliente]   = useState(false);
+  const [editClienteForm, setEditClienteForm]   = useState({ nombre: "", telefono: "" });
+  const [savingCliente,   setSavingCliente]     = useState(false);
+  const [editClienteError, setEditClienteError] = useState("");
+  const [editClienteOk,   setEditClienteOk]     = useState(false);
 
   const [showDesconocido, setShowDesconocido] = useState(false);
   const [descTracking, setDescTracking] = useState("");
@@ -344,6 +490,39 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     }
   }
 
+  async function guardarCorreccionCliente() {
+    if (!ultimaRecepcion?.item_id) return;
+    if (!editClienteForm.nombre.trim()) {
+      setEditClienteError("El nombre no puede quedar vacío");
+      return;
+    }
+    setSavingCliente(true);
+    setEditClienteError("");
+    try {
+      const body = { cliente_nombre: editClienteForm.nombre.trim() };
+      if (editClienteForm.telefono.trim()) body.cliente_telefono = editClienteForm.telefono.trim();
+      const res  = await fetch(`${API_URL}/operativo/items/${ultimaRecepcion.item_id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo guardar");
+      // Actualizar el banner local
+      setUltimaRecepcion(prev => ({
+        ...prev,
+        cliente_nombre: json.data?.cliente_nombre ?? editClienteForm.nombre.trim(),
+      }));
+      setEditClienteOk(true);
+      setEditandoCliente(false);
+      setTimeout(() => setEditClienteOk(false), 3000);
+    } catch (err) {
+      setEditClienteError(err.message || "Error al guardar");
+    } finally {
+      setSavingCliente(false);
+    }
+  }
+
   const buscar = useCallback(async (t) => {
     if (t.length < 2) {
       setOrdenes([]);
@@ -392,6 +571,16 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     const delay = setTimeout(() => buscar(tracking), 400);
     return () => clearTimeout(delay);
   }, [tracking, buscar]);
+
+  // SSE: refrescar la búsqueda actual si llegan eventos de recepción/cambio
+  const sseDebounce = useRef(null);
+  useRealtimeEvents((ev) => {
+    const RELEVANTES = ["item.received", "item.reverted", "inventory.updated"];
+    if (RELEVANTES.includes(ev.type) && tracking.length >= 2) {
+      clearTimeout(sseDebounce.current);
+      sseDebounce.current = setTimeout(() => buscar(tracking), 500);
+    }
+  });
 
   // Regla de ubicación según categoría celular / no-celular
   useEffect(() => {
@@ -748,7 +937,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
           )}
           <p className="text-sm">
             <span style={{ color: "var(--text-3)" }}>Ubicación: </span>
-            <span className="font-medium" style={{ color: "var(--text-2)" }}>{ultimaRecepcion.ubicacion}</span>
+            <span className="font-medium" style={{ color: "var(--text-2)" }}>{normalizarUbicacion(ultimaRecepcion.ubicacion)}</span>
           </p>
           {!ultimaRecepcion.lote && (
             <div className="flex gap-2 mt-1 flex-wrap">
@@ -766,7 +955,73 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               >
                 Etiqueta adhesiva
               </button>
+              {!editandoCliente && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditClienteForm({ nombre: ultimaRecepcion.cliente_nombre || "", telefono: "" });
+                    setEditClienteError("");
+                    setEditandoCliente(true);
+                  }}
+                  className="ui-button self-start"
+                  style={{ color: "var(--text-2)", background: "var(--surface-3)" }}
+                >
+                  Corregir datos cliente
+                </button>
+              )}
             </div>
+          )}
+
+          {/* Formulario de corrección de cliente */}
+          {!ultimaRecepcion.lote && editandoCliente && (
+            <div className="mt-2 flex flex-col gap-2 rounded-xl p-3"
+              style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+                Corregir datos del cliente
+              </p>
+              <input
+                placeholder="Nombre del cliente"
+                value={editClienteForm.nombre}
+                onChange={e => setEditClienteForm(f => ({ ...f, nombre: e.target.value }))}
+                className="ui-input text-sm"
+                disabled={savingCliente}
+              />
+              <input
+                placeholder="Teléfono (dejar vacío para no cambiar)"
+                value={editClienteForm.telefono}
+                onChange={e => setEditClienteForm(f => ({ ...f, telefono: e.target.value }))}
+                className="ui-input text-sm"
+                disabled={savingCliente}
+              />
+              {editClienteError && (
+                <p className="text-xs" style={{ color: "var(--danger)" }}>{editClienteError}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={guardarCorreccionCliente}
+                  disabled={savingCliente}
+                  className="ui-button text-sm disabled:opacity-50"
+                >
+                  {savingCliente ? "Guardando..." : "Guardar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEditandoCliente(false); setEditClienteError(""); }}
+                  disabled={savingCliente}
+                  className="text-sm px-3 py-1.5 rounded-lg"
+                  style={{ color: "var(--text-3)" }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {editClienteOk && (
+            <p className="text-xs font-medium mt-1" style={{ color: "var(--success)" }}>
+              ✓ Datos del cliente actualizados
+            </p>
           )}
         </div>
       )}
@@ -784,7 +1039,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
 
       <input
         ref={trackingRef}
-        placeholder="Últimos dígitos del tracking"
+        placeholder="Tracking, cliente, teléfono, descripción..."
         value={tracking}
         onChange={(e) => {
           setTracking(e.target.value);
@@ -1380,7 +1635,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                       </div>
                       {estantes.map((est) => (
                         <div key={est} className="flex items-center gap-1">
-                          <div className="w-6 text-xs font-medium text-right" style={{ color: "var(--text-3)" }}>{est}</div>
+                          <div className="w-6 text-xs font-medium text-right" style={{ color: "var(--text-3)" }}>{normalizarUbicacion(est)}</div>
                           {filas.map((fil) => {
                             const codigo = `${est}-${fil}`;
                             const existe = ubicacionesParaGrilla.some((u) => u.codigo === codigo);
@@ -1398,7 +1653,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                               <button key={fil} type="button" onClick={() => setSelectedUbicacionCodigo(codigo)}
                                 className="w-12 h-8 rounded-lg text-xs font-medium transition-colors flex items-center justify-center"
                                 style={cellStyle}>
-                                {codigo}
+                                {normalizarUbicacion(codigo)}
                               </button>
                             );
                           })}
@@ -1410,7 +1665,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                 <p className="text-sm" style={{ color: "var(--text-2)" }}>
                   Seleccionada:{" "}
                   {selectedUbicacionCodigo ? (
-                    <span className="font-semibold" style={{ color: "var(--text)" }}>{selectedUbicacionCodigo}</span>
+                    <span className="font-semibold" style={{ color: "var(--text)" }}>{normalizarUbicacion(selectedUbicacionCodigo)}</span>
                   ) : (
                     <span style={{ color: "var(--text-3)" }}>—</span>
                   )}
@@ -1510,7 +1765,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
               <p className="font-semibold text-sm" style={{ color: "var(--success)" }}>Registrado</p>
               <p className="text-xs" style={{ color: "var(--text-2)" }}>
                 {ultimoDesconocido.descripcion}
-                {" · "}{ultimoDesconocido.ubicacion_codigo}
+                {" · "}{normalizarUbicacion(ultimoDesconocido.ubicacion_codigo)}
               </p>
             </div>
           )}
