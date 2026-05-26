@@ -404,11 +404,12 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const [modoAplicacion, setModoAplicacion] = useState("individual");
 
   // ── Corrección rápida de cliente ──────────────────────────────────────────
-  const [editandoCliente, setEditandoCliente]   = useState(false);
-  const [editClienteForm, setEditClienteForm]   = useState({ nombre: "", telefono: "" });
-  const [savingCliente,   setSavingCliente]     = useState(false);
-  const [editClienteError, setEditClienteError] = useState("");
-  const [editClienteOk,   setEditClienteOk]     = useState(false);
+  const [editandoCliente,       setEditandoCliente]       = useState(false);
+  const [editandoClienteOrdenId, setEditandoClienteOrdenId] = useState(null);
+  const [editClienteForm,       setEditClienteForm]       = useState({ nombre: "", telefono: "", ciudad: "" });
+  const [savingCliente,         setSavingCliente]         = useState(false);
+  const [editClienteError,      setEditClienteError]      = useState("");
+  const [editClienteOk,         setEditClienteOk]         = useState(false);
 
   // ── Orden rápida ──────────────────────────────────────────────────────────
   const [showOrdenRapida, setShowOrdenRapida] = useState(false);
@@ -523,8 +524,8 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     }
   }
 
-  async function guardarCorreccionCliente() {
-    if (!ultimaRecepcion?.item_id) return;
+  // Función unificada: guarda edición de cliente desde banner post-recepción o desde card
+  async function guardarEdicionCliente(clienteId) {
     if (!editClienteForm.nombre.trim()) {
       setEditClienteError("El nombre no puede quedar vacío");
       return;
@@ -532,28 +533,41 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     setSavingCliente(true);
     setEditClienteError("");
     try {
-      const body = { cliente_nombre: editClienteForm.nombre.trim() };
-      if (editClienteForm.telefono.trim()) body.cliente_telefono = editClienteForm.telefono.trim();
-      const res  = await fetch(`${API_URL}/operativo/items/${ultimaRecepcion.item_id}`, {
+      const res = await fetch(`${API_URL}/operativo/carga/clientes/${clienteId}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(body),
+        body:    JSON.stringify({
+          nombre:   editClienteForm.nombre.trim(),
+          telefono: editClienteForm.telefono.trim() || null,
+          ciudad:   editClienteForm.ciudad.trim() || null,
+        }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo guardar");
-      // Actualizar el banner local
-      setUltimaRecepcion(prev => ({
-        ...prev,
-        cliente_nombre: json.data?.cliente_nombre ?? editClienteForm.nombre.trim(),
-      }));
+      const { nombre, telefono, ciudad } = json.data;
+      // Actualizar todas las órdenes del mismo cliente en los resultados
+      setOrdenes(prev => prev.map(o =>
+        o.cliente_id === clienteId
+          ? { ...o, cliente_nombre: nombre, cliente_telefono: telefono, cliente_ciudad: ciudad }
+          : o
+      ));
+      // Actualizar banner post-recepción si corresponde
+      setUltimaRecepcion(prev => prev && !prev.lote ? { ...prev, cliente_nombre: nombre } : prev);
       setEditClienteOk(true);
       setEditandoCliente(false);
+      setEditandoClienteOrdenId(null);
       setTimeout(() => setEditClienteOk(false), 3000);
     } catch (err) {
       setEditClienteError(err.message || "Error al guardar");
     } finally {
       setSavingCliente(false);
     }
+  }
+
+  // Atajo para el banner post-recepción (compatibilidad con botón existente)
+  async function guardarCorreccionCliente() {
+    if (!ultimaRecepcion?.cliente_id) return;
+    await guardarEdicionCliente(ultimaRecepcion.cliente_id);
   }
 
   const buscar = useCallback(async (t) => {
@@ -1092,7 +1106,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                 <button
                   type="button"
                   onClick={() => {
-                    setEditClienteForm({ nombre: ultimaRecepcion.cliente_nombre || "", telefono: "" });
+                    setEditClienteForm({ nombre: ultimaRecepcion.cliente_nombre || "", telefono: "", ciudad: "" });
                     setEditClienteError("");
                     setEditandoCliente(true);
                   }}
@@ -1120,9 +1134,16 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                 disabled={savingCliente}
               />
               <input
-                placeholder="Teléfono (dejar vacío para no cambiar)"
+                placeholder="Teléfono (opcional)"
                 value={editClienteForm.telefono}
                 onChange={e => setEditClienteForm(f => ({ ...f, telefono: e.target.value }))}
+                className="ui-input text-sm"
+                disabled={savingCliente}
+              />
+              <input
+                placeholder="Ciudad (opcional)"
+                value={editClienteForm.ciudad}
+                onChange={e => setEditClienteForm(f => ({ ...f, ciudad: e.target.value }))}
                 className="ui-input text-sm"
                 disabled={savingCliente}
               />
@@ -1358,7 +1379,27 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
             {/* Order header */}
             <div className="px-4 py-3 flex flex-col gap-0.5"
               style={{ background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
-              <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{orden.cliente_nombre}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>{orden.cliente_nombre}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditandoClienteOrdenId(orden.id);
+                    setEditClienteForm({
+                      nombre:   orden.cliente_nombre   || "",
+                      telefono: orden.cliente_telefono || "",
+                      ciudad:   orden.cliente_ciudad   || "",
+                    });
+                    setEditClienteError("");
+                  }}
+                  className="text-[10px] px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
+                  style={{ color: "var(--text-3)", border: "1px solid var(--border)" }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+                >
+                  Editar
+                </button>
+              </div>
               <p className="text-xs font-mono" style={{ color: "var(--text-3)" }}>
                 {orden.numero_orden} · {orden.tracking_number}
               </p>
@@ -1416,6 +1457,62 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                   </span>
                 )}
               </div>
+
+              {/* Formulario inline de edición de cliente */}
+              {editandoClienteOrdenId === orden.id && (
+                <div className="mt-2 flex flex-col gap-2 rounded-xl p-3"
+                  style={{ background: "var(--surface-3)", border: "1px solid var(--border)" }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+                    Editar cliente
+                  </p>
+                  <input
+                    placeholder="Nombre del cliente"
+                    value={editClienteForm.nombre}
+                    onChange={e => setEditClienteForm(f => ({ ...f, nombre: e.target.value }))}
+                    className="ui-input text-sm"
+                    disabled={savingCliente}
+                  />
+                  <input
+                    placeholder="Teléfono (opcional)"
+                    value={editClienteForm.telefono}
+                    onChange={e => setEditClienteForm(f => ({ ...f, telefono: e.target.value }))}
+                    className="ui-input text-sm"
+                    disabled={savingCliente}
+                  />
+                  <input
+                    placeholder="Ciudad"
+                    value={editClienteForm.ciudad}
+                    onChange={e => setEditClienteForm(f => ({ ...f, ciudad: e.target.value }))}
+                    className="ui-input text-sm"
+                    disabled={savingCliente}
+                  />
+                  {editClienteError && (
+                    <p className="text-xs" style={{ color: "var(--danger)" }}>{editClienteError}</p>
+                  )}
+                  {editClienteOk && (
+                    <p className="text-xs font-medium" style={{ color: "var(--success)" }}>✓ Cliente actualizado</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => guardarEdicionCliente(orden.cliente_id)}
+                      disabled={savingCliente}
+                      className="ui-button ui-button-sm disabled:opacity-50"
+                    >
+                      {savingCliente ? "Guardando..." : "Guardar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEditandoClienteOrdenId(null); setEditClienteError(""); }}
+                      disabled={savingCliente}
+                      className="text-xs px-3 py-1.5 rounded-lg transition-colors"
+                      style={{ color: "var(--text-3)" }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Items */}
