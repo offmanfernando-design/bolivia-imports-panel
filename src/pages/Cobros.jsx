@@ -45,6 +45,12 @@ function fmt(val) {
   return parseFloat(Number(val).toFixed(2)).toString()
 }
 
+// Formato boliviano para resumen: Bs 1.234,50
+function fmtBs(val) {
+  const n = Number(val || 0)
+  return "Bs " + n.toLocaleString("es-BO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 function lineaCosto(item) {
   const monto = Number(item.cobro_cliente_bs || 0)
   if (item.tipo_calculo === "kg" && item.peso_cobrado && item.tarifa_cliente && item.tipo_cambio_cliente) {
@@ -337,6 +343,13 @@ export default function Cobros() {
   const sent     = rows.filter(r => r.payment_status === "sent")
   const finished = rows.filter(r => r.payment_status === "paid" || r.payment_status === "confirmed")
 
+  // Totales financieros — calculados sobre todos los rows cargados
+  const _sum = (arr, field) => arr.reduce((a, r) => a + Number(r[field] || 0), 0)
+  const pendingAmount = _sum(pending,  "cobro_cliente_bs")
+  const sentAmount    = _sum(sent,     "cobro_cliente_bs")
+  const paidAmount    = _sum(finished, "payment_amount")
+  const totalAmount   = _sum(rows,     "cobro_cliente_bs")
+
   return (
     <div className="module-shell">
 
@@ -379,6 +392,55 @@ export default function Cobros() {
       </div>
 
       <div className="module-body">
+
+        {/* ─ Resumen financiero ───────────────────────────────── */}
+        {!loading && (
+          <div
+            className="grid grid-cols-2 lg:grid-cols-4 gap-2.5"
+            style={{ marginBottom: "16px" }}
+          >
+            {[
+              { key: "pendiente",  label: "Pendiente",       amount: pendingAmount, count: pending.length,  color: "var(--warning)"  },
+              { key: "enviado",    label: "Cobro enviado",   amount: sentAmount,    count: sent.length,     color: "var(--accent)"   },
+              { key: "cobrado",    label: "Cobrado",         amount: paidAmount,    count: finished.length, color: "var(--success)"  },
+              { key: "total",      label: "Total gestionado",amount: totalAmount,   count: rows.length,     color: "var(--text-2)"   },
+            ].map(card => (
+              <div
+                key={card.key}
+                style={{
+                  background:    "var(--surface)",
+                  border:        "1px solid var(--border)",
+                  borderRadius:  "10px",
+                  padding:       "14px 16px",
+                  display:       "flex",
+                  flexDirection: "column",
+                  gap:           "3px",
+                }}
+              >
+                <p style={{
+                  margin: 0, fontSize: "10px", fontWeight: 600,
+                  textTransform: "uppercase", letterSpacing: "0.10em",
+                  color: "var(--text-3)", fontFamily: "'Geist Mono', monospace",
+                }}>
+                  {card.label}
+                </p>
+                <p style={{
+                  margin: 0, fontSize: "18px", fontWeight: 700,
+                  color: card.color, fontFamily: "'Geist Mono', monospace",
+                  letterSpacing: "-0.01em", lineHeight: 1.2, marginTop: "2px",
+                }}>
+                  {fmtBs(card.amount)}
+                </p>
+                <p style={{
+                  margin: 0, fontSize: "11px", color: "var(--text-3)", marginTop: "4px",
+                }}>
+                  {card.count} ítem{card.count !== 1 ? "s" : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="panel flex-1">
 
           {/* Búsqueda + Tabs */}
