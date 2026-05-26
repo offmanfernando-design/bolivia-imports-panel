@@ -407,6 +407,21 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   const [editClienteError, setEditClienteError] = useState("");
   const [editClienteOk,   setEditClienteOk]     = useState(false);
 
+  // ── Orden rápida ──────────────────────────────────────────────────────────
+  const [showOrdenRapida, setShowOrdenRapida] = useState(false);
+  const [orForm, setOrForm] = useState({
+    tracking_number: "",
+    cliente_nombre: "",
+    cliente_telefono: "",
+    cliente_ciudad: "",
+    numero_orden: "",
+    item_descripcion: "",
+    cantidad: "1",
+  });
+  const [orLoading, setOrLoading] = useState(false);
+  const [orError, setOrError] = useState("");
+  const [orSuccess, setOrSuccess] = useState("");
+
   const [showDesconocido, setShowDesconocido] = useState(false);
   const [descTracking, setDescTracking] = useState("");
   const [descDescripcion, setDescDescripcion] = useState("");
@@ -894,6 +909,77 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
     return errs;
   }, [showDesconocido, descDescripcion, descUbicacionId, descPeso]);
 
+  async function registrarOrdenRapida() {
+    setOrError("");
+    setOrSuccess("");
+
+    const trackingFinal = orForm.tracking_number.trim();
+    if (!trackingFinal || trackingFinal.length < 5) {
+      setOrError("Tracking obligatorio (mínimo 5 caracteres)");
+      return;
+    }
+    if (!orForm.cliente_nombre.trim()) {
+      setOrError("Nombre del cliente obligatorio");
+      return;
+    }
+    if (!orForm.cliente_ciudad.trim()) {
+      setOrError("Ciudad obligatoria");
+      return;
+    }
+    if (!orForm.item_descripcion.trim()) {
+      setOrError("Descripción del producto obligatoria");
+      return;
+    }
+
+    setOrLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/operativo/carga/orden-rapida`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tracking_number:  trackingFinal,
+          cliente_nombre:   orForm.cliente_nombre.trim(),
+          cliente_telefono: orForm.cliente_telefono.trim() || "S/D",
+          cliente_ciudad:   orForm.cliente_ciudad.trim(),
+          ...(orForm.numero_orden.trim() ? { numero_orden: orForm.numero_orden.trim() } : {}),
+          item_descripcion: orForm.item_descripcion.trim(),
+          cantidad: Number(orForm.cantidad) >= 1 ? Number(orForm.cantidad) : 1,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        setOrError(json.error || "Error al crear la orden");
+        return;
+      }
+
+      // Limpiar campos del cliente/producto, conservar tracking para ver resultado
+      setOrForm(f => ({
+        ...f,
+        cliente_nombre: "",
+        cliente_telefono: "",
+        cliente_ciudad: "",
+        numero_orden: "",
+        item_descripcion: "",
+        cantidad: "1",
+      }));
+      setOrSuccess("Orden creada correctamente");
+
+      // Actualizar buscador y refrescar resultados
+      setTracking(trackingFinal);
+      buscar(trackingFinal);
+
+      setTimeout(() => setOrSuccess(""), 5000);
+
+    } catch (err) {
+      console.error(err);
+      setOrError("Error de red al crear la orden");
+    } finally {
+      setOrLoading(false);
+    }
+  }
+
   async function registrarDesconocido() {
     setDescTouched(true);
     if (descValidationErrors.length > 0) return;
@@ -1087,6 +1173,149 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         <p className="text-sm text-neutral-400">
           Sin resultados para &ldquo;{tracking}&rdquo;
         </p>
+      )}
+
+      {/* Orden rápida */}
+      <button
+        type="button"
+        onClick={() => {
+          const opening = !showOrdenRapida;
+          setShowOrdenRapida(opening);
+          if (opening) {
+            setOrForm(f => ({ ...f, tracking_number: tracking }));
+            setOrError("");
+            setOrSuccess("");
+          }
+        }}
+        className="self-start text-sm px-3 py-2 rounded-lg border transition-colors font-medium"
+        style={showOrdenRapida
+          ? { background: "var(--surface-2)", borderColor: "var(--border-strong)", color: "var(--text)" }
+          : { borderColor: "var(--border)", color: "var(--text-3)" }
+        }
+      >
+        {showOrdenRapida ? "Ocultar orden rápida" : "+ Registrar orden rápida"}
+      </button>
+
+      {showOrdenRapida && (
+        <div className="rounded-2xl p-4 flex flex-col gap-3"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-md)" }}>
+
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+            Orden rápida
+          </p>
+
+          {orSuccess && (
+            <div className="rounded-xl px-3 py-2 text-sm font-medium"
+              style={{ background: "var(--success-soft)", border: "1px solid var(--success)", color: "var(--success)" }}>
+              ✓ {orSuccess}
+            </div>
+          )}
+
+          {orError && (
+            <div className="rounded-xl px-3 py-2 text-sm"
+              style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
+              {orError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="ui-label">Tracking <span style={{ color: "var(--danger)" }}>*</span></label>
+              <input
+                type="text"
+                value={orForm.tracking_number}
+                onChange={e => setOrForm(f => ({ ...f, tracking_number: e.target.value }))}
+                className="ui-input ui-input-sm"
+                placeholder="TBA331..."
+                disabled={orLoading}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="ui-label">N° orden <span className="font-normal opacity-60">(opcional)</span></label>
+              <input
+                type="text"
+                value={orForm.numero_orden}
+                onChange={e => setOrForm(f => ({ ...f, numero_orden: e.target.value }))}
+                className="ui-input ui-input-sm"
+                placeholder="112-..."
+                disabled={orLoading}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="ui-label">Cliente <span style={{ color: "var(--danger)" }}>*</span></label>
+              <input
+                type="text"
+                value={orForm.cliente_nombre}
+                onChange={e => setOrForm(f => ({ ...f, cliente_nombre: e.target.value }))}
+                className="ui-input ui-input-sm"
+                placeholder="Nombre completo"
+                disabled={orLoading}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="ui-label">Ciudad <span style={{ color: "var(--danger)" }}>*</span></label>
+              <input
+                type="text"
+                value={orForm.cliente_ciudad}
+                onChange={e => setOrForm(f => ({ ...f, cliente_ciudad: e.target.value }))}
+                className="ui-input ui-input-sm"
+                placeholder="Santa Cruz"
+                disabled={orLoading}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="ui-label">Teléfono <span className="font-normal opacity-60">(opcional)</span></label>
+              <input
+                type="text"
+                value={orForm.cliente_telefono}
+                onChange={e => setOrForm(f => ({ ...f, cliente_telefono: e.target.value }))}
+                className="ui-input ui-input-sm"
+                placeholder="70000000"
+                disabled={orLoading}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="ui-label">Cantidad</label>
+              <input
+                type="number"
+                value={orForm.cantidad}
+                onChange={e => setOrForm(f => ({ ...f, cantidad: e.target.value }))}
+                className="ui-input ui-input-sm"
+                min="1"
+                step="1"
+                onWheel={e => e.currentTarget.blur()}
+                disabled={orLoading}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="ui-label">Descripción del producto <span style={{ color: "var(--danger)" }}>*</span></label>
+            <input
+              type="text"
+              value={orForm.item_descripcion}
+              onChange={e => setOrForm(f => ({ ...f, item_descripcion: e.target.value }))}
+              className="ui-input"
+              placeholder="Ej: CELULAR SAMSUNG GALAXY A54..."
+              disabled={orLoading}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={registrarOrdenRapida}
+            disabled={orLoading}
+            className="ui-button-success disabled:opacity-50 disabled:cursor-not-allowed self-start"
+          >
+            {orLoading ? "Creando..." : "Crear y recibir"}
+          </button>
+        </div>
       )}
 
       {/* Paso 2 */}
