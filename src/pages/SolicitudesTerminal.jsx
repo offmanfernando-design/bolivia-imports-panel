@@ -532,6 +532,7 @@ export default function SolicitudesTerminal() {
   const [filtroFecha, setFiltroFecha] = useState("mes")
   const [modalRow,  setModalRow]  = useState(null)
   const [modalGuia, setModalGuia] = useState(null)
+  const [expandedUbic, setExpandedUbic] = useState(new Set())
   const debounceRef = useRef(null)
 
   useEffect(() => {
@@ -557,6 +558,15 @@ export default function SolicitudesTerminal() {
     setRows(prev => prev.map(r => r.id === id ? { ...r, ...data } : r))
     setModalRow(null)
     setModalGuia(null)
+  }
+
+  function toggleUbic(id) {
+    setExpandedUbic(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   const porTab = rows.filter(r => r.estado === tab)
@@ -670,7 +680,7 @@ export default function SolicitudesTerminal() {
           {loading && (
             <div className="flex flex-col gap-2">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-[88px] rounded-xl animate-pulse"
+                <div key={i} className="h-40 rounded-xl animate-pulse"
                   style={{ background: "var(--surface-2)" }} />
               ))}
             </div>
@@ -696,127 +706,309 @@ export default function SolicitudesTerminal() {
             </div>
           )}
 
-          {/* LISTA OPERATIVA — unificada, sin tabla */}
+          {/* header de tabla eliminado — se usa card universal para todos los anchos */}
+
+          {/* ─── LISTA PRINCIPAL: mobile / tablet / desktop ────────────────────── */}
           {!loading && !error && filtered.map(row => {
-            const esTercero = row.recoge_quien === "tercero"
-
-            const recogeInfo = esTercero
-              ? [
-                  row.nombre_receptor  || null,
-                  row.referencia       ? `CI ${row.referencia}` : null,
-                  row.telefono_receptor || null,
-                ].filter(Boolean).join(" · ")
-              : null
-
+            const esTercero    = row.recoge_quien === "tercero"
             const tieneDetalle = !!(
-              row.transportadora || row.observaciones ||
-              row.numero_guia    || row.guia_at       || row.nota_guia
+              row.numero_guia  || row.guia_at      || row.nota_guia  ||
+              row.nota_envio   || row.observaciones ||
+              row.foto_envio_url || row.foto_guia_url
             )
+
+            // Badge reutilizable
+            const badgeEstado = tab === "enviado"
+              ? <Badge type="success">Despachado</Badge>
+              : <Badge type={row.tiene_comprobante ? "success" : "pendiente"}>
+                  {row.tiene_comprobante ? "Con comprobante" : "Sin comprobante"}
+                </Badge>
+
+            // Texto de trans/receptor para columna compacta
+            const transInfo = row.transportadora
+              || (esTercero && row.nombre_receptor ? `Recoge: ${row.nombre_receptor}` : null)
 
             return (
               <div
                 key={row.id}
-                className="rounded-xl overflow-hidden"
+                className="rounded-xl"
                 style={{
                   background: "var(--surface)",
                   border:     "1px solid var(--border)",
                   boxShadow:  "var(--shadow-sm)",
                 }}
               >
-                {/* Cabecera: cliente → destino · fecha · entrega */}
-                <div className="px-4 pt-3 pb-2.5">
+
+                {/* ── Cuerpo principal ── */}
+                <div className="p-4 flex flex-col gap-3">
+
+                  {/* Fila 1: nombre + destino + badge */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <p className="text-sm font-semibold leading-tight" style={{ color: "var(--text)" }}>
-                          {row.cliente_nombre || "Sin nombre"}
-                        </p>
-                        <span className="text-xs select-none" style={{ color: "var(--text-3)" }}>→</span>
-                        <p className="text-sm" style={{ color: "var(--text-2)" }}>
-                          {row.destino || "—"}
-                        </p>
-                      </div>
-                      <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-3)" }}>
-                        {formatFecha(row.created_at)}
-                        {" · "}
-                        {esTercero
-                          ? `Tercero${recogeInfo ? `: ${recogeInfo}` : ""}`
-                          : "Cliente"}
+                      <p
+                        className="text-sm font-bold leading-snug"
+                        style={{ color: "var(--text)", wordBreak: "break-word" }}
+                      >
+                        {row.cliente_nombre || "Sin nombre"}
+                      </p>
+                      <p className="text-sm font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
+                        → {row.destino || "—"}
                       </p>
                     </div>
                     <div className="flex-shrink-0 pt-0.5">
-                      {tab === "enviado" ? (
-                        <Badge type="success">Despachado</Badge>
-                      ) : (
-                        <Badge type={row.tiene_comprobante ? "success" : "pendiente"}>
-                          {row.tiene_comprobante ? "Con comprobante" : "Sin comprobante"}
-                        </Badge>
-                      )}
+                      {badgeEstado}
                     </div>
                   </div>
+
+                  {/* Info grid: 2 cols mobile/tablet, 4 cols desktop */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide font-medium mb-0.5" style={{ color: "var(--text-3)" }}>Teléfono</p>
+                      <p className="text-sm font-medium" style={{ fontFamily: "'Geist Mono', monospace", color: "var(--text-2)" }}>
+                        {row.cliente_telefono || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide font-medium mb-0.5" style={{ color: "var(--text-3)" }}>Fecha</p>
+                      <p className="text-xs" style={{ color: "var(--text-2)" }}>{formatFecha(row.created_at)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide font-medium mb-0.5" style={{ color: "var(--text-3)" }}>CI / Ref</p>
+                      <p className="text-xs font-semibold" style={{ fontFamily: "'Geist Mono', monospace", color: "var(--text-2)" }}>
+                        {row.referencia || "—"}
+                      </p>
+                    </div>
+                    {transInfo && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide font-medium mb-0.5" style={{ color: "var(--text-3)" }}>
+                          {row.transportadora ? "Transportadora" : "Receptor"}
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--text-2)", wordBreak: "break-word" }}>
+                          {transInfo}
+                          {esTercero && row.telefono_receptor && (
+                            <span className="ml-1.5" style={{ fontFamily: "'Geist Mono', monospace" }}>
+                              {row.telefono_receptor}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
-                {/* Detalle: guía / transportadora / obs / nota guía */}
+                {/* ── Ítems de la solicitud / del cliente (cobro enviado) ── */}
+                {(() => {
+                  const items     = Array.isArray(row.items_ubicados) ? row.items_ubicados : []
+                  const exactos   = row.items_vinculados_exactos === true
+                  const ubOpen    = expandedUbic.has(row.id)
+
+                  // Agrupar por ubicación para resumen
+                  const porUbic = items.reduce((acc, it) => {
+                    const loc = it.ubicacion || "Sin ubicación"
+                    acc[loc] = (acc[loc] || 0) + 1
+                    return acc
+                  }, {})
+
+                  // Sumar cobro total
+                  const totalBs = items.reduce((s, it) => s + (Number(it.cobro_cliente_bs) || 0), 0)
+
+                  return (
+                    <div
+                      style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
+                    >
+                      {/* Cabecera: label + chips de ubicación + toggle */}
+                      <div className="flex items-start justify-between gap-3 px-4 py-2.5">
+                        <div className="flex flex-col gap-1.5 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-[10px] uppercase tracking-wide font-medium" style={{ color: "var(--text-3)" }}>
+                              {exactos ? "Ítems de esta solicitud" : "Ítems cobrados del cliente"}
+                            </p>
+                            {exactos ? (
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded"
+                                style={{ background: "var(--success-soft)", color: "var(--success)" }}
+                                title="Los ítems mostrados están vinculados exactamente a esta solicitud."
+                              >
+                                ✓ Validado
+                              </span>
+                            ) : (
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded"
+                                style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
+                                title="No hay vínculo directo entre esta solicitud y los ítems mostrados. Se cruza por cliente."
+                              >
+                                ⚠ Verificar
+                              </span>
+                            )}
+                          </div>
+                          {items.length === 0 ? (
+                            <p className="text-xs" style={{ color: "var(--text-3)" }}>Sin ítems ubicados con cobro enviado</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              {Object.entries(porUbic).map(([loc, count]) => (
+                                <span
+                                  key={loc}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold"
+                                  style={{
+                                    background:  "var(--accent-soft)",
+                                    color:       "var(--accent)",
+                                    fontFamily:  "'Geist Mono', monospace",
+                                  }}
+                                >
+                                  {loc}
+                                  <span className="font-normal opacity-70">
+                                    · {count} ítem{count > 1 ? "s" : ""}
+                                  </span>
+                                </span>
+                              ))}
+                              {totalBs > 0 && (
+                                <span className="text-xs font-semibold" style={{ color: "var(--text-2)" }}>
+                                  Bs {totalBs.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {items.length > 0 && (
+                          <button
+                            onClick={() => toggleUbic(row.id)}
+                            className="flex-shrink-0 text-xs transition px-2 py-1 rounded-md"
+                            style={{ color: "var(--text-3)", background: "transparent" }}
+                            onMouseEnter={e => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "var(--surface-3)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; e.currentTarget.style.background = "transparent"; }}
+                          >
+                            {ubOpen ? "▲ Ocultar" : `▼ Ver ${items.length} ítem${items.length > 1 ? "s" : ""}`}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Detalle de ítems — expandible */}
+                      {ubOpen && items.length > 0 && (
+                        <div className="flex flex-col gap-0 px-4 pb-3">
+                          {items.map((it, idx) => (
+                            <div
+                              key={it.item_id || idx}
+                              className="flex flex-col gap-0.5 py-2"
+                              style={{ borderTop: "1px solid var(--border)" }}
+                            >
+                              {/* Fila principal: ubicación + producto */}
+                              <div className="flex items-start gap-2">
+                                <span
+                                  className="flex-shrink-0 px-1.5 py-0.5 rounded text-[11px] font-bold leading-none"
+                                  style={{
+                                    background: "var(--accent-soft)",
+                                    color:      "var(--accent)",
+                                    fontFamily: "'Geist Mono', monospace",
+                                    marginTop:  "1px",
+                                  }}
+                                >
+                                  {it.ubicacion || "—"}
+                                </span>
+                                <p className="text-xs font-medium leading-snug min-w-0" style={{ color: "var(--text-2)" }}>
+                                  {it.producto}
+                                </p>
+                              </div>
+                              {/* Fila secundaria: tracking / REC / zona / peso / cobro */}
+                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 pl-[46px]">
+                                {it.tracking_number && (
+                                  <span className="text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: "var(--text-3)" }}>
+                                    {it.tracking_number}
+                                  </span>
+                                )}
+                                {it.codigo_recepcion && (
+                                  <span className="text-[11px]" style={{ fontFamily: "'Geist Mono', monospace", color: "var(--text-3)" }}>
+                                    {it.codigo_recepcion}
+                                  </span>
+                                )}
+                                {it.cobro_cliente_bs != null && (
+                                  <span className="text-[11px] font-semibold" style={{ color: "var(--text-2)" }}>
+                                    Bs {Number(it.cobro_cliente_bs).toFixed(2)}
+                                  </span>
+                                )}
+                                {it.zona && (
+                                  <span className="text-[11px] capitalize" style={{ color: "var(--text-3)" }}>
+                                    zona {it.zona}
+                                  </span>
+                                )}
+                                {it.peso != null && (
+                                  <span className="text-[11px]" style={{ color: "var(--text-3)" }}>
+                                    {it.peso} kg
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* ── Detalle secundario: guía / notas / fotos ── */}
                 {tieneDetalle && (
                   <div
-                    className="px-4 py-2 flex flex-wrap gap-x-4 gap-y-1"
-                    style={{ borderTop: "1px solid var(--border)" }}
+                    className="flex flex-col gap-1.5 px-4 py-3"
+                    style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
                   >
                     {row.numero_guia && (
-                      <span className="text-xs">
+                      <div className="text-xs">
                         <span style={{ color: "var(--text-3)" }}>Guía: </span>
-                        <span className="font-mono font-medium" style={{ color: "var(--text-2)" }}>
+                        <span style={{ fontFamily: "'Geist Mono', monospace", fontWeight: 600, color: "var(--text-2)" }}>
                           {row.numero_guia}
                         </span>
-                      </span>
-                    )}
-                    {row.guia_at && (
-                      <span className="text-xs" style={{ color: "var(--text-3)" }}>
-                        cargada {formatFecha(row.guia_at)}
-                      </span>
-                    )}
-                    {row.transportadora && (
-                      <span className="text-xs">
-                        <span style={{ color: "var(--text-3)" }}>Trans: </span>
-                        <span style={{ color: "var(--text-2)" }}>{row.transportadora}</span>
-                      </span>
+                        {row.guia_at && (
+                          <span style={{ marginLeft: "8px", color: "var(--text-3)" }}>
+                            · cargada {formatFecha(row.guia_at)}
+                          </span>
+                        )}
+                      </div>
                     )}
                     {row.observaciones && (
-                      <span className="text-xs" style={{ color: "var(--text-3)" }}>
-                        {row.observaciones}
-                      </span>
+                      <div className="text-xs" style={{ color: "var(--text-3)" }}>{row.observaciones}</div>
+                    )}
+                    {row.nota_envio && (
+                      <div className="text-xs">
+                        <span style={{ color: "var(--text-3)" }}>Nota envío: </span>
+                        <span style={{ color: "var(--text-2)" }}>{row.nota_envio}</span>
+                      </div>
                     )}
                     {row.nota_guia && (
-                      <span className="text-xs" style={{ color: "var(--text-3)" }}>
-                        {row.nota_guia}
-                      </span>
+                      <div className="text-xs" style={{ color: "var(--text-3)" }}>{row.nota_guia}</div>
+                    )}
+                    {row.foto_envio_url && (
+                      <div className="text-xs">
+                        <a href={row.foto_envio_url} target="_blank" rel="noopener noreferrer"
+                          style={{ color: "var(--accent)", textDecoration: "underline" }}>
+                          Ver foto del envío
+                        </a>
+                      </div>
+                    )}
+                    {row.foto_guia_url && (
+                      <div className="text-xs">
+                        <a href={row.foto_guia_url} target="_blank" rel="noopener noreferrer"
+                          style={{ color: "var(--accent)", textDecoration: "underline" }}>
+                          Ver foto de guía
+                        </a>
+                      </div>
                     )}
                   </div>
                 )}
 
-                {/* Footer: acciones */}
+                {/* ── Acciones — siempre visibles, flex wrap, universal ── */}
                 <div
-                  className="flex items-center gap-2 px-4 py-2.5"
+                  className="flex flex-wrap gap-2 px-4 py-3"
                   style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
                 >
                   {tab === "pendiente" && (
                     <>
-                      <button
-                        className="ui-button ui-button-sm"
-                        onClick={() => setModalRow(row)}
-                      >
+                      <button className="ui-button ui-button-sm" onClick={() => setModalRow(row)}>
                         Confirmar envío
                       </button>
-                      <button
-                        className="ui-button-ghost ui-button-sm"
-                        onClick={() => printEtiqueta(row, "hoja")}
-                      >
+                      <button className="ui-button-ghost ui-button-sm" onClick={() => printEtiqueta(row, "hoja")}>
                         Etiqueta hoja
                       </button>
-                      <button
-                        className="ui-button-ghost ui-button-sm"
-                        onClick={() => printEtiqueta(row, "adhesiva")}
-                      >
+                      <button className="ui-button-ghost ui-button-sm" onClick={() => printEtiqueta(row, "adhesiva")}>
                         Etiqueta adhesiva
                       </button>
                     </>
@@ -824,24 +1016,15 @@ export default function SolicitudesTerminal() {
                   {tab === "enviado" && (
                     row.guia_at ? (
                       <>
-                        <button
-                          className="ui-button ui-button-sm"
-                          onClick={() => abrirWhatsappGuia(row)}
-                        >
+                        <button className="ui-button ui-button-sm" onClick={() => abrirWhatsappGuia(row)}>
                           Enviar guía
                         </button>
-                        <button
-                          className="ui-button-ghost ui-button-sm"
-                          onClick={() => setModalGuia(row)}
-                        >
+                        <button className="ui-button-ghost ui-button-sm" onClick={() => setModalGuia(row)}>
                           Actualizar guía
                         </button>
                       </>
                     ) : (
-                      <button
-                        className="ui-button ui-button-sm"
-                        onClick={() => setModalGuia(row)}
-                      >
+                      <button className="ui-button ui-button-sm" onClick={() => setModalGuia(row)}>
                         Cargar guía
                       </button>
                     )

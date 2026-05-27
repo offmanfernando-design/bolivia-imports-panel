@@ -525,7 +525,8 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
   }
 
   // Función unificada: guarda edición de cliente desde banner post-recepción o desde card
-  async function guardarEdicionCliente(clienteId) {
+  // ordenId es obligatorio: la API reasigna SOLO esa orden, sin tocar otras del mismo cliente.
+  async function guardarEdicionCliente(clienteId, ordenId) {
     if (!editClienteForm.nombre.trim()) {
       setEditClienteError("El nombre no puede quedar vacío");
       return;
@@ -537,18 +538,19 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
-          nombre:   editClienteForm.nombre.trim(),
-          telefono: editClienteForm.telefono.trim() || null,
-          ciudad:   editClienteForm.ciudad.trim() || null,
+          nombre:          editClienteForm.nombre.trim(),
+          telefono:        editClienteForm.telefono.trim() || null,
+          ciudad:          editClienteForm.ciudad.trim() || null,
+          orden_compra_id: ordenId,
         }),
       });
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "No se pudo guardar");
-      const { nombre, telefono, ciudad } = json.data;
-      // Actualizar todas las órdenes del mismo cliente en los resultados
+      const { id: nuevoClienteId, nombre, telefono, ciudad } = json.data;
+      // Actualizar solo la orden específica (no todas las del mismo cliente anterior)
       setOrdenes(prev => prev.map(o =>
-        o.cliente_id === clienteId
-          ? { ...o, cliente_nombre: nombre, cliente_telefono: telefono, cliente_ciudad: ciudad }
+        o.id === ordenId
+          ? { ...o, cliente_id: nuevoClienteId, cliente_nombre: nombre, cliente_telefono: telefono, cliente_ciudad: ciudad }
           : o
       ));
       // Actualizar banner post-recepción si corresponde
@@ -566,8 +568,8 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
 
   // Atajo para el banner post-recepción (compatibilidad con botón existente)
   async function guardarCorreccionCliente() {
-    if (!ultimaRecepcion?.cliente_id) return;
-    await guardarEdicionCliente(ultimaRecepcion.cliente_id);
+    if (!ultimaRecepcion?.cliente_id || !ultimaRecepcion?.orden_id) return;
+    await guardarEdicionCliente(ultimaRecepcion.cliente_id, ultimaRecepcion.orden_id);
   }
 
   const buscar = useCallback(async (t) => {
@@ -1544,7 +1546,7 @@ export default function RecepcionCarga({ onRecepcionRegistrada }) {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => guardarEdicionCliente(orden.cliente_id)}
+                      onClick={() => guardarEdicionCliente(orden.cliente_id, orden.id)}
                       disabled={savingCliente}
                       className="ui-button ui-button-sm disabled:opacity-50"
                     >

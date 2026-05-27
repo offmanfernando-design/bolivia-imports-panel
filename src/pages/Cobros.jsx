@@ -108,7 +108,10 @@ async function generarMensaje(row, itemsCliente) {
   } else {
     let linkFormulario = null
     try {
-      const res  = await fetch(`${API_URL}/cobros/link-formulario/${row.cliente_id}`)
+      // Pasar los recepcion_item_ids de esta remesa para vínculo exacto
+      const recepcionIds = itemsCliente.map(i => i.recepcion_id).filter(Boolean)
+      const itemsQuery   = recepcionIds.length > 0 ? `?items=${recepcionIds.join(",")}` : ""
+      const res  = await fetch(`${API_URL}/cobros/link-formulario/${row.cliente_id}${itemsQuery}`)
       const data = await res.json()
       if (data.link) linkFormulario = data.link
     } catch {
