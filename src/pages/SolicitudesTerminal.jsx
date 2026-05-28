@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { API_URL } from "../config/api"
 import Badge from "../components/ui/Badge"
+import { normalizarUbicacion } from "../utils/ubicacion"
 
 function formatFecha(iso) {
   if (!iso) return "—"
@@ -843,7 +844,7 @@ export default function SolicitudesTerminal() {
 
                   // Agrupar por ubicación para resumen
                   const porUbic = items.reduce((acc, it) => {
-                    const loc = it.ubicacion || "Sin ubicación"
+                    const loc = it.ubicacion ? normalizarUbicacion(it.ubicacion) : "Sin ubicación"
                     acc[loc] = (acc[loc] || 0) + 1
                     return acc
                   }, {})
@@ -941,7 +942,7 @@ export default function SolicitudesTerminal() {
                                     marginTop:  "1px",
                                   }}
                                 >
-                                  {it.ubicacion || "—"}
+                                  {normalizarUbicacion(it.ubicacion)}
                                 </span>
                                 <p className="text-xs font-medium leading-snug min-w-0" style={{ color: "var(--text-2)" }}>
                                   {it.producto}

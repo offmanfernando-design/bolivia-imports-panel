@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { API_URL } from "../config/api"
+import { normalizarUbicacion } from "../utils/ubicacion"
 
 function formatFecha(iso) {
   if (!iso) return "—"
@@ -389,7 +390,7 @@ function TabPendientes() {
                     </td>
                     <td className="ui-td whitespace-nowrap"
                       style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", fontWeight: 600, color: "var(--text-2)" }}>
-                      {row.ubicacion_codigo || "—"}
+                      {normalizarUbicacion(row.ubicacion_codigo)}
                     </td>
                     <td className="ui-td">
                       {row.zona ? (
@@ -428,7 +429,7 @@ function TabPendientes() {
                 <div className="flex items-center gap-3">
                   {row.ubicacion_codigo && (
                     <span className="font-mono text-xs font-semibold" style={{ color: "var(--text-2)" }}>
-                      {row.ubicacion_codigo}
+                      {normalizarUbicacion(row.ubicacion_codigo)}
                     </span>
                   )}
                   {row.zona && (
@@ -604,7 +605,7 @@ function TabHistorial() {
                       </p>
                       {row.ubicacion_codigo && (
                         <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", fontWeight: 600, color: "var(--text-2)", marginTop: "2px" }}>
-                          {row.ubicacion_codigo}
+                          {normalizarUbicacion(row.ubicacion_codigo)}
                         </p>
                       )}
                     </td>
@@ -659,7 +660,7 @@ function TabHistorial() {
                   <span>→ {row.entregado_a}</span>
                   {row.ubicacion_codigo && (
                     <span className="font-mono font-semibold" style={{ color: "var(--text-2)" }}>
-                      {row.ubicacion_codigo}
+                      {normalizarUbicacion(row.ubicacion_codigo)}
                     </span>
                   )}
                   {row.zona && (

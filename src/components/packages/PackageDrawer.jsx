@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 import Badge from "../ui/Badge";
+import { normalizarUbicacion } from "../../utils/ubicacion";
 
 /* ── Campo de solo lectura ─────────────────────────────────── */
 function InfoField({ label, value, mono = false, full = false }) {
@@ -333,7 +334,7 @@ export default function PackageDrawer({ pkg }) {
                 )}
                 {localPkg.peso     && <InfoField label="Peso"      value={`${localPkg.peso} kg`} />}
                 {localPkg.volumen  && <InfoField label="Volumen"   value={localPkg.volumen} />}
-                {localPkg.ubicacion && <InfoField label="Ubicación" value={localPkg.ubicacion} mono />}
+                {localPkg.ubicacion && <InfoField label="Ubicación" value={normalizarUbicacion(localPkg.ubicacion)} mono />}
                 {localPkg.total    && <InfoField label="Total"     value={`${localPkg.total} Bs`} />}
               </div>
             </Section>

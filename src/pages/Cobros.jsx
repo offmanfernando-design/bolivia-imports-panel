@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { API_URL } from "../config/api"
 import Badge from "../components/ui/Badge"
 import useRealtimeEvents from "../hooks/useRealtimeEvents"
+import { normalizarUbicacion } from "../utils/ubicacion"
 
 const METODOS = [
   { value: "efectivo",      label: "Efectivo" },
@@ -464,16 +465,19 @@ export default function Cobros() {
     setAnulaError(null)
   }
 
-  const pending  = rows.filter(r => r.payment_status === "pending")
-  const sent     = rows.filter(r => r.payment_status === "sent")
-  const finished = rows.filter(r => r.payment_status === "paid" || r.payment_status === "confirmed")
+  const pending       = rows.filter(r => r.payment_status === "pending")
+  const sent          = rows.filter(r => r.payment_status === "sent")
+  const paidOnly      = rows.filter(r => r.payment_status === "paid")
+  const confirmedOnly = rows.filter(r => r.payment_status === "confirmed")
+  const finished      = rows.filter(r => r.payment_status === "paid" || r.payment_status === "confirmed")
 
   // Totales financieros — calculados sobre todos los rows cargados
   const _sum = (arr, field) => arr.reduce((a, r) => a + Number(r[field] || 0), 0)
-  const pendingAmount = _sum(pending,  "cobro_cliente_bs")
-  const sentAmount    = _sum(sent,     "cobro_cliente_bs")
-  const paidAmount    = _sum(finished, "payment_amount")
-  const totalAmount   = _sum(rows,     "cobro_cliente_bs")
+  const pendingAmount       = _sum(pending,       "cobro_cliente_bs")
+  const sentAmount          = _sum(sent,          "cobro_cliente_bs")
+  const paidOnlyAmount      = _sum(paidOnly,      "payment_amount")
+  const confirmedOnlyAmount = _sum(confirmedOnly, "payment_amount")
+  const totalAmount         = _sum(rows,          "cobro_cliente_bs")
 
   // Pendientes agrupados por cliente
   const groupedPending = useMemo(() => {
@@ -544,12 +548,20 @@ export default function Cobros() {
                   {sent.length} enviado{sent.length !== 1 ? "s" : ""}
                 </span>
               )}
-              {finished.length > 0 && (
+              {paidOnly.length > 0 && (
                 <span
                   className="text-xs px-2 py-0.5 rounded font-medium tabular-nums"
                   style={{ background: "var(--success-soft)", color: "var(--success)" }}
                 >
-                  {finished.length} confirmado{finished.length !== 1 ? "s" : ""}
+                  {paidOnly.length} registrado{paidOnly.length !== 1 ? "s" : ""}
+                </span>
+              )}
+              {confirmedOnly.length > 0 && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded font-medium tabular-nums"
+                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                >
+                  {confirmedOnly.length} cerrado{confirmedOnly.length !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
@@ -562,14 +574,15 @@ export default function Cobros() {
         {/* ─ Resumen financiero ───────────────────────────────── */}
         {!loading && (
           <div
-            className="grid grid-cols-2 lg:grid-cols-4 gap-2.5"
+            className="grid grid-cols-2 lg:grid-cols-5 gap-2.5"
             style={{ marginBottom: "16px" }}
           >
             {[
-              { key: "pendiente",  label: "Pendiente",       amount: pendingAmount, count: pending.length,  color: "var(--warning)"  },
-              { key: "enviado",    label: "Cobro enviado",   amount: sentAmount,    count: sent.length,     color: "var(--accent)"   },
-              { key: "cobrado",    label: "Cobrado",         amount: paidAmount,    count: finished.length, color: "var(--success)"  },
-              { key: "total",      label: "Total gestionado",amount: totalAmount,   count: rows.length,     color: "var(--text-2)"   },
+              { key: "pendiente",  label: "Pendiente de cobro", amount: pendingAmount,       count: pending.length,       color: "var(--warning)"  },
+              { key: "enviado",    label: "Cobro enviado",      amount: sentAmount,          count: sent.length,          color: "var(--accent)"   },
+              { key: "cobrado",    label: "Pago registrado",    amount: paidOnlyAmount,      count: paidOnly.length,      color: "var(--success)"  },
+              { key: "cerrado",    label: "Pago cerrado",       amount: confirmedOnlyAmount, count: confirmedOnly.length, color: "var(--accent)",   subtitle: "Cerrado por entrega" },
+              { key: "total",      label: "Total en cobros",    amount: totalAmount,         count: rows.length,          color: "var(--text-2)",   subtitle: "Pendientes + enviados + registrados" },
             ].map(card => (
               <div
                 key={card.key}
@@ -602,6 +615,14 @@ export default function Cobros() {
                 }}>
                   {card.count} ítem{card.count !== 1 ? "s" : ""}
                 </p>
+                {card.subtitle && (
+                  <p style={{
+                    margin: 0, fontSize: "9px", color: "var(--text-3)", marginTop: "3px",
+                    lineHeight: 1.3, opacity: 0.75,
+                  }}>
+                    {card.subtitle}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -661,10 +682,11 @@ export default function Cobros() {
             </div>
             <div style={{ display: "flex", overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", maxWidth: "100%" }}>
               {[
-                { key: "pending",  label: "Pendientes",     count: pending.length  },
-                { key: "sent",     label: "Cobro enviado",  count: sent.length     },
-                { key: "finished", label: "Pago confirmado", count: finished.length },
-                { key: "void",     label: "Anulados",       count: rowsVoid.length },
+                { key: "pending",   label: "Pendientes",      count: pending.length       },
+                { key: "sent",      label: "Cobro enviado",   count: sent.length          },
+                { key: "paid",      label: "Pago registrado", count: paidOnly.length      },
+                { key: "confirmed", label: "Pago cerrado",    count: confirmedOnly.length },
+                { key: "void",      label: "Anulados",        count: rowsVoid.length      },
               ].map(({ key, label, count }) => (
                 <button
                   key={key}
@@ -836,7 +858,7 @@ export default function Cobros() {
                                         fontSize: "10px", fontFamily: "'Courier New', monospace",
                                         fontWeight: 600, color: "var(--text-2)",
                                       }}>
-                                        {item.ubicacion_codigo}
+                                        {normalizarUbicacion(item.ubicacion_codigo)}
                                       </span>
                                     )}
                                     {item.zona && (
@@ -937,7 +959,7 @@ export default function Cobros() {
                       { label: "Cobro enviado",  value: formatDateTime(row.cobro_enviado_at), mono: true },
                       { label: "Código REC",     value: row.codigo_recepcion,              mono: true  },
                       { label: "Tracking",       value: row.tracking_number,               mono: true  },
-                      { label: "Ubicación",      value: row.ubicacion_codigo,              mono: true  },
+                      { label: "Ubicación",      value: normalizarUbicacion(row.ubicacion_codigo), mono: true  },
                     ]
 
                     return (
@@ -982,7 +1004,7 @@ export default function Cobros() {
                             </span>
                             {row.ubicacion_codigo ? (
                               <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
-                                {row.ubicacion_codigo}
+                                {normalizarUbicacion(row.ubicacion_codigo)}
                               </span>
                             ) : (
                               <span style={{ fontSize: "11px", color: "var(--text-3)" }}>Sin ubicación</span>
@@ -1112,7 +1134,7 @@ export default function Cobros() {
                               style={{ flexShrink: 0 }}
                               onClick={() => setCobrando(row)}
                             >
-                              Confirmar pago
+                              Registrar pago
                             </button>
                           </div>
                         </div>
@@ -1123,20 +1145,20 @@ export default function Cobros() {
               </>
             )}
 
-            {/* ── TAB PAGO CONFIRMADO ────────────────── */}
-            {!loading && tab === "finished" && (
+            {/* ── TAB PAGO REGISTRADO ────────────────── */}
+            {!loading && tab === "paid" && (
               <>
-                {finished.length === 0 && (
+                {paidOnly.length === 0 && (
                   <div
                     className="flex items-center justify-center py-16 rounded-xl text-sm"
                     style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}
                   >
-                    Sin pagos confirmados.
+                    Sin pagos registrados.
                   </div>
                 )}
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 }}>
-                  {finished.map(row => (
+                  {paidOnly.map(row => (
                     <div
                       key={row.recepcion_id}
                       style={{
@@ -1169,7 +1191,7 @@ export default function Cobros() {
                           <span style={{ fontWeight: 500, fontSize: "13px", color: "var(--text-3)", fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums" }}>
                             {formatBs(row.cobro_cliente_bs)}
                           </span>
-                          <Badge type="success">Pagado</Badge>
+                          <Badge type="success">Pago registrado</Badge>
                         </div>
                       </div>
 
@@ -1186,7 +1208,7 @@ export default function Cobros() {
                           )}
                           {row.ubicacion_codigo && (
                             <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
-                              {row.ubicacion_codigo}
+                              {normalizarUbicacion(row.ubicacion_codigo)}
                             </span>
                           )}
                           {row.zona && (
@@ -1197,8 +1219,8 @@ export default function Cobros() {
                         </div>
                       </div>
 
-                      {/* ── PANEL ANULAR pago (solo paid, no confirmed) ── */}
-                      {row.payment_status === "paid" && anulandoId === row.recepcion_id && (
+                      {/* Panel anular pago */}
+                      {anulandoId === row.recepcion_id && (
                         <div style={{
                           borderTop:    "1px solid var(--danger)",
                           background:   "var(--danger-soft)",
@@ -1264,20 +1286,117 @@ export default function Cobros() {
                             {formatFecha(row.paid_at)}
                           </span>
                         )}
-                        {row.payment_status === "paid" && (
-                          <button
-                            className="ui-button-ghost ui-button-sm"
-                            style={{ marginLeft: "auto", color: "var(--danger)", fontSize: "11px" }}
-                            onClick={() => anulandoId === row.recepcion_id ? cancelarAnular() : abrirAnular(row.recepcion_id)}
-                          >
-                            {anulandoId === row.recepcion_id ? "Cancelar anulación" : "Anular pago"}
-                          </button>
-                        )}
-                        {row.payment_status === "confirmed" && (
-                          <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-3)" }}>
-                            Confirmado · no anulable
+                        <button
+                          className="ui-button-ghost ui-button-sm"
+                          style={{ marginLeft: "auto", color: "var(--danger)", fontSize: "11px" }}
+                          onClick={() => anulandoId === row.recepcion_id ? cancelarAnular() : abrirAnular(row.recepcion_id)}
+                        >
+                          {anulandoId === row.recepcion_id ? "Cancelar anulación" : "Anular pago"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── TAB PAGO CERRADO ─────────────────────── */}
+            {!loading && tab === "confirmed" && (
+              <>
+                {confirmedOnly.length === 0 && (
+                  <div
+                    className="flex items-center justify-center py-16 rounded-xl text-sm"
+                    style={{ border: "1px dashed var(--border)", color: "var(--text-3)" }}
+                  >
+                    Sin pagos cerrados.
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: 0 }}>
+                  {confirmedOnly.map(row => (
+                    <div
+                      key={row.recepcion_id}
+                      style={{
+                        display:       "flex",
+                        flexDirection: "column",
+                        background:    "var(--surface, #ffffff)",
+                        border:        "1px solid var(--border, #d5dbe2)",
+                        borderRadius:  "12px",
+                        minWidth:      0,
+                        width:         "100%",
+                      }}
+                    >
+                      {/* Header */}
+                      <div style={{
+                        display:        "flex",
+                        justifyContent: "space-between",
+                        alignItems:     "flex-start",
+                        gap:            "12px",
+                        padding:        "16px 18px",
+                      }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{ fontWeight: 500, fontSize: "14px", color: "var(--text-2)", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {row.cliente_nombre}
+                          </p>
+                          <p style={{ fontSize: "12px", color: "var(--text-3)", marginTop: "4px" }}>
+                            {[row.cliente_telefono, row.departamento_destino].filter(Boolean).join(" · ") || "—"}
+                          </p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                          <span style={{ fontWeight: 500, fontSize: "13px", color: "var(--text-3)", fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums" }}>
+                            {formatBs(row.cobro_cliente_bs)}
+                          </span>
+                          <Badge type="info">Pago cerrado</Badge>
+                        </div>
+                      </div>
+
+                      {/* Detalle */}
+                      <div style={{ borderTop: "1px solid var(--border, #d5dbe2)", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                        <p style={{ margin: 0, fontSize: "12px", color: "var(--text-3)", lineHeight: 1.5, flex: "1 1 220px", minWidth: 0 }}>
+                          {row.item_descripcion || "—"}
+                        </p>
+                        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: "0 1 auto", maxWidth: "100%" }}>
+                          {row.tracking_number && (
+                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", color: "var(--text-3)" }}>
+                              {row.tracking_number}
+                            </span>
+                          )}
+                          {row.ubicacion_codigo && (
+                            <span style={{ fontSize: "11px", fontFamily: "'Courier New', monospace", fontWeight: 600, color: "var(--text-2)" }}>
+                              {normalizarUbicacion(row.ubicacion_codigo)}
+                            </span>
+                          )}
+                          {row.zona && (
+                            <span style={{ fontSize: "10px", padding: "2px 7px", borderRadius: "4px", fontWeight: 500, ...(ZONA_STYLE[row.zona] ?? ZONA_STYLE.desconocidos) }}>
+                              {ZONA_LABEL[row.zona] ?? row.zona}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer: método + fecha */}
+                      <div style={{
+                        borderTop:    "1px solid var(--border, #d5dbe2)",
+                        background:   "var(--surface-2, #e9eef2)",
+                        padding:      "10px 18px",
+                        display:      "flex",
+                        alignItems:   "center",
+                        gap:          "12px",
+                        borderRadius: "0 0 12px 12px",
+                      }}>
+                        {row.payment_method && (
+                          <span style={{ fontSize: "11px", color: "var(--text-3)", textTransform: "capitalize" }}>
+                            {row.payment_method}
                           </span>
                         )}
+                        {row.paid_at && (
+                          <span style={{ fontSize: "11px", color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>
+                            {formatFecha(row.paid_at)}
+                          </span>
+                        )}
+                        <span style={{ marginLeft: "auto", fontSize: "10px", color: "var(--text-3)" }}>
+                          Cerrado · no anulable
+                        </span>
                       </div>
                     </div>
                   ))}

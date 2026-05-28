@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { API_URL } from "../../config/api"
 import IdentificarDesconocido from "./IdentificarDesconocido"
+import { normalizarUbicacion } from "../../utils/ubicacion"
 
 const ZONA_LABEL = { local: "Local", terminal: "Terminal", desconocidos: "Desconocidos" }
 
@@ -219,7 +220,7 @@ export default function UbicacionDrawer({ codigo }) {
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
             Ubicación
           </p>
-          <p className="text-2xl font-bold font-mono mt-0.5" style={{ color: "var(--text)" }}>{codigo}</p>
+          <p className="text-2xl font-bold font-mono mt-0.5" style={{ color: "var(--text)" }}>{normalizarUbicacion(codigo)}</p>
           <p className="text-sm mt-1" style={{ color: "var(--text-3)" }}>Paquetes sin identificar</p>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
@@ -280,7 +281,7 @@ export default function UbicacionDrawer({ codigo }) {
         <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
           Ubicación
         </p>
-        <p className="text-2xl font-bold font-mono mt-0.5" style={{ color: "var(--text)" }}>{codigo}</p>
+        <p className="text-2xl font-bold font-mono mt-0.5" style={{ color: "var(--text)" }}>{normalizarUbicacion(codigo)}</p>
         <div className="flex items-center gap-2 mt-2">
           {zona && (
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { API_URL } from "../../config/api"
+import { normalizarUbicacion } from "../../utils/ubicacion"
 
 export default function EntregaDrawer({ entregaId }){
 
@@ -110,7 +111,7 @@ export default function EntregaDrawer({ entregaId }){
 
         <div>
           <p className="text-xs text-neutral-400">Ubicación</p>
-          <p className="font-medium">{data.ubicacion || "—"}</p>
+          <p className="font-medium">{normalizarUbicacion(data.ubicacion)}</p>
         </div>
 
       </div>
