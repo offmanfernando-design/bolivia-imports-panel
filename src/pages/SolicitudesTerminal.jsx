@@ -532,7 +532,9 @@ export default function SolicitudesTerminal() {
   const [filtroFecha, setFiltroFecha] = useState("mes")
   const [modalRow,  setModalRow]  = useState(null)
   const [modalGuia, setModalGuia] = useState(null)
-  const [expandedUbic, setExpandedUbic] = useState(new Set())
+  const [expandedUbic,  setExpandedUbic]  = useState(new Set())
+  const [confirmAnular, setConfirmAnular] = useState(null)
+  const [anulandoId,    setAnulandoId]    = useState(null)
   const debounceRef = useRef(null)
 
   useEffect(() => {
@@ -558,6 +560,35 @@ export default function SolicitudesTerminal() {
     setRows(prev => prev.map(r => r.id === id ? { ...r, ...data } : r))
     setModalRow(null)
     setModalGuia(null)
+  }
+
+  async function handleAnular(row) {
+    setAnulandoId(row.id)
+    try {
+      const res = await fetch(
+        `${API_URL}/receptores/solicitudes-terminal/${row.id}/anular`,
+        {
+          method:  "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ motivo_anulacion: "Anulada manualmente desde Solicitudes Terminal" }),
+        }
+      )
+      const json = await res.json()
+      if (!res.ok) {
+        alert(json.error || "Error al anular")
+        return
+      }
+      setRows(prev => prev.map(r =>
+        r.id === row.id
+          ? { ...r, estado: "anulada", anulada_at: json.data.anulada_at, motivo_anulacion: json.data.motivo_anulacion }
+          : r
+      ))
+      setConfirmAnular(null)
+    } catch {
+      alert("Error de red")
+    } finally {
+      setAnulandoId(null)
+    }
   }
 
   function toggleUbic(id) {
@@ -597,6 +628,7 @@ export default function SolicitudesTerminal() {
 
   const countPendiente = rows.filter(r => r.estado === "pendiente").length
   const countEnviado   = rows.filter(r => r.estado === "enviado").length
+  const countAnulada   = rows.filter(r => r.estado === "anulada").length
 
   return (
     <div className="module-shell">
@@ -621,6 +653,7 @@ export default function SolicitudesTerminal() {
             {[
               { key: "pendiente", label: "Pendientes", count: countPendiente },
               { key: "enviado",   label: "Enviadas",   count: countEnviado   },
+              { key: "anulada",   label: "Anuladas",   count: countAnulada   },
             ].map(t => (
               <button
                 key={t.key}
@@ -702,7 +735,9 @@ export default function SolicitudesTerminal() {
                 ? "Sin resultados para la búsqueda."
                 : tab === "pendiente"
                   ? "No hay solicitudes pendientes."
-                  : "No hay solicitudes enviadas en este período."}
+                  : tab === "anulada"
+                    ? "No hay solicitudes anuladas."
+                    : "No hay solicitudes enviadas en este período."}
             </div>
           )}
 
@@ -714,15 +749,18 @@ export default function SolicitudesTerminal() {
             const tieneDetalle = !!(
               row.numero_guia  || row.guia_at      || row.nota_guia  ||
               row.nota_envio   || row.observaciones ||
-              row.foto_envio_url || row.foto_guia_url
+              row.foto_envio_url || row.foto_guia_url ||
+              row.motivo_anulacion
             )
 
             // Badge reutilizable
             const badgeEstado = tab === "enviado"
               ? <Badge type="success">Despachado</Badge>
-              : <Badge type={row.tiene_comprobante ? "success" : "pendiente"}>
-                  {row.tiene_comprobante ? "Con comprobante" : "Sin comprobante"}
-                </Badge>
+              : tab === "anulada"
+                ? <Badge type="error">Anulada</Badge>
+                : <Badge type={row.tiene_comprobante ? "success" : "pendiente"}>
+                    {row.tiene_comprobante ? "Con comprobante" : "Sin comprobante"}
+                  </Badge>
 
             // Texto de trans/receptor para columna compacta
             const transInfo = row.transportadora
@@ -992,6 +1030,17 @@ export default function SolicitudesTerminal() {
                         </a>
                       </div>
                     )}
+                    {row.motivo_anulacion && (
+                      <div className="text-xs">
+                        <span style={{ color: "var(--text-3)" }}>Motivo: </span>
+                        <span style={{ color: "var(--danger)" }}>{row.motivo_anulacion}</span>
+                      </div>
+                    )}
+                    {row.anulada_at && (
+                      <div className="text-xs" style={{ color: "var(--text-3)" }}>
+                        Anulada: {formatFecha(row.anulada_at)}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1011,6 +1060,35 @@ export default function SolicitudesTerminal() {
                       <button className="ui-button-ghost ui-button-sm" onClick={() => printEtiqueta(row, "adhesiva")}>
                         Etiqueta adhesiva
                       </button>
+                      {confirmAnular === row.id ? (
+                        <>
+                          <span className="text-xs self-center flex-1 min-w-0" style={{ color: "var(--text-3)" }}>
+                            Anular solicitud. No se tocarán ítems ni ubicaciones.
+                          </span>
+                          <button
+                            className="ui-button-ghost ui-button-sm"
+                            style={{ color: "var(--danger)" }}
+                            disabled={anulandoId === row.id}
+                            onClick={() => handleAnular(row)}
+                          >
+                            {anulandoId === row.id ? "Anulando..." : "Confirmar"}
+                          </button>
+                          <button
+                            className="ui-button-ghost ui-button-sm"
+                            onClick={() => setConfirmAnular(null)}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="ui-button-ghost ui-button-sm"
+                          style={{ color: "var(--danger)" }}
+                          onClick={() => setConfirmAnular(row.id)}
+                        >
+                          Anular
+                        </button>
+                      )}
                     </>
                   )}
                   {tab === "enviado" && (
