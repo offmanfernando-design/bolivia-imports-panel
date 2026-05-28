@@ -844,7 +844,11 @@ export default function SolicitudesTerminal() {
 
                   // Agrupar por ubicación para resumen
                   const porUbic = items.reduce((acc, it) => {
-                    const loc = it.ubicacion ? normalizarUbicacion(it.ubicacion) : "Sin ubicación"
+                    const loc = it.ubicacion
+                      ? normalizarUbicacion(it.ubicacion)
+                      : (row.estado === "enviado" || row.estado === "despachado")
+                        ? "Fuera de almacén"
+                        : "Sin ubicación"
                     acc[loc] = (acc[loc] || 0) + 1
                     return acc
                   }, {})
@@ -1021,6 +1025,23 @@ export default function SolicitudesTerminal() {
                           style={{ color: "var(--accent)", textDecoration: "underline" }}>
                           Ver foto del envío
                         </a>
+                        {row.comprobante_cliente_url && (
+                          <>
+                            <span style={{ color: "var(--border-strong)" }}> · </span>
+                            <a href={row.comprobante_cliente_url} target="_blank" rel="noopener noreferrer"
+                              style={{ color: "var(--accent)", textDecoration: "underline" }}>
+                              Ver comprobante del cliente
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {!row.foto_envio_url && row.comprobante_cliente_url && (
+                      <div className="text-xs">
+                        <a href={row.comprobante_cliente_url} target="_blank" rel="noopener noreferrer"
+                          style={{ color: "var(--accent)", textDecoration: "underline" }}>
+                          Ver comprobante del cliente
+                        </a>
                       </div>
                     )}
                     {row.foto_guia_url && (
@@ -1050,6 +1071,27 @@ export default function SolicitudesTerminal() {
                   className="flex flex-wrap gap-2 px-4 py-3"
                   style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}
                 >
+                  {/* Comprobante del cliente — visible en todos los estados */}
+                  {row.comprobante_cliente_url ? (
+                    <a
+                      href={row.comprobante_cliente_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ui-button-ghost ui-button-sm"
+                      style={{ textDecoration: "none" }}
+                    >
+                      Verificar comprobante
+                    </a>
+                  ) : row.tiene_comprobante ? (
+                    <span className="text-xs self-center" style={{ color: "var(--text-3)" }}>
+                      Comprobante indicado, archivo no disponible
+                    </span>
+                  ) : (
+                    <span className="text-xs self-center" style={{ color: "var(--text-3)" }}>
+                      Sin comprobante
+                    </span>
+                  )}
+
                   {tab === "pendiente" && (
                     <>
                       <button className="ui-button ui-button-sm" onClick={() => setModalRow(row)}>
@@ -1093,20 +1135,28 @@ export default function SolicitudesTerminal() {
                     </>
                   )}
                   {tab === "enviado" && (
-                    row.guia_at ? (
-                      <>
-                        <button className="ui-button ui-button-sm" onClick={() => abrirWhatsappGuia(row)}>
-                          Enviar guía
+                    <>
+                      {row.guia_at ? (
+                        <>
+                          <button className="ui-button ui-button-sm" onClick={() => abrirWhatsappGuia(row)}>
+                            Enviar guía
+                          </button>
+                          <button className="ui-button-ghost ui-button-sm" onClick={() => setModalGuia(row)}>
+                            Actualizar guía
+                          </button>
+                        </>
+                      ) : (
+                        <button className="ui-button ui-button-sm" onClick={() => setModalGuia(row)}>
+                          Cargar guía
                         </button>
-                        <button className="ui-button-ghost ui-button-sm" onClick={() => setModalGuia(row)}>
-                          Actualizar guía
-                        </button>
-                      </>
-                    ) : (
-                      <button className="ui-button ui-button-sm" onClick={() => setModalGuia(row)}>
-                        Cargar guía
+                      )}
+                      <button className="ui-button-ghost ui-button-sm" onClick={() => printEtiqueta(row, "hoja")}>
+                        Etiqueta hoja
                       </button>
-                    )
+                      <button className="ui-button-ghost ui-button-sm" onClick={() => printEtiqueta(row, "adhesiva")}>
+                        Etiqueta adhesiva
+                      </button>
+                    </>
                   )}
                 </div>
 
