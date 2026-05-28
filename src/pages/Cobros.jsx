@@ -469,8 +469,6 @@ export default function Cobros() {
   const sent          = rows.filter(r => r.payment_status === "sent")
   const paidOnly      = rows.filter(r => r.payment_status === "paid")
   const confirmedOnly = rows.filter(r => r.payment_status === "confirmed")
-  const finished      = rows.filter(r => r.payment_status === "paid" || r.payment_status === "confirmed")
-
   // Totales financieros — calculados sobre todos los rows cargados
   const _sum = (arr, field) => arr.reduce((a, r) => a + Number(r[field] || 0), 0)
   const pendingAmount       = _sum(pending,       "cobro_cliente_bs")

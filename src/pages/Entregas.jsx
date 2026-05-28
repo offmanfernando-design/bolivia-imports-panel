@@ -104,6 +104,56 @@ function ModalFirma({ url, onClose }) {
   )
 }
 
+// ─── Scanner / adjunto comprobante ────────────────────────────────────────────
+function PaymentProofScanner({ file, onFile }) {
+  const inputRef = useRef(null)
+
+  function handleChange(e) {
+    const f = e.target.files?.[0] || null
+    onFile(f)
+  }
+
+  function handleRemove() {
+    onFile(null)
+    if (inputRef.current) inputRef.current.value = ""
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {file ? (
+        <div className="relative rounded-lg overflow-hidden"
+          style={{ border: "1px solid var(--border)", background: "var(--surface-2)" }}>
+          {file.type.startsWith("image/") ? (
+            <img src={URL.createObjectURL(file)} alt="Comprobante"
+              className="w-full max-h-40 object-contain" />
+          ) : (
+            <div className="px-4 py-3 text-sm" style={{ color: "var(--text-2)" }}>
+              {file.name}
+            </div>
+          )}
+          <button type="button" onClick={handleRemove}
+            className="absolute top-1.5 right-1.5 text-xs px-2 py-0.5 rounded-lg transition"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-3)" }}
+            onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-3)"; }}>
+            Quitar
+          </button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => inputRef.current?.click()}
+          className="w-full rounded-lg py-4 text-sm transition"
+          style={{ border: "2px dashed var(--border)", background: "var(--surface-2)", color: "var(--text-3)" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-3)"; }}>
+          Tomar foto o adjuntar comprobante
+        </button>
+      )}
+      <input ref={inputRef} type="file" accept="image/*,application/pdf" capture="environment"
+        className="hidden" onChange={handleChange} />
+    </div>
+  )
+}
+
 // ─── Modal confirmar entrega ───────────────────────────────────────────────────
 function ModalEntrega({ row, onClose, onEntregado }) {
   const [entregadoA,  setEntregadoA]  = useState(row.cliente_nombre || "")
@@ -112,7 +162,11 @@ function ModalEntrega({ row, onClose, onEntregado }) {
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState(null)
   const [done,        setDone]        = useState(false)
-  const canvasRef = useRef(null)
+  const canvasRef                              = useRef(null)
+  const [pagoMetodo,  setPagoMetodo]  = useState("")
+  const [pagoCuenta,  setPagoCuenta]  = useState("")
+  const [pagoNota,    setPagoNota]    = useState("")
+  const [pagoFile,    setPagoFile]    = useState(null)
 
   function limpiarFirma() {
     const canvas = canvasRef.current
@@ -142,6 +196,12 @@ function ModalEntrega({ row, onClose, onEntregado }) {
       fd.append("entregado_a", entregadoA.trim())
       if (observacion.trim()) fd.append("observacion", observacion.trim())
       if (blob) fd.append("firma", blob, "firma.png")
+      if (pagoMetodo) {
+        fd.append("pago_metodo", pagoMetodo)
+        if (pagoCuenta.trim()) fd.append("pago_cuenta_receptora", pagoCuenta.trim())
+        if (pagoNota.trim())   fd.append("pago_verificacion_nota", pagoNota.trim())
+        if (pagoFile)          fd.append("pago_comprobante", pagoFile, pagoFile.name)
+      }
 
       const res  = await fetch(`${API_URL}/operativo/inventario/${row.item_id}/entregar`,
         { method: "PATCH", body: fd })
@@ -226,6 +286,61 @@ function ModalEntrega({ row, onClose, onEntregado }) {
                 value={observacion}
                 onChange={e => setObservacion(e.target.value)}
               />
+            </div>
+
+            {/* Sección de pago */}
+            <div className="flex flex-col gap-3 pt-1"
+              style={{ borderTop: "1px solid var(--border)" }}>
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+                Registro de pago
+              </p>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium" style={{ color: "var(--text-3)" }}>
+                  Método de pago
+                </label>
+                <select className="ui-input" value={pagoMetodo}
+                  onChange={e => { setPagoMetodo(e.target.value); setPagoCuenta(""); setPagoFile(null) }}>
+                  <option value="">— No registrar —</option>
+                  <option value="efectivo">Efectivo</option>
+                  <option value="qr">QR</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+
+              {pagoMetodo && pagoMetodo !== "efectivo" && (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium" style={{ color: "var(--text-3)" }}>
+                      Cuenta / QR receptor
+                    </label>
+                    <input className="ui-input"
+                      placeholder="Ej: 73XXXXXX — Nombre Receptor"
+                      value={pagoCuenta}
+                      onChange={e => setPagoCuenta(e.target.value)} />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium" style={{ color: "var(--text-3)" }}>
+                      Comprobante de pago
+                    </label>
+                    <PaymentProofScanner file={pagoFile} onFile={setPagoFile} />
+                  </div>
+                </>
+              )}
+
+              {pagoMetodo && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: "var(--text-3)" }}>
+                    Nota de verificación (opcional)
+                  </label>
+                  <input className="ui-input"
+                    placeholder="Ej: Pago confirmado por cliente"
+                    value={pagoNota}
+                    onChange={e => setPagoNota(e.target.value)} />
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -684,6 +799,187 @@ function TabHistorial() {
   )
 }
 
+// ─── Tab Pagos ────────────────────────────────────────────────────────────────
+const VERIF_BADGE = {
+  pendiente_verificacion: { label: "Pendiente",  bg: "var(--warning-soft)", color: "var(--warning)"  },
+  verificado:             { label: "Verificado",  bg: "var(--success-soft)", color: "var(--success)"  },
+  rechazado:              { label: "Rechazado",   bg: "var(--danger-soft)",  color: "var(--danger)"   },
+  no_aplica:              { label: "No aplica",   bg: "var(--surface-3)",    color: "var(--text-3)"   },
+}
+const METODO_LABEL = { efectivo: "Efectivo", qr: "QR", transferencia: "Transferencia", otro: "Otro" }
+
+function TabPagos() {
+  const [rows,    setRows]    = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState(null)
+  const [saving,  setSaving]  = useState(null) // entrega_item_id siendo guardado
+
+  async function fetchPagos() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res  = await fetch(`${API_URL}/operativo/entregas/pagos-resumen`)
+      const json = await res.json()
+      setRows(Array.isArray(json.data) ? json.data : [])
+    } catch {
+      setError("Error cargando pagos")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchPagos() }, [])
+
+  async function handleVerificar(id, estado) {
+    setSaving(id)
+    try {
+      const res  = await fetch(`${API_URL}/operativo/entregas/${id}/verificacion-pago`,
+        { method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ estado }) })
+      const json = await res.json()
+      if (!res.ok) { alert(json.error || "Error al verificar"); return }
+      setRows(prev => prev.map(r =>
+        r.id === id
+          ? { ...r, pago_verificacion_estado: json.data.pago_verificacion_estado, pago_verificado_at: json.data.pago_verificado_at }
+          : r
+      ))
+    } catch {
+      alert("Error de red")
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background: "var(--surface-2)" }} />
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg px-4 py-3 text-sm"
+        style={{ background: "var(--danger-soft)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
+        {error}
+      </div>
+    )
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-lg px-6 py-12 text-center"
+        style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+        <p className="text-sm" style={{ color: "var(--text-3)" }}>
+          No hay pagos registrados en entregas todavía.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {rows.map(row => {
+        const badge = VERIF_BADGE[row.pago_verificacion_estado] ?? VERIF_BADGE.pendiente_verificacion
+        const isPending = row.pago_verificacion_estado === "pendiente_verificacion"
+        return (
+          <div key={row.id} className="rounded-xl p-4 flex flex-col gap-3"
+            style={{ border: "1px solid var(--border)", background: "var(--surface)" }}>
+
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-semibold text-[15px] leading-snug" style={{ color: "var(--text)" }}>
+                  {row.cliente_nombre || "—"}
+                </p>
+                <p className="text-sm mt-0.5 leading-snug truncate" style={{ color: "var(--text-2)" }}>
+                  {row.item_descripcion || "—"}
+                </p>
+              </div>
+              <span className="flex-shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                style={{ background: badge.bg, color: badge.color }}>
+                {badge.label}
+              </span>
+            </div>
+
+            {/* Pago info */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              <div>
+                <p style={{ color: "var(--text-3)" }}>Método</p>
+                <p className="font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
+                  {METODO_LABEL[row.pago_metodo] ?? row.pago_metodo ?? "—"}
+                </p>
+              </div>
+              {row.payment_amount != null && (
+                <div>
+                  <p style={{ color: "var(--text-3)" }}>Monto</p>
+                  <p className="font-medium mt-0.5" style={{ color: "var(--text)" }}>
+                    {Number(row.payment_amount).toFixed(2)} Bs
+                  </p>
+                </div>
+              )}
+              {row.pago_cuenta_receptora && (
+                <div className="col-span-2">
+                  <p style={{ color: "var(--text-3)" }}>Cuenta receptora</p>
+                  <p className="font-medium mt-0.5" style={{ color: "var(--text-2)" }}>{row.pago_cuenta_receptora}</p>
+                </div>
+              )}
+              <div>
+                <p style={{ color: "var(--text-3)" }}>Entregado a</p>
+                <p className="font-medium mt-0.5" style={{ color: "var(--text-2)" }}>{row.entregado_a || "—"}</p>
+              </div>
+              <div>
+                <p style={{ color: "var(--text-3)" }}>Fecha</p>
+                <p className="font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
+                  {formatFecha(row.entregado_at)}
+                </p>
+              </div>
+            </div>
+
+            {/* Comprobante */}
+            {row.pago_comprobante_url && (
+              <a href={row.pago_comprobante_url} target="_blank" rel="noopener noreferrer"
+                className="text-xs underline transition"
+                style={{ color: "var(--accent)" }}>
+                Ver comprobante
+              </a>
+            )}
+
+            {/* Nota verificación */}
+            {row.pago_verificacion_nota && (
+              <p className="text-xs italic" style={{ color: "var(--text-3)" }}>
+                {row.pago_verificacion_nota}
+              </p>
+            )}
+
+            {/* Acciones verificación */}
+            {isPending && (
+              <div className="flex gap-2 pt-1" style={{ borderTop: "1px solid var(--border)" }}>
+                <button
+                  onClick={() => handleVerificar(row.id, "verificado")}
+                  disabled={saving === row.id}
+                  className="ui-button-success ui-button-sm flex-1">
+                  {saving === row.id ? "..." : "Verificar pago"}
+                </button>
+                <button
+                  onClick={() => handleVerificar(row.id, "rechazado")}
+                  disabled={saving === row.id}
+                  className="ui-button-ghost ui-button-sm"
+                  style={{ color: "var(--danger)", borderColor: "var(--danger)" }}>
+                  Rechazar
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function Entregas() {
   const [tab, setTab] = useState("pendientes")
@@ -709,6 +1005,7 @@ export default function Entregas() {
               {[
                 { key: "pendientes", label: "Pendientes" },
                 { key: "historial",  label: "Historial"  },
+                { key: "pagos",      label: "Pagos"      },
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -723,7 +1020,9 @@ export default function Entregas() {
 
           {/* Contenido */}
           <div className="scroll-area p-5">
-            {tab === "pendientes" ? <TabPendientes /> : <TabHistorial />}
+            {tab === "pendientes" && <TabPendientes />}
+            {tab === "historial"  && <TabHistorial />}
+            {tab === "pagos"      && <TabPagos />}
           </div>
 
         </div>
