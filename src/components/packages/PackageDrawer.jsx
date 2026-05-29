@@ -471,22 +471,28 @@ export default function PackageDrawer({ pkg }) {
                     }>
                     General / varios ítems
                   </button>
-                  {items.map(it => (
-                    <button
-                      key={it.id}
-                      onClick={() => setSelectedItemIds(prev => {
-                        const next = new Set(prev);
-                        next.has(it.id) ? next.delete(it.id) : next.add(it.id);
-                        return next;
-                      })}
-                      className="px-3 py-1.5 text-xs rounded-lg border transition-all font-medium"
-                      style={selectedItemIds.has(it.id)
-                        ? { background: "var(--accent)", color: "#fff", borderColor: "var(--accent)" }
-                        : { background: "transparent", color: "var(--text-2)", borderColor: "var(--border)" }
-                      }>
-                      {it.descripcion}
-                    </button>
-                  ))}
+                  {items.map(it => {
+                    const selected   = selectedItemIds.has(it.id);
+                    const confirmed  = it.warehouse_confirmado;
+                    return (
+                      <button
+                        key={it.id}
+                        onClick={() => setSelectedItemIds(prev => {
+                          const next = new Set(prev);
+                          next.has(it.id) ? next.delete(it.id) : next.add(it.id);
+                          return next;
+                        })}
+                        className="px-3 py-1.5 text-xs rounded-lg border transition-all font-medium"
+                        style={selected
+                          ? { background: "var(--accent)", color: "#fff", borderColor: "var(--accent)" }
+                          : confirmed
+                            ? { background: "transparent", color: "var(--success)", borderColor: "var(--success)" }
+                            : { background: "transparent", color: "var(--text-2)", borderColor: "var(--border)" }
+                        }>
+                        {confirmed && !selected ? "✓ " : ""}{it.descripcion}
+                      </button>
+                    );
+                  })}
                 </div>
                 {selectedItemIds.size > 1 && (
                   <p className="text-xs mt-1" style={{ color: "var(--accent)" }}>
