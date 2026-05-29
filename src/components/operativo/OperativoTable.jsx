@@ -34,6 +34,21 @@ function tipoLabel(tipo) {
   return TIPOS_INC.find(t => t.value === tipo)?.label ?? tipo ?? "—";
 }
 
+const ESTADOS_INC = {
+  abierta:            { label: "Abierta",             bg: "var(--warning)",      text: "#fff" },
+  en_seguimiento:     { label: "En seguimiento",       bg: "var(--accent)",       text: "#fff" },
+  recompra_necesaria: { label: "Recompra necesaria",   bg: "var(--danger)",       text: "#fff" },
+  cancelada:          { label: "Cancelada",             bg: "var(--surface-3)",   text: "var(--text-3)" },
+  resuelta:           { label: "Resuelta",              bg: "var(--success)",      text: "#fff" },
+};
+
+const ACCIONES_CERRAR = [
+  { value: "volver_confirmaciones", label: "Volver a Confirmaciones", needsNota: false, needsConfirm: false },
+  { value: "en_seguimiento",        label: "En seguimiento",          needsNota: true,  needsConfirm: false },
+  { value: "recompra_necesaria",    label: "Recompra necesaria",      needsNota: false, needsConfirm: true  },
+  { value: "cancelada",             label: "Cancelar / cerrar",       needsNota: true,  needsConfirm: true  },
+];
+
 function fmtIncFecha(iso) {
   if (!iso) return null;
   const d = new Date(iso);
@@ -54,6 +69,12 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
   const [incNota,    setIncNota]    = useState("");
   const [incSaving,  setIncSaving]  = useState(false);
   const [incError,   setIncError]   = useState(null);
+
+  const [cerrarModal,     setCerrarModal]     = useState(null); // null | { ordenId }
+  const [cerrarResultado, setCerrarResultado] = useState("");
+  const [cerrarNota,      setCerrarNota]      = useState("");
+  const [cerrarSaving,    setCerrarSaving]    = useState(false);
+  const [cerrarError,     setCerrarError]     = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -110,6 +131,38 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
       setData(prev => prev.filter(c => c.id !== ordenId));
     } catch {
       alert("Error de red");
+    }
+  }
+
+  function abrirCerrarModal(ordenId) {
+    setCerrarModal({ ordenId });
+    setCerrarResultado("");
+    setCerrarNota("");
+    setCerrarError(null);
+  }
+
+  async function handleCerrarIncidencia() {
+    if (!cerrarResultado) { setCerrarError("Selecciona una acción"); return; }
+    const accion = ACCIONES_CERRAR.find(a => a.value === cerrarResultado);
+    if (accion?.needsConfirm && !window.confirm(`¿Confirmar "${accion.label}"?`)) return;
+    setCerrarSaving(true);
+    setCerrarError(null);
+    try {
+      const res  = await fetch(`${API_URL}/compras/${cerrarModal.ordenId}/warehouse-incidencia/cerrar`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ resultado: cerrarResultado, nota: cerrarNota.trim() || undefined }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setCerrarError(json.error || "Error"); return; }
+      setData(prev => prev.map(c =>
+        c.id === cerrarModal.ordenId ? { ...c, ...(json.data || {}) } : c
+      ));
+      setCerrarModal(null);
+    } catch {
+      setCerrarError("Error de red");
+    } finally {
+      setCerrarSaving(false);
     }
   }
 
@@ -327,26 +380,43 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
 
               {/* ZONA B2 — Info de incidencia (solo en tab Incidencias) */}
               {soloIncidencias && c.warehouse_incidencia && (
-                <div className="px-4 py-3 flex flex-col gap-1.5"
+                <div className="px-4 py-3 flex flex-col gap-2"
                   style={{ background: "var(--warning-soft)", borderTop: "1px solid var(--border)" }}>
+
+                  {/* Fila estado + tipo + fecha apertura */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--warning)" }}>
-                      Incidencia
-                    </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    {c.warehouse_incidencia_estado && ESTADOS_INC[c.warehouse_incidencia_estado] && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          background: ESTADOS_INC[c.warehouse_incidencia_estado].bg,
+                          color:      ESTADOS_INC[c.warehouse_incidencia_estado].text,
+                        }}>
+                        {ESTADOS_INC[c.warehouse_incidencia_estado].label}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                       style={{ background: "var(--warning)", color: "#fff" }}>
                       {tipoLabel(c.warehouse_incidencia_tipo)}
                     </span>
                     {c.warehouse_incidencia_at && (
                       <span className="text-[10px] tabular-nums" style={{ color: "var(--warning)" }}>
-                        {fmtIncFecha(c.warehouse_incidencia_at)}
+                        Apertura: {fmtIncFecha(c.warehouse_incidencia_at)}
                       </span>
                     )}
                   </div>
+
+                  {/* Nota */}
                   {c.warehouse_incidencia_nota && (
                     <p className="text-xs leading-relaxed" style={{ color: "var(--text-2)" }}>
                       {c.warehouse_incidencia_nota}
                     </p>
+                  )}
+
+                  {/* Fecha cierre si existe */}
+                  {c.warehouse_incidencia_resuelta_at && (
+                    <span className="text-[10px] tabular-nums" style={{ color: "var(--text-3)" }}>
+                      Cierre: {fmtIncFecha(c.warehouse_incidencia_resuelta_at)}
+                    </span>
                   )}
                 </div>
               )}
@@ -382,11 +452,11 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
                   )}
                   {soloIncidencias && (
                     <button
-                      onClick={() => handleResolverIncidencia(c.id)}
+                      onClick={() => abrirCerrarModal(c.id)}
                       className="ui-button-ghost ui-button-sm"
-                      style={{ color: "var(--success)" }}
+                      style={{ color: "var(--accent)" }}
                     >
-                      Resolver
+                      Gestionar
                     </button>
                   )}
                   <button
@@ -404,6 +474,78 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
       </div>
 
     </div>
+
+    {/* Modal: gestionar / cerrar incidencia */}
+    {cerrarModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCerrarModal(null)} />
+        <div className="relative z-10 rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 flex flex-col gap-4"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
+
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+              Gestionar incidencia
+            </h4>
+            <button onClick={() => setCerrarModal(null)}
+              className="text-lg leading-none" style={{ color: "var(--text-3)" }}>✕</button>
+          </div>
+
+          {/* Acciones como botones de selección */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-3)" }}>
+              Acción *
+            </p>
+            {ACCIONES_CERRAR.map(a => (
+              <button
+                key={a.value}
+                onClick={() => { setCerrarResultado(a.value); setCerrarNota(""); }}
+                className="px-3 py-2 rounded-lg text-xs font-medium text-left transition-all border"
+                style={cerrarResultado === a.value
+                  ? { background: "var(--accent)", color: "#fff", borderColor: "var(--accent)" }
+                  : { background: "transparent", color: "var(--text-2)", borderColor: "var(--border)" }
+                }>
+                {a.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Nota: solo si la acción seleccionada la requiere */}
+          {cerrarResultado && ACCIONES_CERRAR.find(a => a.value === cerrarResultado)?.needsNota && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+                Nota (opcional)
+              </label>
+              <textarea
+                value={cerrarNota}
+                onChange={e => setCerrarNota(e.target.value)}
+                rows={3}
+                placeholder="Detalle del seguimiento..."
+                className="ui-input resize-none"
+              />
+            </div>
+          )}
+
+          {cerrarError && (
+            <p className="text-xs" style={{ color: "var(--danger)" }}>{cerrarError}</p>
+          )}
+
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setCerrarModal(null)}
+              className="ui-button-ghost ui-button-sm"
+              style={{ color: "var(--text-3)" }}>
+              Cancelar
+            </button>
+            <button
+              onClick={handleCerrarIncidencia}
+              disabled={cerrarSaving || !cerrarResultado}
+              className="ui-button ui-button-sm disabled:opacity-50">
+              {cerrarSaving ? "..." : "Confirmar"}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    )}
 
     {/* Modal: marcar incidencia */}
     {incModal && (
