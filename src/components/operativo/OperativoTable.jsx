@@ -416,6 +416,30 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
                 </div>
               )}
 
+              {/* ZONA B1 — Ítems individuales con tracking */}
+              {wItems.length > 0 && (
+                <div className="px-4 py-2.5 flex flex-col gap-1.5" style={{ background: "var(--surface)" }}>
+                  {wItems.map((item, idx) => {
+                    const trkMatch = item.tracking_number && matchesSearch(item.tracking_number, searchLower);
+                    return (
+                      <div key={item.id ?? idx} className="flex items-start justify-between gap-3 text-xs">
+                        <span className="leading-snug line-clamp-1 flex-1 min-w-0" style={{ color: "var(--text-2)" }}>
+                          {item.descripcion || "—"}
+                        </span>
+                        <span
+                          className="font-mono flex-shrink-0 px-1.5 py-0.5 rounded"
+                          style={trkMatch
+                            ? { background: "var(--success-soft)", border: "1px solid var(--success)", color: "var(--success)", fontWeight: 700 }
+                            : { color: "var(--text-3)" }
+                          }>
+                          {item.tracking_number || "—"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* ZONA B2 — Info de incidencia (solo en tab Incidencias) */}
               {soloIncidencias && c.warehouse_incidencia && (
                 <div className="px-4 py-3 flex flex-col gap-2"
