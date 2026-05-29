@@ -588,7 +588,8 @@ function TabHistorial() {
   const [error,    setError]    = useState(null)
   const [q,        setQ]        = useState("")
   const [periodo,  setPeriodo]  = useState("60d")
-  const [firmaUrl, setFirmaUrl] = useState(null)
+  const [firmaUrl,    setFirmaUrl]    = useState(null)
+  const [revertiendo, setRevertiendo] = useState(null)
 
   async function fetchHistorial(p) {
     setLoading(true)
@@ -609,6 +610,32 @@ function TabHistorial() {
   function handlePeriodo(p) {
     setPeriodo(p)
     fetchHistorial(p)
+  }
+
+  async function handleRevertir(row) {
+    const motivo = window.prompt(`Motivo de reversión para entrega de "${row.cliente_nombre}":`)
+    if (!motivo?.trim()) return
+    if (!window.confirm(`¿Revertir la entrega de "${row.cliente_nombre}"?\nEl ítem volverá a Pendientes.`)) return
+    setRevertiendo(row.entrega_id)
+    setError(null)
+    try {
+      const res  = await fetch(`${API_URL}/operativo/entregas/${row.entrega_id}/revertir`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ motivo: motivo.trim() }),
+      })
+      const json = await res.json()
+      if (!res.ok) { setError(json.error || "Error al revertir entrega"); return }
+      setRows(prev => prev.map(r =>
+        r.entrega_id === row.entrega_id
+          ? { ...r, revertido: true, revertido_motivo: motivo.trim() }
+          : r
+      ))
+    } catch {
+      setError("Error de red al revertir")
+    } finally {
+      setRevertiendo(null)
+    }
   }
 
   const filtered = q.trim()
@@ -687,7 +714,7 @@ function TabHistorial() {
             <table className="w-full text-sm" style={{ minWidth: "740px" }}>
               <thead>
                 <tr>
-                  {["Cliente", "Ítem", "Entregado a", "REC / Ubic.", "Fecha", "Firma"].map(h => (
+                  {["Cliente", "Ítem", "Entregado a", "REC / Ubic.", "Fecha", "Firma", ""].map(h => (
                     <th key={h} className="ui-th">{h}</th>
                   ))}
                 </tr>
@@ -737,6 +764,24 @@ function TabHistorial() {
                         <span className="text-xs" style={{ color: "var(--text-3)" }}>Sin firma</span>
                       )}
                     </td>
+                    <td className="ui-td">
+                      {row.revertido ? (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
+                          title={row.revertido_motivo || ""}>
+                          Revertida
+                        </span>
+                      ) : (
+                        <button
+                          disabled={revertiendo === row.entrega_id}
+                          onClick={() => handleRevertir(row)}
+                          className="ui-button-ghost ui-button-sm"
+                          style={{ color: "var(--danger)", opacity: revertiendo === row.entrega_id ? 0.5 : 1 }}
+                        >
+                          {revertiendo === row.entrega_id ? "..." : "Revertir"}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -758,18 +803,35 @@ function TabHistorial() {
                       {row.item_descripcion || "—"}
                     </p>
                   </div>
-                  {row.firma_url ? (
-                    <button
-                      onClick={() => setFirmaUrl(row.firma_url)}
-                      className="flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition"
-                      style={{ border: "1px solid var(--border)", color: "var(--text-2)" }}>
-                      Ver firma
-                    </button>
-                  ) : (
-                    <span className="flex-shrink-0 text-xs pt-0.5" style={{ color: "var(--text-3)" }}>
-                      Sin firma
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {row.firma_url ? (
+                      <button
+                        onClick={() => setFirmaUrl(row.firma_url)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium transition"
+                        style={{ border: "1px solid var(--border)", color: "var(--text-2)" }}>
+                        Ver firma
+                      </button>
+                    ) : (
+                      <span className="text-xs pt-0.5" style={{ color: "var(--text-3)" }}>
+                        Sin firma
+                      </span>
+                    )}
+                    {row.revertido ? (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
+                        title={row.revertido_motivo || ""}>
+                        Revertida
+                      </span>
+                    ) : (
+                      <button
+                        disabled={revertiendo === row.entrega_id}
+                        onClick={() => handleRevertir(row)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium transition"
+                        style={{ border: "1px solid var(--border)", color: "var(--danger)", opacity: revertiendo === row.entrega_id ? 0.5 : 1 }}>
+                        {revertiendo === row.entrega_id ? "..." : "Revertir"}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-3)" }}>
                   <span>→ {row.entregado_a}</span>
