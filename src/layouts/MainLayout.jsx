@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import {
@@ -16,9 +16,11 @@ import {
   Moon,
   X,
   Archive,
+  LogOut,
 } from "lucide-react";
 
 import BottomTabBar from "../components/BottomTabBar";
+import { clearAuth, getUser } from "../utils/auth";
 
 /* ── Grupos de navegación ──────────────────────────────────── */
 
@@ -87,7 +89,7 @@ const PAGE_LABELS = {
 
 /* ── Contenido del sidebar ─────────────────────────────────── */
 
-function SidebarContent({ collapsed, theme, onThemeToggle, onNavClick }) {
+function SidebarContent({ collapsed, theme, onThemeToggle, onNavClick, onLogout, onUserName }) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
@@ -171,23 +173,46 @@ function SidebarContent({ collapsed, theme, onThemeToggle, onNavClick }) {
                 className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold select-none"
                 style={{ background: "rgba(255,255,255,0.07)", color: "#8E9BA8" }}
               >
-                AD
+                {(onUserName?.[0] ?? "U").toUpperCase()}
               </div>
               <div className="min-w-0">
                 <p className="text-[12px] font-medium leading-none truncate" style={{ color: "#C8D0D9" }}>
-                  Administrador
+                  {onUserName ?? "Usuario"}
                 </p>
-                <p
-                  className="text-[10px] truncate mt-[3px]"
-                  style={{ color: "#5F6B77" }}
-                >
-                  Acceso total
+                <p className="text-[10px] truncate mt-[3px]" style={{ color: "#5F6B77" }}>
+                  Sesión activa
                 </p>
               </div>
             </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={onThemeToggle}
+                className="flex-shrink-0 p-1.5 rounded-md transition-colors"
+                style={{ color: "#5F6B77" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#D8DEE5"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#5F6B77"; e.currentTarget.style.background = "transparent"; }}
+                aria-label="Cambiar tema"
+              >
+                {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+              </button>
+              <button
+                onClick={onLogout}
+                className="flex-shrink-0 p-1.5 rounded-md transition-colors"
+                style={{ color: "#5F6B77" }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "#F87171"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = "#5F6B77"; e.currentTarget.style.background = "transparent"; }}
+                aria-label="Cerrar sesión"
+                title="Cerrar sesión"
+              >
+                <LogOut size={13} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-1">
             <button
               onClick={onThemeToggle}
-              className="flex-shrink-0 p-1.5 rounded-md transition-colors"
+              className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
               style={{ color: "#5F6B77" }}
               onMouseEnter={(e) => { e.currentTarget.style.color = "#D8DEE5"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = "#5F6B77"; e.currentTarget.style.background = "transparent"; }}
@@ -195,18 +220,18 @@ function SidebarContent({ collapsed, theme, onThemeToggle, onNavClick }) {
             >
               {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
             </button>
+            <button
+              onClick={onLogout}
+              className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
+              style={{ color: "#5F6B77" }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#F87171"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#5F6B77"; e.currentTarget.style.background = "transparent"; }}
+              aria-label="Cerrar sesión"
+              title="Cerrar sesión"
+            >
+              <LogOut size={13} />
+            </button>
           </div>
-        ) : (
-          <button
-            onClick={onThemeToggle}
-            className="mx-auto flex items-center justify-center w-9 h-9 rounded-lg transition-colors"
-            style={{ color: "#5F6B77" }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "#D8DEE5"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "#5F6B77"; e.currentTarget.style.background = "transparent"; }}
-            aria-label="Cambiar tema"
-          >
-            {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-          </button>
         )}
       </div>
 
@@ -218,6 +243,7 @@ function SidebarContent({ collapsed, theme, onThemeToggle, onNavClick }) {
 
 export default function MainLayout() {
   const location = useLocation();
+  const navigate  = useNavigate();
 
   const [collapsed,  setCollapsed]  = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -235,6 +261,9 @@ export default function MainLayout() {
   }, [theme]);
 
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
+
+  const handleLogout = () => { clearAuth(); navigate("/login", { replace: true }); };
+  const userName     = getUser()?.nombre ?? "Usuario";
 
   const pageLabel = PAGE_LABELS[location.pathname] ?? "Bolivia Imports";
 
@@ -260,6 +289,8 @@ export default function MainLayout() {
           theme={theme}
           onThemeToggle={toggleTheme}
           onNavClick={null}
+          onLogout={handleLogout}
+          onUserName={userName}
         />
       </aside>
 
@@ -297,6 +328,8 @@ export default function MainLayout() {
                 theme={theme}
                 onThemeToggle={toggleTheme}
                 onNavClick={() => setMobileOpen(false)}
+                onLogout={handleLogout}
+                onUserName={userName}
               />
             </div>
           </aside>
