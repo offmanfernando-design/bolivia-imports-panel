@@ -7,7 +7,7 @@ import PackageDrawer from "../components/packages/PackageDrawer"
 
 const TABS = [
   { id: "transito",   label: "Confirmaciones" },
-  { id: "topo",       label: "Confirmaciones Topo" },
+  { id: "topo",       label: "Confirmadas" },
   { id: "carga",      label: "Carga Bolivia" },
   { id: "inventario", label: "Inventario Bolivia" },
 ]
