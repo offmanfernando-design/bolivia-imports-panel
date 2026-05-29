@@ -420,12 +420,21 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
               {wItems.length > 0 && (
                 <div className="px-4 py-2.5 flex flex-col gap-1.5" style={{ background: "var(--surface)" }}>
                   {wItems.map((item, idx) => {
-                    const trkMatch = item.tracking_number && matchesSearch(item.tracking_number, searchLower);
+                    const trkMatch  = item.tracking_number && matchesSearch(item.tracking_number, searchLower);
+                    const provFecha = item.fecha_entrega_proveedor
+                      ? new Date(item.fecha_entrega_proveedor).toLocaleDateString("es-BO", { day: "2-digit", month: "2-digit", year: "numeric" })
+                      : null;
                     return (
                       <div key={item.id ?? idx} className="flex items-start justify-between gap-3 text-xs">
-                        <span className="leading-snug line-clamp-1 flex-1 min-w-0" style={{ color: "var(--text-2)" }}>
-                          {item.descripcion || "—"}
-                        </span>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <span className="leading-snug line-clamp-1" style={{ color: "var(--text-2)" }}>
+                            {item.descripcion || "—"}
+                          </span>
+                          <span className="text-[10px]"
+                            style={{ color: item.proveedor_confirmo_entrega ? "var(--success)" : "var(--text-3)" }}>
+                            Prov.: {item.proveedor_confirmo_entrega ? (provFecha ?? "confirmado") : "—"}
+                          </span>
+                        </div>
                         <span
                           className="font-mono flex-shrink-0 px-1.5 py-0.5 rounded"
                           style={trkMatch

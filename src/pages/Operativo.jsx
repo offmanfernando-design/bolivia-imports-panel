@@ -2,14 +2,16 @@ import { useState } from "react"
 import OperativoTable from "../components/operativo/OperativoTable"
 import RecepcionCarga from "../components/operativo/RecepcionCarga"
 import InventarioBolivia from "../components/operativo/InventarioBolivia"
+import EntregasProveedorTable from "../components/operativo/EntregasProveedorTable"
 import Drawer from "../components/ui/Drawer"
 import PackageDrawer from "../components/packages/PackageDrawer"
 
 const TABS = [
-  { id: "transito",    label: "Confirmaciones" },
-  { id: "incidencias", label: "Incidencias Warehouse" },
-  { id: "carga",       label: "Carga Bolivia" },
-  { id: "inventario",  label: "Inventario Bolivia" },
+  { id: "transito",           label: "Confirmaciones" },
+  { id: "incidencias",        label: "Incidencias Warehouse" },
+  { id: "entregas_proveedor", label: "Entregas Proveedor" },
+  { id: "carga",              label: "Carga Bolivia" },
+  { id: "inventario",         label: "Inventario Bolivia" },
 ]
 
 export default function Operativo() {
@@ -67,6 +69,9 @@ export default function Operativo() {
             )}
             {activeTab === "incidencias" && (
               <OperativoTable onOpenPackage={openPackage} soloIncidencias={true} />
+            )}
+            {activeTab === "entregas_proveedor" && (
+              <EntregasProveedorTable />
             )}
             {activeTab === "carga" && (
               <RecepcionCarga onRecepcionRegistrada={() => setInventarioReloadKey(k => k + 1)} />
