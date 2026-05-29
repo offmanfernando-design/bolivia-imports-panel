@@ -222,7 +222,7 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
     } else if (soloConfirmados) {
       if (!c.warehouse_confirmado) return false;
     } else {
-      if (c.warehouse_confirmado) return false;
+      // Confirmaciones: mostrar toda orden operativa salvo las que tienen incidencia activa
       if (c.warehouse_incidencia) return false;
     }
 
@@ -311,13 +311,20 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
           const trackings   = getTrackingList(c);
           const searchLower = search.toLowerCase();
 
-          // Indicador warehouse — campos opcionales según respuesta del API
-          const wCount = c.warehouse_count ?? null;
-          const iCount = c.item_count      ?? null;
-          const wOk    = c.warehouse_confirmado ?? null;
+          // Indicador warehouse — calculado desde items_detalle para reflejo exacto
+          const wItems     = parseItemsDetalle(c);
+          const totalItems = wItems.length;
+          const wConfirmed = wItems.filter(i => i.warehouse_confirmado).length;
+          const wPending   = totalItems - wConfirmed;
 
-          const wAllConfirmed = iCount != null && wCount != null && wCount >= iCount && iCount > 0;
-          const wPartial      = iCount != null && wCount != null && wCount > 0 && wCount < iCount;
+          // Fallback si la orden no tiene items_detalle
+          const wOk = c.warehouse_confirmado ?? null;
+
+          const wStatus = totalItems > 0
+            ? (wConfirmed === 0         ? "pendiente"
+              : wConfirmed < totalItems ? "parcial"
+              :                           "completo")
+            : (wOk ? "completo" : "pendiente");
 
           return (
             <div key={c.id} className="rounded-2xl overflow-hidden transition-shadow"
@@ -372,32 +379,18 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    {/* Warehouse: N/M ítems */}
-                    {iCount != null && iCount > 0 && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                        style={wAllConfirmed
-                          ? { background: "var(--success-soft)", color: "var(--success)" }
-                          : wPartial
-                            ? { background: "var(--warning-soft)", color: "var(--warning)" }
-                            : { background: "var(--surface-3)", color: "var(--text-3)" }
-                        }>
-                        {wAllConfirmed
-                          ? "Warehouse completo"
-                          : wPartial
-                            ? `${wCount ?? 0}/${iCount} en warehouse`
-                            : `Sin confirmar · ${iCount} ítem${iCount !== 1 ? "s" : ""}`
-                        }
-                      </span>
-                    )}
-                    {/* Warehouse booleano simple */}
-                    {iCount == null && wOk != null && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                        style={wOk
-                          ? { background: "var(--success-soft)", color: "var(--success)" }
-                          : { background: "var(--surface-3)", color: "var(--text-3)" }
-                        }>
-                        {wOk ? "Warehouse confirmado" : "Pendiente warehouse"}
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={
+                        wStatus === "completo" ? { background: "var(--success-soft)", color: "var(--success)" }
+                        : wStatus === "parcial" ? { background: "var(--warning-soft)", color: "var(--warning)" }
+                        :                        { background: "var(--surface-3)",     color: "var(--text-3)"  }
+                      }>
+                      {wStatus === "completo" ? "Todo confirmado" : wStatus === "parcial" ? "Parcial" : "Pendiente"}
+                    </span>
+                    {totalItems > 0 && (
+                      <span className="text-[10px] tabular-nums" style={{ color: "var(--text-3)" }}>
+                        {wConfirmed} conf. · {wPending} pend.
                       </span>
                     )}
                   </div>
