@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 import Badge from "../ui/Badge";
 import { normalizarUbicacion } from "../../utils/ubicacion";
+import { compressImageFile } from "../../utils/compressImage";
 
 /* ── Campo de solo lectura ─────────────────────────────────── */
 function InfoField({ label, value, mono = false, full = false }) {
@@ -135,7 +136,8 @@ export default function PackageDrawer({ pkg }) {
     try {
       setLoadingUpload(true);
       const formData = new FormData();
-      formData.append("file", warehouseImage);
+      const imageToUpload = await compressImageFile(warehouseImage);
+      formData.append("file", imageToUpload);
       if (selectedItemIds.size > 0) {
         formData.append("item_ids", [...selectedItemIds].join(","));
       }

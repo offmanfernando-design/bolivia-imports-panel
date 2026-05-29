@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { API_URL } from "../config/api"
 import { normalizarUbicacion } from "../utils/ubicacion"
+import { compressImageFile } from "../utils/compressImage"
 
 function formatFecha(iso) {
   if (!iso) return "—"
@@ -200,7 +201,10 @@ function ModalEntrega({ row, onClose, onEntregado }) {
         fd.append("pago_metodo", pagoMetodo)
         if (pagoCuenta.trim()) fd.append("pago_cuenta_receptora", pagoCuenta.trim())
         if (pagoNota.trim())   fd.append("pago_verificacion_nota", pagoNota.trim())
-        if (pagoFile)          fd.append("pago_comprobante", pagoFile, pagoFile.name)
+        if (pagoFile) {
+          const compressed = await compressImageFile(pagoFile)
+          fd.append("pago_comprobante", compressed, compressed.name)
+        }
       }
 
       const res  = await fetch(`${API_URL}/operativo/inventario/${row.item_id}/entregar`,
