@@ -22,12 +22,38 @@ function getEstadoBadgeType(estado) {
   }
 }
 
-// soloConfirmados: true → muestra solo warehouse_confirmado; false/undefined → solo pendientes
-export default function OperativoTable({ onOpenPackage, soloConfirmados = false }) {
+const TIPOS_INC = [
+  { value: "sin_evidencia_warehouse", label: "Sin evidencia warehouse" },
+  { value: "comercio_no_entrego",     label: "Comercio no entregó" },
+  { value: "entrega_incompleta",      label: "Entrega incompleta" },
+  { value: "tracking_sin_movimiento", label: "Tracking sin movimiento" },
+  { value: "otro",                    label: "Otro" },
+];
+
+function tipoLabel(tipo) {
+  return TIPOS_INC.find(t => t.value === tipo)?.label ?? tipo ?? "—";
+}
+
+function fmtIncFecha(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const p = n => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// soloConfirmados: legacy — muestra solo warehouse_confirmado
+// soloIncidencias: muestra solo warehouse_incidencia = true
+export default function OperativoTable({ onOpenPackage, soloConfirmados = false, soloIncidencias = false }) {
   const [data,        setData]        = useState([]);
   const [search,      setSearch]      = useState("");
   const [fechaFiltro, setFechaFiltro] = useState("");
   const [loading,     setLoading]     = useState(true);
+
+  const [incModal,   setIncModal]   = useState(null); // null | { ordenId }
+  const [incTipo,    setIncTipo]    = useState("");
+  const [incNota,    setIncNota]    = useState("");
+  const [incSaving,  setIncSaving]  = useState(false);
+  const [incError,   setIncError]   = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -44,10 +70,58 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false 
     load();
   }, []);
 
+  function abrirIncModal(ordenId) {
+    setIncModal({ ordenId });
+    setIncTipo("");
+    setIncNota("");
+    setIncError(null);
+  }
+
+  async function handleMarcarIncidencia() {
+    if (!incTipo) { setIncError("Selecciona un tipo de incidencia"); return; }
+    setIncSaving(true);
+    setIncError(null);
+    try {
+      const res  = await fetch(`${API_URL}/compras/${incModal.ordenId}/warehouse-incidencia`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ tipo: incTipo, nota: incNota.trim() || undefined }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setIncError(json.error || "Error al marcar incidencia"); return; }
+      setData(prev => prev.filter(c => c.id !== incModal.ordenId));
+      setIncModal(null);
+    } catch {
+      setIncError("Error de red");
+    } finally {
+      setIncSaving(false);
+    }
+  }
+
+  async function handleResolverIncidencia(ordenId) {
+    if (!window.confirm("¿Resolver esta incidencia? La orden volverá a Confirmaciones.")) return;
+    try {
+      const res  = await fetch(`${API_URL}/compras/${ordenId}/warehouse-incidencia/resolver`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json.error || "Error al resolver incidencia"); return; }
+      setData(prev => prev.filter(c => c.id !== ordenId));
+    } catch {
+      alert("Error de red");
+    }
+  }
+
   const dataset = data.filter((c) => {
-    // Filtro warehouse: pendientes vs confirmados
+    // Filtro incidencias
+    if (soloIncidencias) return !!c.warehouse_incidencia;
+
+    // Filtro warehouse: pendientes vs confirmados (legacy soloConfirmados)
     if (soloConfirmados && !c.warehouse_confirmado) return false;
     if (!soloConfirmados && c.warehouse_confirmado)  return false;
+    // Confirmaciones: excluir órdenes con incidencia activa
+    if (!soloConfirmados && c.warehouse_incidencia)  return false;
 
     // Filtro por fecha exacta (contra created_at)
     if (fechaFiltro) {
@@ -79,12 +153,13 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false 
   }
 
   return (
+    <>
     <div className="flex flex-col gap-6">
 
       {/* Encabezado de sección */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
-          Confirmaciones
+          {soloIncidencias ? "Incidencias Warehouse" : "Confirmaciones"}
         </h3>
         <span className="text-xs tabular-nums" style={{ color: "var(--text-3)" }}>
           {dataset.length} {dataset.length === 1 ? "paquete" : "paquetes"}
@@ -250,6 +325,32 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false 
                 </div>
               )}
 
+              {/* ZONA B2 — Info de incidencia (solo en tab Incidencias) */}
+              {soloIncidencias && c.warehouse_incidencia && (
+                <div className="px-4 py-3 flex flex-col gap-1.5"
+                  style={{ background: "var(--warning-soft)", borderTop: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--warning)" }}>
+                      Incidencia
+                    </span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                      style={{ background: "var(--warning)", color: "#fff" }}>
+                      {tipoLabel(c.warehouse_incidencia_tipo)}
+                    </span>
+                    {c.warehouse_incidencia_at && (
+                      <span className="text-[10px] tabular-nums" style={{ color: "var(--warning)" }}>
+                        {fmtIncFecha(c.warehouse_incidencia_at)}
+                      </span>
+                    )}
+                  </div>
+                  {c.warehouse_incidencia_nota && (
+                    <p className="text-xs leading-relaxed" style={{ color: "var(--text-2)" }}>
+                      {c.warehouse_incidencia_nota}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* ZONA C — Footer: tracking + acción */}
               <div className="px-4 py-2.5 flex items-center justify-between gap-3"
                 style={{ background: "var(--surface-2)", borderTop: "1px solid var(--border)" }}>
@@ -269,12 +370,32 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false 
                   )}
                 </div>
 
-                <button
-                  onClick={() => onOpenPackage(c)}
-                  className="ui-button ui-button-sm flex-shrink-0"
-                >
-                  Ver detalle
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!soloIncidencias && (
+                    <button
+                      onClick={() => abrirIncModal(c.id)}
+                      className="ui-button-ghost ui-button-sm"
+                      style={{ color: "var(--warning)" }}
+                    >
+                      Marcar incidencia
+                    </button>
+                  )}
+                  {soloIncidencias && (
+                    <button
+                      onClick={() => handleResolverIncidencia(c.id)}
+                      className="ui-button-ghost ui-button-sm"
+                      style={{ color: "var(--success)" }}
+                    >
+                      Resolver
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onOpenPackage(c)}
+                    className="ui-button ui-button-sm"
+                  >
+                    Ver detalle
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -283,5 +404,74 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false 
       </div>
 
     </div>
+
+    {/* Modal: marcar incidencia */}
+    {incModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIncModal(null)} />
+        <div className="relative z-10 rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 flex flex-col gap-4"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}>
+
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+              Marcar incidencia warehouse
+            </h4>
+            <button onClick={() => setIncModal(null)}
+              className="text-lg leading-none transition"
+              style={{ color: "var(--text-3)" }}>✕</button>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+              Tipo de incidencia *
+            </label>
+            <select
+              value={incTipo}
+              onChange={e => setIncTipo(e.target.value)}
+              className="ui-input"
+            >
+              <option value="">Seleccionar...</option>
+              {TIPOS_INC.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+              Nota (opcional)
+            </label>
+            <textarea
+              value={incNota}
+              onChange={e => setIncNota(e.target.value)}
+              rows={3}
+              placeholder="Descripción del problema..."
+              className="ui-input resize-none"
+            />
+          </div>
+
+          {incError && (
+            <p className="text-xs" style={{ color: "var(--danger)" }}>{incError}</p>
+          )}
+
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setIncModal(null)}
+              className="ui-button-ghost ui-button-sm"
+              style={{ color: "var(--text-3)" }}>
+              Cancelar
+            </button>
+            <button
+              onClick={handleMarcarIncidencia}
+              disabled={incSaving}
+              className="ui-button ui-button-sm disabled:opacity-50"
+              style={{ background: "var(--warning)", borderColor: "var(--warning)", color: "#fff" }}>
+              {incSaving ? "..." : "Confirmar incidencia"}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    )}
+    </>
   );
 }

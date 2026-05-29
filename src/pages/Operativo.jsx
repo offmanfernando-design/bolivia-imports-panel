@@ -6,10 +6,10 @@ import Drawer from "../components/ui/Drawer"
 import PackageDrawer from "../components/packages/PackageDrawer"
 
 const TABS = [
-  { id: "transito",   label: "Confirmaciones" },
-  { id: "topo",       label: "Confirmadas" },
-  { id: "carga",      label: "Carga Bolivia" },
-  { id: "inventario", label: "Inventario Bolivia" },
+  { id: "transito",    label: "Confirmaciones" },
+  { id: "incidencias", label: "Incidencias Warehouse" },
+  { id: "carga",       label: "Carga Bolivia" },
+  { id: "inventario",  label: "Inventario Bolivia" },
 ]
 
 export default function Operativo() {
@@ -65,8 +65,8 @@ export default function Operativo() {
             {activeTab === "transito" && (
               <OperativoTable onOpenPackage={openPackage} soloConfirmados={false} />
             )}
-            {activeTab === "topo" && (
-              <OperativoTable onOpenPackage={openPackage} soloConfirmados={true} />
+            {activeTab === "incidencias" && (
+              <OperativoTable onOpenPackage={openPackage} soloIncidencias={true} />
             )}
             {activeTab === "carga" && (
               <RecepcionCarga onRecepcionRegistrada={() => setInventarioReloadKey(k => k + 1)} />
