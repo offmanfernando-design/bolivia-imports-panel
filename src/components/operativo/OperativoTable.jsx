@@ -56,6 +56,55 @@ function fmtIncFecha(iso) {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// ─── helpers de búsqueda ────────────────────────────────────────────────────
+
+function normalizeText(val) {
+  return String(val || "").toLowerCase();
+}
+
+function parseItemsDetalle(order) {
+  if (Array.isArray(order.items_detalle)) return order.items_detalle;
+  if (typeof order.items_detalle === "string") {
+    try { return JSON.parse(order.items_detalle); } catch { return []; }
+  }
+  return [];
+}
+
+// Devuelve lista única de todos los trackings de la orden (orden + ítems)
+function getTrackingList(order) {
+  const seen = new Set();
+  const list = [];
+  const add = (val) => {
+    const v = String(val || "").trim();
+    if (v && !seen.has(v)) { seen.add(v); list.push(v); }
+  };
+  add(order.tracking_number);
+  add(order.tracking);
+  if (order.tracking_items) order.tracking_items.split(/\s+/).forEach(add);
+  parseItemsDetalle(order).forEach(item => add(item.tracking_number));
+  return list;
+}
+
+// Devuelve true si val contiene searchLower (ya normalizado)
+function matchesSearch(val, searchLower) {
+  return !!searchLower && normalizeText(val).includes(searchLower);
+}
+
+// True si la orden coincide con el término de búsqueda en algún campo relevante
+function orderMatchesSearch(order, search) {
+  if (!search) return true;
+  const s = normalizeText(search);
+  if (normalizeText(order.cliente_nombre || order.cliente || order.nombre_cliente || "").includes(s)) return true;
+  if (normalizeText(order.proveedor     || "").includes(s)) return true;
+  if (normalizeText(order.numero_orden  || "").includes(s)) return true;
+  if (normalizeText(order.descripcion_producto || "").includes(s)) return true;
+  if (getTrackingList(order).some(t => normalizeText(t).includes(s))) return true;
+  if (parseItemsDetalle(order).some(item => normalizeText(item.descripcion || "").includes(s))) return true;
+  return false;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 // soloConfirmados: legacy — muestra solo warehouse_confirmado
 // soloIncidencias: muestra solo warehouse_incidencia = true
 export default function OperativoTable({ onOpenPackage, soloConfirmados = false, soloIncidencias = false }) {
@@ -167,14 +216,15 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
   }
 
   const dataset = data.filter((c) => {
-    // Filtro incidencias
-    if (soloIncidencias) return !!c.warehouse_incidencia;
-
-    // Filtro warehouse: pendientes vs confirmados (legacy soloConfirmados)
-    if (soloConfirmados && !c.warehouse_confirmado) return false;
-    if (!soloConfirmados && c.warehouse_confirmado)  return false;
-    // Confirmaciones: excluir órdenes con incidencia activa
-    if (!soloConfirmados && c.warehouse_incidencia)  return false;
+    // Filtro de modo
+    if (soloIncidencias) {
+      if (!c.warehouse_incidencia) return false;
+    } else if (soloConfirmados) {
+      if (!c.warehouse_confirmado) return false;
+    } else {
+      if (c.warehouse_confirmado) return false;
+      if (c.warehouse_incidencia) return false;
+    }
 
     // Filtro por fecha exacta (contra created_at)
     if (fechaFiltro) {
@@ -184,15 +234,8 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
       if (fechaRegistro !== fechaFiltro) return false;
     }
 
-    // Filtro texto
-    const texto = search.toLowerCase();
-    return (
-      (c.cliente_nombre || c.cliente || c.nombre_cliente || "").toLowerCase().includes(texto) ||
-      (c.tracking_number || c.tracking || "").toLowerCase().includes(texto) ||
-      (c.tracking_items || "").toLowerCase().includes(texto) ||
-      (c.numero_orden || "").toLowerCase().includes(texto) ||
-      (c.descripcion_producto || "").toLowerCase().includes(texto)
-    );
+    // Filtro texto — cubre orden + todos los ítems y sus trackings
+    return orderMatchesSearch(c, search);
   });
 
   if (loading) {
@@ -258,13 +301,15 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
       {/* Cards */}
       <div className="flex flex-col gap-3">
         {dataset.map((c) => {
-          const tracking = c.tracking_number || c.tracking;
-          const cliente  = c.cliente_nombre  || c.cliente || c.nombre_cliente;
-          const producto = c.descripcion_producto || c.producto;
-          const fProv    = c.fecha_entrega_proveedor
+          const tracking    = c.tracking_number || c.tracking;
+          const cliente     = c.cliente_nombre  || c.cliente || c.nombre_cliente;
+          const producto    = c.descripcion_producto || c.producto;
+          const fProv       = c.fecha_entrega_proveedor
             ? c.fecha_entrega_proveedor.split("T")[0].split("-").reverse().join("/")
             : null;
-          const hasBody  = !!(producto || fProv);
+          const hasBody     = !!(producto || fProv);
+          const trackings   = getTrackingList(c);
+          const searchLower = search.toLowerCase();
 
           // Indicador warehouse — campos opcionales según respuesta del API
           const wCount = c.warehouse_count ?? null;
@@ -424,19 +469,28 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
               {/* ZONA C — Footer: tracking + acción */}
               <div className="px-4 py-2.5 flex items-center justify-between gap-3"
                 style={{ background: "var(--surface-2)", borderTop: "1px solid var(--border)" }}>
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                   <span className="text-[10px] font-bold uppercase tracking-wider flex-shrink-0" style={{ color: "var(--text-3)" }}>
                     Tracking
                   </span>
-                  {tracking ? (
-                    <span className="font-mono text-xs px-2 py-0.5 rounded-lg truncate max-w-[180px] sm:max-w-[260px]"
-                      style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
-                      {tracking}
-                    </span>
-                  ) : (
+                  {trackings.length === 0 ? (
                     <span className="text-xs italic" style={{ color: "var(--text-3)" }}>
                       Sin tracking
                     </span>
+                  ) : (
+                    trackings.map(t => {
+                      const hit = matchesSearch(t, searchLower);
+                      return (
+                        <span key={t}
+                          className="font-mono text-xs px-2 py-0.5 rounded-lg"
+                          style={hit
+                            ? { background: "var(--success-soft)", border: "1px solid var(--success)", color: "var(--success)", fontWeight: 700 }
+                            : { background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-2)" }
+                          }>
+                          {t}
+                        </span>
+                      );
+                    })
                   )}
                 </div>
 
