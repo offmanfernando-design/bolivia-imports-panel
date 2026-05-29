@@ -45,7 +45,7 @@ export default function PackageDrawer({ pkg }) {
   const [events,              setEvents]               = useState([]);
   const [items,               setItems]                = useState([]);
   const [fotos,               setFotos]                = useState([]);
-  const [selectedItemId,      setSelectedItemId]       = useState(null);
+  const [selectedItemIds,     setSelectedItemIds]      = useState(new Set());
 
   const [localPkg,            setLocalPkg]             = useState(pkg);
   const [warehouseFechaInput, setWarehouseFechaInput]  = useState(
@@ -65,7 +65,7 @@ export default function PackageDrawer({ pkg }) {
   /* Resetear estado al cambiar de paquete */
   useEffect(() => {
     setLocalPkg(pkg);
-    setSelectedItemId(null);
+    setSelectedItemIds(new Set());
     setDrawerTab("resumen");
     setWarehouseFechaInput(
       pkg?.warehouse_fecha ? new Date(pkg.warehouse_fecha).toISOString().split("T")[0] : ""
@@ -136,7 +136,9 @@ export default function PackageDrawer({ pkg }) {
       setLoadingUpload(true);
       const formData = new FormData();
       formData.append("file", warehouseImage);
-      if (selectedItemId)      formData.append("item_id",         selectedItemId);
+      if (selectedItemIds.size > 0) {
+        formData.append("item_ids", [...selectedItemIds].join(","));
+      }
       if (warehouseFechaInput) formData.append("warehouse_fecha", warehouseFechaInput);
 
       const res    = await fetch(`${API_URL}/compras/${localPkg.id}/warehouse`, { method: "PATCH", body: formData });
@@ -154,7 +156,7 @@ export default function PackageDrawer({ pkg }) {
         await loadItems(localPkg.id);
         await loadFotos(localPkg.id);
         setWarehouseImage(null);
-        setSelectedItemId(null);
+        setSelectedItemIds(new Set());
         if (result.data.warehouse_fecha) {
           setWarehouseFechaInput(new Date(result.data.warehouse_fecha).toISOString().split("T")[0]);
         }
@@ -455,13 +457,13 @@ export default function PackageDrawer({ pkg }) {
             {items.length > 0 && (
               <Section title="Asociar foto a ítem">
                 <p className="text-xs -mt-1" style={{ color: "var(--text-3)" }}>
-                  Usa "General" si la imagen muestra toda la orden.
+                  Selecciona uno o varios ítems. "General" asocia la foto a toda la orden.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setSelectedItemId(null)}
+                    onClick={() => setSelectedItemIds(new Set())}
                     className="px-3 py-1.5 text-xs rounded-lg border transition-all font-medium"
-                    style={selectedItemId === null
+                    style={selectedItemIds.size === 0
                       ? { background: "var(--accent)", color: "#fff", borderColor: "var(--accent)" }
                       : { background: "transparent", color: "var(--text-2)", borderColor: "var(--border)" }
                     }>
@@ -470,9 +472,13 @@ export default function PackageDrawer({ pkg }) {
                   {items.map(it => (
                     <button
                       key={it.id}
-                      onClick={() => setSelectedItemId(it.id)}
+                      onClick={() => setSelectedItemIds(prev => {
+                        const next = new Set(prev);
+                        next.has(it.id) ? next.delete(it.id) : next.add(it.id);
+                        return next;
+                      })}
                       className="px-3 py-1.5 text-xs rounded-lg border transition-all font-medium"
-                      style={selectedItemId === it.id
+                      style={selectedItemIds.has(it.id)
                         ? { background: "var(--accent)", color: "#fff", borderColor: "var(--accent)" }
                         : { background: "transparent", color: "var(--text-2)", borderColor: "var(--border)" }
                       }>
@@ -480,6 +486,11 @@ export default function PackageDrawer({ pkg }) {
                     </button>
                   ))}
                 </div>
+                {selectedItemIds.size > 1 && (
+                  <p className="text-xs mt-1" style={{ color: "var(--accent)" }}>
+                    {selectedItemIds.size} ítems seleccionados
+                  </p>
+                )}
               </Section>
             )}
 

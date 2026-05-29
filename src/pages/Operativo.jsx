@@ -7,6 +7,7 @@ import PackageDrawer from "../components/packages/PackageDrawer"
 
 const TABS = [
   { id: "transito",   label: "Confirmaciones" },
+  { id: "topo",       label: "Confirmaciones Topo" },
   { id: "carga",      label: "Carga Bolivia" },
   { id: "inventario", label: "Inventario Bolivia" },
 ]
@@ -62,7 +63,10 @@ export default function Operativo() {
           {/* Contenido del tab activo */}
           <div className="scroll-area p-5">
             {activeTab === "transito" && (
-              <OperativoTable onOpenPackage={openPackage} />
+              <OperativoTable onOpenPackage={openPackage} soloConfirmados={false} />
+            )}
+            {activeTab === "topo" && (
+              <OperativoTable onOpenPackage={openPackage} soloConfirmados={true} />
             )}
             {activeTab === "carga" && (
               <RecepcionCarga onRecepcionRegistrada={() => setInventarioReloadKey(k => k + 1)} />

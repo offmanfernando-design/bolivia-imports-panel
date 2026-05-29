@@ -22,10 +22,12 @@ function getEstadoBadgeType(estado) {
   }
 }
 
-export default function OperativoTable({ onOpenPackage }) {
-  const [data,    setData]    = useState([]);
-  const [search,  setSearch]  = useState("");
-  const [loading, setLoading] = useState(true);
+// soloConfirmados: true → muestra solo warehouse_confirmado; false/undefined → solo pendientes
+export default function OperativoTable({ onOpenPackage, soloConfirmados = false }) {
+  const [data,        setData]        = useState([]);
+  const [search,      setSearch]      = useState("");
+  const [fechaFiltro, setFechaFiltro] = useState("");
+  const [loading,     setLoading]     = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -43,6 +45,19 @@ export default function OperativoTable({ onOpenPackage }) {
   }, []);
 
   const dataset = data.filter((c) => {
+    // Filtro warehouse: pendientes vs confirmados
+    if (soloConfirmados && !c.warehouse_confirmado) return false;
+    if (!soloConfirmados && c.warehouse_confirmado)  return false;
+
+    // Filtro por fecha exacta (contra created_at)
+    if (fechaFiltro) {
+      const fechaRegistro = c.created_at
+        ? new Date(c.created_at).toLocaleDateString("en-CA")
+        : "";
+      if (fechaRegistro !== fechaFiltro) return false;
+    }
+
+    // Filtro texto
     const texto = search.toLowerCase();
     return (
       (c.cliente_nombre || c.cliente || c.nombre_cliente || "").toLowerCase().includes(texto) ||
@@ -76,14 +91,33 @@ export default function OperativoTable({ onOpenPackage }) {
         </span>
       </div>
 
-      {/* Buscador */}
-      <input
-        type="text"
-        placeholder="Buscar cliente, tracking..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="ui-input max-w-md"
-      />
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <input
+          type="text"
+          placeholder="Buscar cliente, tracking..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="ui-input max-w-xs flex-1"
+        />
+        <input
+          type="date"
+          value={fechaFiltro}
+          onChange={(e) => setFechaFiltro(e.target.value)}
+          className="ui-input"
+          style={{ maxWidth: "180px" }}
+          title="Filtrar por fecha de registro"
+        />
+        {fechaFiltro && (
+          <button
+            onClick={() => setFechaFiltro("")}
+            className="ui-button-ghost ui-button-sm"
+            style={{ color: "var(--text-3)" }}
+          >
+            ✕ fecha
+          </button>
+        )}
+      </div>
 
       {/* Estado vacío */}
       {dataset.length === 0 && (
