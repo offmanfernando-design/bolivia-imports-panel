@@ -542,15 +542,20 @@ export default function PackageDrawer({ pkg }) {
               <Section title="Fotos registradas">
                 <div className="flex flex-wrap gap-3">
                   {fotos.map(foto => (
-                    <img
-                      key={foto.id}
-                      src={foto.url}
-                      alt="warehouse"
-                      onClick={() => window.open(foto.url, "_blank")}
-                      title={foto.item_id ? "Foto de ítem" : "Foto general"}
-                      className="h-24 w-24 object-cover rounded-xl cursor-pointer hover:opacity-80 hover:scale-105 transition-all duration-150"
-                      style={{ border: "1px solid var(--border)" }}
-                    />
+                    <div key={foto.id} className="flex flex-col items-center gap-1">
+                      <img
+                        src={foto.url}
+                        alt="warehouse"
+                        onClick={() => window.open(foto.url, "_blank")}
+                        className="h-24 w-24 object-cover rounded-xl cursor-pointer hover:opacity-80 hover:scale-105 transition-all duration-150"
+                        style={{ border: "1px solid var(--border)" }}
+                      />
+                      <span className="text-[10px] text-center" style={{ color: "var(--text-3)" }}>
+                        {foto.item_count > 0
+                          ? `${foto.item_count} ítem${foto.item_count !== 1 ? "s" : ""}`
+                          : "General"}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </Section>
