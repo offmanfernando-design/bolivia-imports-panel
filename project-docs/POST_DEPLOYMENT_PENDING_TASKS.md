@@ -115,6 +115,39 @@
 
 ---
 
+## Seguridad
+
+### Cloudflare Access — estado actual
+
+- [x] Cloudflare Access activado para el panel interno.  
+  Dominio protegido: `https://app.bolivia-import.com`  
+  Aplicación: **Bolivia Imports Panel**  
+  Política: **Acceso panel interno**  
+  Método: One-time PIN por email  
+  Estado: activo y validado en navegador incógnito.
+
+**Dominios que NO están protegidos con Access (intencional):**
+
+| Dominio | Motivo |
+|---|---|
+| `https://envio.bolivia-import.com` | Formulario público para clientes — debe ser accesible sin login |
+| `https://api.bolivia-import.com` | No se protege todavía para no romper fetch/CORS del panel y formulario |
+| `https://archivos.bolivia-import.com` | Pendiente de revisión según permisos finales de R2 |
+
+### Login interno — pendiente
+
+- [ ] Implementar autenticación interna en backend/frontend.
+  - [ ] Crear tabla de usuarios en DB.
+  - [ ] Guardar contraseñas con hash seguro (bcrypt o argon2).
+  - [ ] Crear endpoint `POST /api/auth/login`.
+  - [ ] Agregar middleware de autenticación para rutas privadas.
+  - [ ] Definir roles internos si aplica (admin, operador, etc.).
+- [ ] Mantener Cloudflare Access como primera capa externa mientras se implementa el login.
+- [ ] Evaluar proteger `https://api.bolivia-import.com` con Access una vez que el login interno esté listo.
+- [ ] Revisar política de acceso a `https://archivos.bolivia-import.com` (R2 público vs privado).
+
+---
+
 ## Validaciones periódicas rápidas
 
 ### API
