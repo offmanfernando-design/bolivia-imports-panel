@@ -415,9 +415,14 @@ export default function PackageDrawer({ pkg }) {
                       className="flex items-center justify-between text-sm rounded-xl px-4 py-2.5"
                       style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                       <span className="truncate pr-3" style={{ color: "var(--text-2)" }}>{it.descripcion}</span>
-                      <Badge type={it.warehouse_confirmado ? "success" : "default"}>
-                        {it.warehouse_confirmado ? "Confirmado" : "Pendiente"}
-                      </Badge>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-[11px] tabular-nums" style={{ color: "var(--text-3)" }}>
+                          {fmtDate(it.warehouse_fecha) ?? "—"}
+                        </span>
+                        <Badge type={it.warehouse_confirmado ? "success" : "default"}>
+                          {it.warehouse_confirmado ? "Confirmado" : "Pendiente"}
+                        </Badge>
+                      </div>
                     </div>
                   ))}
                 </div>
