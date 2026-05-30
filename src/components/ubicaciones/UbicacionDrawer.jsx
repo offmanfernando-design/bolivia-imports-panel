@@ -58,7 +58,6 @@ function ItemCard({ item }) {
   const hasOperativo   =
     item.categoria_nombre ||
     item.recibido_at ||
-    item.fecha_entrega_proveedor ||
     medidaItems.length > 0
 
   return (
@@ -106,7 +105,6 @@ function ItemCard({ item }) {
           <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
             <Campo label="Categoría"     value={item.categoria_nombre} />
             <Campo label="Recibido"      value={formatFecha(item.recibido_at)} />
-            <Campo label="Entrega prov." value={formatFecha(item.fecha_entrega_proveedor)} />
             {medidaItems.map(([label, value]) => (
               <Campo key={label} label={label} value={value} />
             ))}

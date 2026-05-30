@@ -304,10 +304,7 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
           const tracking    = c.tracking_number || c.tracking;
           const cliente     = c.cliente_nombre  || c.cliente || c.nombre_cliente;
           const producto    = c.descripcion_producto || c.producto;
-          const fProv       = c.fecha_entrega_proveedor
-            ? c.fecha_entrega_proveedor.split("T")[0].split("-").reverse().join("/")
-            : null;
-          const hasBody     = !!(producto || fProv);
+          const hasBody     = !!(producto);
           const trackings   = getTrackingList(c);
           const searchLower = search.toLowerCase();
 
@@ -404,14 +401,6 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
                     <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "var(--text-2)" }}>
                       {producto}
                     </p>
-                  )}
-                  {fProv && (
-                    <span className="text-xs" style={{ color: "var(--text-3)" }}>
-                      Entrega estimada prov.{" "}
-                      <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>
-                        {fProv}
-                      </span>
-                    </span>
                   )}
                 </div>
               )}

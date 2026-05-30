@@ -274,6 +274,8 @@ export default function Cobros() {
   const [anulaMotivo, setAnulaMotivo]     = useState("")
   const [anulaLoading, setAnulaLoading]   = useState(false)
   const [anulaError, setAnulaError]       = useState(null)
+  const [revertiendoId, setRevertiendoId] = useState(null)
+  const [revertError, setRevertError]     = useState(null)
   const [expandedClientes, setExpandedClientes] = useState(new Set())
   const [enviandoCliente, setEnviandoCliente]   = useState(null)
   const [expandedDetalles, setExpandedDetalles] = useState(new Set())
@@ -463,6 +465,27 @@ export default function Cobros() {
     setAnulandoId(null)
     setAnulaMotivo("")
     setAnulaError(null)
+  }
+
+  async function revertirCobro(row) {
+    if (!window.confirm("¿Revertir este cobro anulado a pendientes?")) return
+    setRevertiendoId(row.recepcion_id)
+    setRevertError(null)
+    try {
+      const res  = await fetch(`${API_URL}/cobros/items/${row.recepcion_id}/revertir`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      })
+      const json = await res.json()
+      if (!res.ok) { setRevertError(json.error || "Error al revertir"); return }
+      setRowsVoid(prev => prev.filter(r => r.recepcion_id !== row.recepcion_id))
+      await fetchItems(q, fechaDesde, fechaHasta)
+      setTab("pending")
+    } catch {
+      setRevertError("Error de red")
+    } finally {
+      setRevertiendoId(null)
+    }
   }
 
   const pending       = rows.filter(r => r.payment_status === "pending")
@@ -1496,6 +1519,23 @@ export default function Cobros() {
                               </div>
                             ))}
                           </div>
+
+                          {/* Footer: revertir — solo para ítems de recepciones_item (no cobros_anulados) */}
+                          {row.recepcion_id && row.origen_anulacion !== "cobros_anulados" && (
+                            <div style={{ borderTop: "1px solid var(--border)", padding: "10px 18px", display: "flex", alignItems: "center", gap: "8px", borderRadius: "0 0 12px 12px", background: "var(--surface-2)" }}>
+                              {revertError && revertiendoId === null && (
+                                <span style={{ fontSize: "11px", color: "var(--danger)", flex: 1 }}>{revertError}</span>
+                              )}
+                              <button
+                                className="ui-button-ghost ui-button-sm"
+                                style={{ marginLeft: "auto", color: "var(--accent)", fontSize: "11px" }}
+                                disabled={revertiendoId === row.recepcion_id}
+                                onClick={() => revertirCobro(row)}
+                              >
+                                {revertiendoId === row.recepcion_id ? "Revirtiendo…" : "Revertir a pendientes"}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )
                     })}

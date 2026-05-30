@@ -10,7 +10,6 @@ function emptyOrden() {
     comprado_por: "cliente",
     tracking_responsible: "cliente",
     fecha: "",
-    fecha_entrega_proveedor: "",
     cantidadItems: "",
     items: [],
   };
@@ -162,17 +161,6 @@ function OrdenBlock({ orden, idx, total, onChange, onRemove }) {
         />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label className="text-xs" style={{ color: "var(--text-3)" }}>
-          Fecha de entrega proveedor (opcional)
-        </label>
-        <input
-          type="date"
-          value={orden.fecha_entrega_proveedor}
-          onChange={(e) => onChange(idx, "fecha_entrega_proveedor", e.target.value)}
-          className="ui-input"
-        />
-      </div>
     </div>
   );
 }
@@ -587,12 +575,6 @@ export default function Compras() {
         }
       }
 
-      if (o.fecha_entrega_proveedor) {
-        if (isNaN(new Date(o.fecha_entrega_proveedor).getTime())) {
-          alert(`Orden ${n}: fecha entrega proveedor inválida`);
-          return;
-        }
-      }
     }
 
     const payload = {
@@ -608,7 +590,6 @@ export default function Compras() {
         url_orden:                o.url_orden.trim() || null,
         comprado_por:             o.comprado_por,
         tracking_responsible:     o.tracking_responsible,
-        fecha_entrega_proveedor:  o.fecha_entrega_proveedor || null,
         fecha:                    o.fecha || null,
         items: o.items
           .filter((it) => it.descripcion.trim())

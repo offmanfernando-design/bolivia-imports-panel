@@ -618,9 +618,8 @@ function DetalleItem({ row, onClose, onReload, onUpdate }) {
           {/* Fechas del ítem */}
           <Sección titulo="Fechas del ítem">
             <CampoGrid items={[
-              ["Recibido Bolivia",  formatFecha(row.recibido_at),             false],
-              ["Entrega proveedor", formatFecha(row.fecha_entrega_proveedor), false],
-              ["Fecha estimada",    formatFecha(row.fecha_estimada),          false],
+              ["Recibido Bolivia",  formatFecha(row.recibido_at),    false],
+              ["Fecha estimada",    formatFecha(row.fecha_estimada), false],
               ["Warehouse",         formatFecha(row.warehouse_fecha),         false],
               ["Cobro enviado",     formatFechaHora(row.cobro_enviado_at),    false],
               ["Pago registrado",   formatFechaHora(row.paid_at),             false],
@@ -1243,13 +1242,7 @@ export default function InventarioBolivia({ reloadKey = 0 }) {
                             <span className="text-xs" style={{ color: "var(--text-2)" }}>{formatFecha(row.recibido_at)}</span>
                           </div>
                         ) : null}
-                        {row.fecha_entrega_proveedor ? (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>Entrega prov.</span>
-                            <span className="text-xs" style={{ color: "var(--text-3)" }}>{formatFecha(row.fecha_entrega_proveedor)}</span>
-                          </div>
-                        ) : null}
-                        {!formatFecha(row.recibido_at) && !row.fecha_entrega_proveedor && (
+                        {!formatFecha(row.recibido_at) && (
                           <span className="text-xs" style={{ color: "var(--border-strong)" }}>—</span>
                         )}
                       </td>

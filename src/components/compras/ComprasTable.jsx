@@ -262,7 +262,6 @@ export default function ComprasTable({ reload }) {
       fecha_estimada:          compra.fecha_estimada ? compra.fecha_estimada.split("T")[0] : "",
       descripcion_producto:    compra.descripcion_producto || "",
       comprado_por:            compra.comprado_por || "cliente",
-      fecha_entrega_proveedor: compra.fecha_entrega_proveedor ? compra.fecha_entrega_proveedor.split("T")[0] : "",
       tracking_responsible:    compra.tracking_responsible || compra.comprado_por || "cliente",
     });
     setEditError("");
@@ -286,7 +285,6 @@ export default function ComprasTable({ reload }) {
           fecha_estimada:          editForm.fecha_estimada || null,
           descripcion_producto:    editForm.descripcion_producto.trim() || null,
           comprado_por:            editForm.comprado_por,
-          fecha_entrega_proveedor: editForm.fecha_entrega_proveedor || null,
           tracking_responsible:    editForm.tracking_responsible,
         }),
       });
@@ -304,7 +302,6 @@ export default function ComprasTable({ reload }) {
           fecha_estimada:          json.data.fecha_estimada,
           descripcion_producto:    json.data.descripcion_producto,
           comprado_por:            json.data.comprado_por,
-          fecha_entrega_proveedor: json.data.fecha_entrega_proveedor,
           tracking_responsible:    json.data.tracking_responsible,
         };
       }));
@@ -778,8 +775,7 @@ export default function ComprasTable({ reload }) {
         const c0expanded = expandedId === c0.id;
         const c0hasMulti = c0.item_count > 1;
         const c0est      = c0.fecha_estimada    ? c0.fecha_estimada.split("T")[0].split("-").reverse().join("/")    : null;
-        const c0prov     = c0.fecha_entrega_proveedor ? c0.fecha_entrega_proveedor.split("T")[0].split("-").reverse().join("/") : null;
-        const c0hasBody  = !!(c0.descripcion_producto || c0est || c0prov);
+        const c0hasBody  = !!(c0.descripcion_producto || c0est);
 
         return (
           <div key={grupo.key}>
@@ -879,21 +875,11 @@ export default function ComprasTable({ reload }) {
                           {c0.descripcion_producto}
                         </p>
                       )}
-                      {(c0est || c0prov) && (
-                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
-                          {c0est && (
-                            <span style={{ color: "var(--text-3)" }}>
-                              Fecha compra{" "}
-                              <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{c0est}</span>
-                            </span>
-                          )}
-                          {c0prov && (
-                            <span style={{ color: "var(--text-3)" }}>
-                              Entrega estimada prov.{" "}
-                              <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{c0prov}</span>
-                            </span>
-                          )}
-                        </div>
+                      {c0est && (
+                        <span className="text-xs" style={{ color: "var(--text-3)" }}>
+                          Fecha compra{" "}
+                          <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{c0est}</span>
+                        </span>
                       )}
                     </div>
                   )}
@@ -947,8 +933,7 @@ export default function ComprasTable({ reload }) {
                     const isExp   = expandedId === compra.id;
                     const hasMulti = compra.item_count > 1;
                     const fEst    = compra.fecha_estimada    ? compra.fecha_estimada.split("T")[0].split("-").reverse().join("/")    : null;
-                    const fProv   = compra.fecha_entrega_proveedor ? compra.fecha_entrega_proveedor.split("T")[0].split("-").reverse().join("/") : null;
-                    const hasBody = !!(compra.descripcion_producto || fEst || fProv);
+                    const hasBody = !!(compra.descripcion_producto || fEst);
 
                     return (
                       <div key={compra.id}>
@@ -1010,21 +995,11 @@ export default function ComprasTable({ reload }) {
                                   {compra.descripcion_producto}
                                 </p>
                               )}
-                              {(fEst || fProv) && (
-                                <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
-                                  {fEst && (
-                                    <span style={{ color: "var(--text-3)" }}>
-                                      Fecha compra{" "}
-                                      <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{fEst}</span>
-                                    </span>
-                                  )}
-                                  {fProv && (
-                                    <span style={{ color: "var(--text-3)" }}>
-                                      Entrega estimada prov.{" "}
-                                      <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{fProv}</span>
-                                    </span>
-                                  )}
-                                </div>
+                              {fEst && (
+                                <span className="text-xs" style={{ color: "var(--text-3)" }}>
+                                  Fecha compra{" "}
+                                  <span className="font-medium tabular-nums" style={{ color: "var(--text-2)" }}>{fEst}</span>
+                                </span>
                               )}
                             </div>
                           )}
@@ -1129,8 +1104,7 @@ export default function ComprasTable({ reload }) {
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: "Fecha compra",       key: "fecha_estimada" },
-                    { label: "Entrega est. prov.", key: "fecha_entrega_proveedor" },
+                    { label: "Fecha compra", key: "fecha_estimada" },
                   ].map(({ label, key }) => (
                     <div key={key}>
                       <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--text-3)" }}>

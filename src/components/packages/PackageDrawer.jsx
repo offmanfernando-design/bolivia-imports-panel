@@ -55,13 +55,6 @@ export default function PackageDrawer({ pkg }) {
   const [savingWfecha,        setSavingWfecha]         = useState(false);
   const [wfechaError,         setWfechaError]          = useState("");
 
-  const [fechaEntregaProvInput, setFechaEntregaProvInput] = useState(
-    pkg?.fecha_entrega_proveedor
-      ? new Date(pkg.fecha_entrega_proveedor).toISOString().split("T")[0]
-      : ""
-  );
-  const [savingFep,  setSavingFep]  = useState(false);
-  const [fepError,   setFepError]   = useState("");
 
   /* Resetear estado al cambiar de paquete */
   useEffect(() => {
@@ -71,12 +64,6 @@ export default function PackageDrawer({ pkg }) {
     setWarehouseFechaInput(
       pkg?.warehouse_fecha ? new Date(pkg.warehouse_fecha).toISOString().split("T")[0] : ""
     );
-    setFechaEntregaProvInput(
-      pkg?.fecha_entrega_proveedor
-        ? new Date(pkg.fecha_entrega_proveedor).toISOString().split("T")[0]
-        : ""
-    );
-    setFepError("");
     setWfechaError("");
   }, [pkg]);
 
@@ -186,26 +173,6 @@ export default function PackageDrawer({ pkg }) {
       setLocalPkg(prev => ({ ...prev, warehouse_fecha: json.data.warehouse_fecha }));
     } catch (err) { setWfechaError(err.message || "Error guardando fecha"); }
     finally { setSavingWfecha(false); }
-  }
-
-  async function guardarFechaEntregaProveedor() {
-    setSavingFep(true);
-    setFepError("");
-    try {
-      const res  = await fetch(`${API_URL}/compras/${localPkg.id}`, {
-        method:  "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          proveedor:               localPkg.proveedor,
-          numero_orden:            localPkg.numero_orden,
-          fecha_entrega_proveedor: fechaEntregaProvInput || null,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.ok) throw new Error(json.error || "Error al guardar fecha");
-      setLocalPkg(prev => ({ ...prev, fecha_entrega_proveedor: json.data.fecha_entrega_proveedor }));
-    } catch (err) { setFepError(err.message || "Error guardando fecha"); }
-    finally { setSavingFep(false); }
   }
 
   const wConfirmados = items.filter(i => i.warehouse_confirmado).length;
@@ -344,27 +311,14 @@ export default function PackageDrawer({ pkg }) {
             </Section>
 
             {/* Fechas */}
-            {(localPkg.warehouse_fecha || localPkg.fecha_entrega_proveedor) && (
+            {localPkg.warehouse_fecha && (
               <Section title="Fechas">
-                <div className="flex flex-wrap gap-4">
-                  {localPkg.warehouse_fecha && (
-                    <div className="flex flex-col gap-1 px-4 py-3 rounded-xl min-w-[140px]"
-                      style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-3)" }}>
-                        Llegada warehouse
-                      </p>
-                      <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{fmtDate(localPkg.warehouse_fecha)}</p>
-                    </div>
-                  )}
-                  {localPkg.fecha_entrega_proveedor && (
-                    <div className="flex flex-col gap-1 px-4 py-3 rounded-xl min-w-[140px]"
-                      style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-3)" }}>
-                        Entrega proveedor
-                      </p>
-                      <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{fmtDate(localPkg.fecha_entrega_proveedor)}</p>
-                    </div>
-                  )}
+                <div className="flex flex-col gap-1 px-4 py-3 rounded-xl min-w-[140px]"
+                  style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-3)" }}>
+                    Llegada warehouse
+                  </p>
+                  <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{fmtDate(localPkg.warehouse_fecha)}</p>
                 </div>
               </Section>
             )}
@@ -445,18 +399,6 @@ export default function PackageDrawer({ pkg }) {
                   </div>
                 )}
                 {wfechaError && <p className="text-xs text-red-500">{wfechaError}</p>}
-              </div>
-            </Section>
-
-            <Section title="Entrega proveedor (Amazon / UPS / FedEx)">
-              <div className="flex flex-col gap-3 p-4 rounded-xl" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <input type="date" value={fechaEntregaProvInput}
-                    onChange={e => setFechaEntregaProvInput(e.target.value)}
-                    className="ui-input flex-1 max-w-[200px]" />
-                  <SaveBtn onClick={guardarFechaEntregaProveedor} saving={savingFep} />
-                </div>
-                {fepError && <p className="text-xs text-red-500">{fepError}</p>}
               </div>
             </Section>
 
