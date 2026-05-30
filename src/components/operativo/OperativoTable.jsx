@@ -56,6 +56,27 @@ function fmtIncFecha(iso) {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// Formatea "YYYY-MM-DD" o ISO sin desfase de timezone
+function fmtDateOnly(value) {
+  if (!value) return null;
+  const s = (typeof value === "string" ? value : "").split("T")[0];
+  if (!s) return null;
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return null;
+  return `${d}/${m}/${y}`;
+}
+
+// Días transcurridos desde una fecha "YYYY-MM-DD" (usa UTC para evitar desfase)
+function daysSince(dateStr) {
+  if (!dateStr) return 0;
+  const base = (typeof dateStr === "string" ? dateStr : "").split("T")[0];
+  if (!base) return 0;
+  const [y, m, d] = base.split("-").map(Number);
+  const then  = Date.UTC(y, m - 1, d);
+  const today = Date.UTC(...([new Date().getFullYear(), new Date().getMonth(), new Date().getDate()]));
+  return Math.max(0, Math.floor((today - then) / 86400000));
+}
+
 // ─── helpers de búsqueda ────────────────────────────────────────────────────
 
 function normalizeText(val) {
@@ -218,7 +239,16 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
   const dataset = data.filter((c) => {
     // Filtro de modo
     if (soloIncidencias) {
-      if (!c.warehouse_incidencia) return false;
+      if (!c.warehouse_incidencia) {
+        // Incluir órdenes con atraso proveedor > 5 días como incidencia sugerida
+        const hasAtraso = parseItemsDetalle(c).some(item =>
+          item.proveedor_confirmo_entrega &&
+          item.fecha_entrega_proveedor &&
+          !item.warehouse_confirmado &&
+          daysSince(item.fecha_entrega_proveedor) > 5
+        );
+        if (!hasAtraso) return false;
+      }
     } else if (soloConfirmados) {
       if (!c.warehouse_confirmado) return false;
     } else {
@@ -309,10 +339,16 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
           const searchLower = search.toLowerCase();
 
           // Indicador warehouse — calculado desde items_detalle para reflejo exacto
-          const wItems     = parseItemsDetalle(c);
-          const totalItems = wItems.length;
-          const wConfirmed = wItems.filter(i => i.warehouse_confirmado).length;
-          const wPending   = totalItems - wConfirmed;
+          const wItems       = parseItemsDetalle(c);
+          const totalItems   = wItems.length;
+          const wConfirmed   = wItems.filter(i => i.warehouse_confirmado).length;
+          const wPending     = totalItems - wConfirmed;
+          const atrasadosItems = wItems.filter(item =>
+            item.proveedor_confirmo_entrega &&
+            item.fecha_entrega_proveedor &&
+            !item.warehouse_confirmado &&
+            daysSince(item.fecha_entrega_proveedor) > 5
+          );
 
           // Fallback si la orden no tiene items_detalle
           const wOk = c.warehouse_confirmado ?? null;
@@ -410,9 +446,9 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
                 <div className="px-4 py-2.5 flex flex-col gap-1.5" style={{ background: "var(--surface)" }}>
                   {wItems.map((item, idx) => {
                     const trkMatch  = item.tracking_number && matchesSearch(item.tracking_number, searchLower);
-                    const provFecha = item.fecha_entrega_proveedor
-                      ? new Date(item.fecha_entrega_proveedor).toLocaleDateString("es-BO", { day: "2-digit", month: "2-digit", year: "numeric" })
-                      : null;
+                    const provFecha = fmtDateOnly(item.fecha_entrega_proveedor);
+                    const atraso    = item.proveedor_confirmo_entrega && !item.warehouse_confirmado
+                                    && daysSince(item.fecha_entrega_proveedor) > 5;
                     return (
                       <div key={item.id ?? idx} className="flex items-start justify-between gap-3 text-xs">
                         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -423,6 +459,11 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
                             style={{ color: item.proveedor_confirmo_entrega ? "var(--success)" : "var(--text-3)" }}>
                             Prov.: {item.proveedor_confirmo_entrega ? (provFecha ?? "confirmado") : "—"}
                           </span>
+                          {atraso && (
+                            <span className="text-[10px] font-semibold" style={{ color: "var(--danger)" }}>
+                              Proveedor entregó hace +5 días · Warehouse pendiente
+                            </span>
+                          )}
                         </div>
                         <span
                           className="font-mono flex-shrink-0 px-1.5 py-0.5 rounded"
@@ -478,6 +519,27 @@ export default function OperativoTable({ onOpenPackage, soloConfirmados = false,
                       Cierre: {fmtIncFecha(c.warehouse_incidencia_resuelta_at)}
                     </span>
                   )}
+                </div>
+              )}
+
+              {/* ZONA B2b — Incidencia sugerida por atraso de proveedor */}
+              {soloIncidencias && !c.warehouse_incidencia && atrasadosItems.length > 0 && (
+                <div className="px-4 py-3 flex flex-col gap-1.5"
+                  style={{ background: "var(--danger-soft)", borderTop: "1px solid var(--border)" }}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: "var(--danger)", color: "#fff" }}>
+                      Incidencia sugerida
+                    </span>
+                    <span className="text-[10px]" style={{ color: "var(--danger)" }}>
+                      Atraso proveedor +5 días · warehouse pendiente
+                    </span>
+                  </div>
+                  {atrasadosItems.map((item, i) => (
+                    <p key={item.id ?? i} className="text-[11px]" style={{ color: "var(--text-2)" }}>
+                      {item.descripcion} · {fmtDateOnly(item.fecha_entrega_proveedor)} · {daysSince(item.fecha_entrega_proveedor)}d de atraso
+                    </p>
+                  ))}
                 </div>
               )}
 

@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 
-function fmtDate(iso) {
-  if (!iso) return null;
-  const d = new Date(iso);
-  const p = n => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
+// Formatea "YYYY-MM-DD" o ISO sin desfase de timezone
+function fmtDateOnly(value) {
+  if (!value) return null;
+  const s = (typeof value === "string" ? value : "").split("T")[0];
+  if (!s) return null;
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return null;
+  return `${d}/${m}/${y}`;
 }
 
 function parseItems(order) {
@@ -71,7 +74,7 @@ function ItemRow({ item, ordenId, onUpdated }) {
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[11px] font-semibold"
           style={{ color: confirmado ? "var(--success)" : "var(--text-3)" }}>
-          {confirmado ? `Proveedor entregó · ${fmtDate(item.fecha_entrega_proveedor) ?? "—"}` : "Pendiente proveedor"}
+          {confirmado ? `Proveedor entregó · ${fmtDateOnly(item.fecha_entrega_proveedor) ?? "—"}` : "Pendiente proveedor"}
         </span>
       </div>
 
@@ -146,18 +149,26 @@ export default function EntregasProveedorTable() {
 
   const s = search.toLowerCase();
   const filtered = data.filter(c => {
-    if (!s) return true;
+    // Solo órdenes con al menos un ítem pendiente de confirmar proveedor
     const items = parseItems(c);
+    if (!items.some(it => !it.proveedor_confirmo_entrega)) return false;
+    if (!s) return true;
     return (
       (c.cliente_nombre || "").toLowerCase().includes(s) ||
       (c.proveedor      || "").toLowerCase().includes(s) ||
       (c.numero_orden   || "").toLowerCase().includes(s) ||
       items.some(it =>
-        (it.tracking_number || "").toLowerCase().includes(s) ||
-        (it.descripcion     || "").toLowerCase().includes(s)
+        !it.proveedor_confirmo_entrega && (
+          (it.tracking_number || "").toLowerCase().includes(s) ||
+          (it.descripcion     || "").toLowerCase().includes(s)
+        )
       )
     );
   });
+
+  const totalPendingItems = filtered.reduce(
+    (sum, c) => sum + parseItems(c).filter(it => !it.proveedor_confirmo_entrega).length, 0
+  );
 
   if (loading) {
     return (
@@ -178,7 +189,7 @@ export default function EntregasProveedorTable() {
           Entregas Proveedor
         </h3>
         <span className="text-xs tabular-nums" style={{ color: "var(--text-3)" }}>
-          {filtered.length} {filtered.length === 1 ? "orden" : "órdenes"}
+          {totalPendingItems} ítem{totalPendingItems !== 1 ? "s" : ""} pendientes
         </span>
       </div>
 
@@ -202,8 +213,9 @@ export default function EntregasProveedorTable() {
       {/* Tarjetas */}
       <div className="flex flex-col gap-4">
         {filtered.map(c => {
-          const items   = parseItems(c);
-          const cliente = c.cliente_nombre || c.cliente || c.nombre_cliente;
+          const items        = parseItems(c);
+          const pendingItems = items.filter(it => !it.proveedor_confirmo_entrega);
+          const cliente      = c.cliente_nombre || c.cliente || c.nombre_cliente;
 
           const totalItems = items.length;
           const entregados = items.filter(i => i.proveedor_confirmo_entrega).length;
@@ -241,6 +253,13 @@ export default function EntregasProveedorTable() {
                           SOL: {c.codigo_solicitud}
                         </span>
                       )}
+                      {c.url_orden && (
+                        <a href={c.url_orden} target="_blank" rel="noopener noreferrer"
+                          className="text-[11px] hover:underline transition-colors"
+                          style={{ color: "var(--accent)" }}>
+                          Abrir link
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>
@@ -264,10 +283,10 @@ export default function EntregasProveedorTable() {
                 )}
               </div>
 
-              {/* Ítems */}
-              {items.length > 0 ? (
+              {/* Ítems pendientes */}
+              {pendingItems.length > 0 ? (
                 <div className="px-4 py-3 flex flex-col gap-2">
-                  {items.map((item, idx) => (
+                  {pendingItems.map((item, idx) => (
                     <ItemRow
                       key={item.id ?? idx}
                       item={item}
