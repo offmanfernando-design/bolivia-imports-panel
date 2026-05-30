@@ -7,15 +7,15 @@ import Drawer from "../components/ui/Drawer"
 import PackageDrawer from "../components/packages/PackageDrawer"
 
 const TABS = [
+  { id: "entregas_proveedor", label: "Entregas Proveedor" },
   { id: "transito",           label: "Confirmaciones" },
   { id: "incidencias",        label: "Incidencias Warehouse" },
-  { id: "entregas_proveedor", label: "Entregas Proveedor" },
   { id: "carga",              label: "Carga Bolivia" },
   { id: "inventario",         label: "Inventario Bolivia" },
 ]
 
 export default function Operativo() {
-  const [activeTab,          setActiveTab]          = useState("transito")
+  const [activeTab,          setActiveTab]          = useState("entregas_proveedor")
   const [selectedPackage,    setSelectedPackage]    = useState(null)
   const [drawerOpen,         setDrawerOpen]         = useState(false)
   const [inventarioReloadKey, setInventarioReloadKey] = useState(0)

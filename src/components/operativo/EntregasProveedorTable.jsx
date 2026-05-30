@@ -204,9 +204,6 @@ export default function EntregasProveedorTable() {
         {filtered.map(c => {
           const items   = parseItems(c);
           const cliente = c.cliente_nombre || c.cliente || c.nombre_cliente;
-          const fProv   = c.fecha_entrega_proveedor
-            ? c.fecha_entrega_proveedor.split("T")[0].split("-").reverse().join("/")
-            : null;
 
           const totalItems = items.length;
           const entregados = items.filter(i => i.proveedor_confirmo_entrega).length;
@@ -245,11 +242,6 @@ export default function EntregasProveedorTable() {
                         </span>
                       )}
                     </div>
-                  )}
-                  {fProv && (
-                    <span className="text-[11px]" style={{ color: "var(--text-3)" }}>
-                      Est. proveedor (orden): {fProv}
-                    </span>
                   )}
                 </div>
 

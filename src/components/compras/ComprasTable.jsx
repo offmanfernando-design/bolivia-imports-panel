@@ -382,7 +382,9 @@ export default function ComprasTable({ reload }) {
       c.cliente_nombre?.toLowerCase().includes(texto) ||
       c.descripcion_producto?.toLowerCase().includes(texto) ||
       c.proveedor?.toLowerCase().includes(texto) ||
-      c.numero_orden?.toLowerCase().includes(texto)
+      c.numero_orden?.toLowerCase().includes(texto) ||
+      c.tracking_number?.toLowerCase().includes(texto) ||
+      c.single_item_tracking?.toLowerCase().includes(texto)
     );
   });
 
@@ -844,14 +846,10 @@ export default function ComprasTable({ reload }) {
                     <Badge type={c0.comprado_por === "empresa" ? "empresa" : "default"}>
                       {c0.comprado_por === "empresa" ? "Empresa" : "Cliente"}
                     </Badge>
-                    <select value={c0.estado || "reparto"}
-                      onChange={e => cambiarEstado(c0.id, e.target.value)}
-                      className="px-2.5 py-1 rounded-full text-xs font-semibold border-none outline-none cursor-pointer hover:opacity-80 transition-opacity"
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
                       style={getEstadoStyle(c0.estado || "reparto")}>
-                      <option value="reparto">En Reparto</option>
-                      <option value="warehouse">En Warehouse</option>
-                      <option value="recibido">En Bolivia</option>
-                    </select>
+                      {c0.estado === "warehouse" ? "En Warehouse" : c0.estado === "recibido" ? "En Bolivia" : "En Reparto"}
+                    </span>
                     <button onClick={() => abrirEditar(c0)} title="Editar orden"
                       className="p-1.5 rounded-lg transition-colors"
                       style={{ color: "var(--text-3)" }}
@@ -969,14 +967,10 @@ export default function ComprasTable({ reload }) {
                               <Badge type={compra.comprado_por === "empresa" ? "empresa" : "default"}>
                                 {compra.comprado_por === "empresa" ? "Empresa" : "Cliente"}
                               </Badge>
-                              <select value={compra.estado || "reparto"}
-                                onChange={e => cambiarEstado(compra.id, e.target.value)}
-                                className="px-2 py-0.5 rounded-full text-xs font-semibold border-none outline-none cursor-pointer hover:opacity-80 transition-opacity"
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold"
                                 style={getEstadoStyle(compra.estado || "reparto")}>
-                                <option value="reparto">En Reparto</option>
-                                <option value="warehouse">En Warehouse</option>
-                                <option value="recibido">En Bolivia</option>
-                              </select>
+                                {compra.estado === "warehouse" ? "En Warehouse" : compra.estado === "recibido" ? "En Bolivia" : "En Reparto"}
+                              </span>
                               <button onClick={() => abrirEditar(compra)} title="Editar"
                                 className="p-1 rounded-lg transition-colors"
                                 style={{ color: "var(--text-3)" }}
